@@ -1,64 +1,112 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Ride Driver Login</title>
-
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f1f5f9;
-  margin: 0;
-  padding: 20px;
-}
-.card {
-  max-width: 420px;
-  margin: 35px auto;
-  background: white;
-  padding: 22px;
-  border-radius: 15px;
-  box-shadow: 0 3px 15px #0002;
-}
-h2 {
-  text-align: center;
-  color: #0756b8;
-}
-input {
-  width: 100%;
-  padding: 14px;
-  margin: 10px 0;
-  box-sizing: border-box;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
-}
-button {
-  width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  background: #0756b8;
-  color: white;
-  border: 0;
-  border-radius: 8px;
-  font-size: 16px;
-}
-#status {
-  text-align: center;
-  margin-top: 15px;
-  overflow-wrap: anywhere;
-}
-.hidden {
-  display: none;
-}
-#recaptcha-container {
-  margin: 15px 0;
-  display: flex;
-  justify-content: center;
-}
+body{font-family:Arial;background:#f1f5f9;margin:0;padding:20px}
+.card{max-width:420px;margin:35px auto;background:white;padding:22px;border-radius:15px;box-shadow:0 3px 15px #0002}
+h2{text-align:center;color:#0756b8}
+input,button{width:100%;box-sizing:border-box;padding:14px;margin:10px 0;border-radius:8px;font-size:16px}
+input{border:1px solid #ccc}
+button{background:#0756b8;color:white;border:0}
+#status{text-align:center;overflow-wrap:anywhere}
+.hidden{display:none}
 </style>
 </head>
-
 <body>
+<div class="card">
+<h2>🏍️ My Ride Driver</h2>
+<h3>मोबाइल OTP Login</h3>
 
-<div class
+<div id="login">
+<input id="phone" type="tel" placeholder="+91 मोबाइल नंबर">
+<div id="recaptcha-container"></div>
+<button id="send">OTP भेजें</button>
+<input id="otp" placeholder="6 अंकों का OTP" maxlength="6">
+<button id="verify">OTP Verify करें</button>
+</div>
+
+<div id="account" class="hidden">
+<h3>Login सफल हुआ!</h3>
+<p id="mobile"></p>
+<button id="logout">Logout</button>
+</div>
+<p id="status">मोबाइल नंबर दर्ज करें।</p>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {
+ getAuth, RecaptchaVerifier, signInWithPhoneNumber, signOut,
+ onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+const firebaseConfig = {
+ apiKey: "AIzaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6s",
+ authDomain: "myridebhilwara-45652.firebaseapp.com",
+ projectId: "myridebhilwara-45652",
+ storageBucket: "myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId: "819961031572",
+ appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+let confirmationResult = null;
+let verifier = null;
+
+const status = document.getElementById("status");
+
+document.getElementById("send").onclick = async () => {
+ try {
+  const phone = document.getElementById("phone").value.trim();
+  if (!/^\+91[0-9]{10}$/.test(phone)) {
+   status.textContent = "नंबर +91 के साथ 10 अंकों का डालें।";
+   return;
+  }
+  status.textContent = "OTP भेजा जा रहा है...";
+  if (!verifier) {
+   verifier = new RecaptchaVerifier(auth,"recaptcha-container",{
+    size:"normal"
+   });
+  }
+  confirmationResult = await signInWithPhoneNumber(auth,phone,verifier);
+  status.textContent = "OTP भेज दिया गया है।";
+ } catch(e) {
+  status.textContent = "Error: " + e.message;
+  if(verifier){verifier.clear();verifier=null;}
+ }
+};
+
+document.getElementById("verify").onclick = async () => {
+ try {
+  if(!confirmationResult){
+   status.textContent = "पहले OTP भेजें।";
+   return;
+  }
+  const otp = document.getElementById("otp").value.trim();
+  const result = await confirmationResult.confirm(otp);
+  status.textContent = "Login सफल!";
+ } catch(e) {
+  status.textContent = "OTP Error: " + e.message;
+ }
+};
+
+onAuthStateChanged(auth,user=>{
+ document.getElementById("login").classList.toggle("hidden",!!user);
+ document.getElementById("account").classList.toggle("hidden",!user);
+ if(user){
+  document.getElementById("mobile").textContent="मोबाइल: "+user.phoneNumber;
+ }
+});
+
+document.getElementById("logout").onclick=async()=>{
+ await signOut(auth);
+ status.textContent="Logout हो गया।";
+};
+</script>
+</body>
+</html>

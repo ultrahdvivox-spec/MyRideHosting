@@ -1,0 +1,393 @@
+<!DOCTYPE html>  <html lang="hi">    <head>    
+<meta charset="UTF-8">    
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>My Ride - Admin Panel</title>  <style>    
+* {    
+  box-sizing: border-box;    
+}    body {
+margin: 0;
+font-family: Arial, sans-serif;
+background: #f1f5f9;
+color: #172033;
+}
+
+header {
+background: #101c35;
+color: white;
+padding: 22px;
+}
+
+header h1 {
+margin: 0;
+}
+
+.container {
+max-width: 750px;
+margin: auto;
+padding: 16px;
+}
+
+.card {
+background: white;
+padding: 18px;
+margin-bottom: 16px;
+border-radius: 15px;
+box-shadow: 0 3px 12px #00000010;
+}
+
+input, button {
+width: 100%;
+padding: 13px;
+margin-top: 12px;
+border-radius: 9px;
+font-size: 16px;
+}
+
+input {
+border: 1px solid #cbd5e1;
+}
+
+button {
+border: none;
+background: #ffbb00;
+font-weight: bold;
+cursor: pointer;
+}
+
+button:disabled {
+opacity: 0.6;
+}
+
+.secondary {
+background: #e2e8f0;
+}
+
+.accept {
+background: #16a34a;
+color: white;
+}
+
+.reject {
+background: #dc2626;
+color: white;
+}
+
+.booking {
+border: 1px solid #e2e8f0;
+padding: 14px;
+margin-top: 14px;
+border-radius: 12px;
+overflow-wrap: anywhere;
+}
+
+.booking p {
+line-height: 1.7;
+}
+
+.status {
+font-weight: bold;
+}
+
+#message {
+white-space: pre-wrap;
+overflow-wrap: anywhere;
+line-height: 1.6;
+}
+</style>  </head>  <body>  <header>
+
+  <h1>🚗 My Ride Admin</h1>    
+  <p>बुकिंग मैनेजमेंट पैनल</p>    
+</header>  <div class="container">    <div class="card" id="loginCard">    
+    <h2>Admin Login</h2>  <input    
+  type="email"    
+  id="email"    
+  placeholder="Admin Email"    
+  autocomplete="username"    
+>    <input
+type="password"
+id="password"
+placeholder="Password"
+autocomplete="current-password"
+
+> 
+
+<button id="loginBtn">Login करें</button>
+
+<p class="small">    
+  केवल अधिकृत Admin ही बुकिंग देख सकता है।    
+</p>    </div>    <div class="card" id="dashboard" hidden>    
+    <h2>📋 सभी बुकिंग</h2>  <button id="refreshBtn" class="secondary">    
+  🔄 बुकिंग Refresh करें    
+</button>    <button id="logoutBtn" class="secondary">    
+  Logout    
+</button>    <div id="bookings"></div>    </div>    <div class="card">    
+    <p id="message">Admin लॉगिन का इंतजार है।</p>    
+  </div>  </div>  <script type="module">    import { initializeApp }
+from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+
+import {
+getAuth,
+signInWithEmailAndPassword,
+signOut,
+onAuthStateChanged
+}
+from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+import {
+getFirestore,
+collection,
+getDocs,
+doc,
+updateDoc,
+query,
+orderBy
+}
+from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+authDomain: "myridebhilwara-45652.firebaseapp.com",
+projectId: "myridebhilwara-45652",
+storageBucket: "myridebhilwara-45652.firebasestorage.app",
+messagingSenderId: "819961031572",
+appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+};
+
+const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const loginCard = document.getElementById("loginCard");
+const dashboard = document.getElementById("dashboard");
+const message = document.getElementById("message");
+const bookingsDiv = document.getElementById("bookings");
+const loginBtn = document.getElementById("loginBtn");
+
+let busy = false;
+
+function showMessage(text) {
+message.textContent = text;
+}
+
+function showAdmin(isAdmin) {
+loginCard.hidden = isAdmin;
+dashboard.hidden = !isAdmin;
+}
+
+document.getElementById("loginBtn").onclick = async () => {
+
+if (busy) return;
+
+const email = document.getElementById("email").value.trim();
+const password = document.getElementById("password").value;
+
+if (!email || !password) {
+showMessage("Email और Password दर्ज करें।");
+return;
+}
+
+busy = true;
+loginBtn.disabled = true;
+showMessage("लॉगिन हो रहा है...");
+
+try {
+
+const result = await signInWithEmailAndPassword(    
+  auth,    
+  email,    
+  password    
+);    
+
+if (result.user.uid !== ADMIN_UID) {    
+  await signOut(auth);    
+  showAdmin(false);    
+  showMessage("यह अकाउंट अधिकृत Admin नहीं है।");    
+  return;    
+}    
+
+showAdmin(true);    
+showMessage("Admin Login सफल हुआ।");    
+
+await loadBookings();
+
+} catch (error) {
+
+showMessage(    
+  "Login Error: " + error.code +    
+  "\nकृपया Email और Password जाँचें।"    
+);
+
+} finally {
+
+busy = false;    
+loginBtn.disabled = false;
+
+}
+};
+
+onAuthStateChanged(auth, async (user) => {
+
+if (!user) {
+showAdmin(false);
+return;
+}
+
+if (user.uid !== ADMIN_UID) {
+showAdmin(false);
+await signOut(auth);
+showMessage("अनधिकृत अकाउंट। Admin Login करें।");
+return;
+}
+
+showAdmin(true);
+showMessage("Admin Login सफल हुआ।");
+
+try {
+await loadBookings();
+} catch (error) {
+showMessage(
+"बुकिंग लोड नहीं हुई: " + error.code
+);
+}
+
+});
+
+async function loadBookings() {
+
+bookingsDiv.replaceChildren();
+
+showMessage("बुकिंग लोड हो रही हैं...");
+
+try {
+
+const bookingsQuery = query(    
+  collection(db, "Booking"),    
+  orderBy("createdAt", "desc")    
+);    
+
+const snapshot = await getDocs(bookingsQuery);    
+
+if (snapshot.empty) {    
+  showMessage("अभी कोई बुकिंग नहीं मिली।");    
+  return;    
+}    
+
+snapshot.forEach((bookingDoc) => {    
+
+  const data = bookingDoc.data();    
+
+  const card = document.createElement("div");    
+  card.className = "booking";    
+
+  function addLine(label, value) {    
+    const p = document.createElement("p");    
+    const strong = document.createElement("strong");    
+
+    strong.textContent = label + ": ";    
+    p.append(    
+      strong,    
+      document.createTextNode(    
+        value == null ? "उपलब्ध नहीं" : String(value)    
+      )    
+    );    
+
+    card.appendChild(p);    
+  }    
+
+  addLine("Booking ID", bookingDoc.id);    
+  addLine("शुरुआत", data.pickup);    
+  addLine("मंजिल", data.destination);    
+  addLine("वाहन", data.vehicleType);    
+  addLine("शहर", data.city);    
+  addLine("स्थिति", data.status || "Pending");    
+
+  const actions = document.createElement("div");    
+
+  const acceptBtn = document.createElement("button");    
+  acceptBtn.textContent = "✅ बुकिंग Confirm करें";    
+  acceptBtn.className = "accept";    
+
+  const rejectBtn = document.createElement("button");    
+  rejectBtn.textContent = "❌ बुकिंग Cancel करें";    
+  rejectBtn.className = "reject";    
+
+  async function changeStatus(status) {    
+
+    if (busy) return;    
+
+    if (auth.currentUser?.uid !== ADMIN_UID) {    
+      showMessage("Admin Login आवश्यक है।");    
+      return;    
+    }    
+
+    busy = true;    
+    acceptBtn.disabled = true;    
+    rejectBtn.disabled = true;    
+
+    try {    
+
+      await updateDoc(    
+        doc(db, "Booking", bookingDoc.id),    
+        { status: status }    
+      );    
+
+      showMessage(    
+        "बुकिंग की स्थिति अपडेट हुई: " + status    
+      );    
+
+      await loadBookings();    
+
+    } catch (error) {    
+
+      showMessage(    
+        "Update Error: " + error.code    
+      );    
+
+    } finally {    
+
+      busy = false;    
+      acceptBtn.disabled = false;    
+      rejectBtn.disabled = false;    
+
+    }    
+  }    
+
+  acceptBtn.onclick = () => changeStatus("Accepted");    
+  rejectBtn.onclick = () => changeStatus("Rejected");    
+
+  actions.append(acceptBtn, rejectBtn);    
+  card.appendChild(actions);    
+  bookingsDiv.appendChild(card);    
+
+});    
+
+showMessage(    
+  "कुल बुकिंग: " + snapshot.size    
+);
+
+} catch (error) {
+
+showMessage(    
+  "बुकिंग लोड Error: " + error.code +    
+  "\nFirestore Rules और कनेक्शन जाँचें।"    
+);
+
+}
+}
+
+document.getElementById("refreshBtn").onclick =
+loadBookings;
+
+document.getElementById("logoutBtn").onclick =
+async () => {
+
+await signOut(auth);    
+showAdmin(false);    
+showMessage("आप Logout हो गए हैं।");
+
+};
+
+</script>  </body>
+
+</html>
