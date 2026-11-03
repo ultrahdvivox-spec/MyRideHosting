@@ -45,7 +45,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const firebaseConfig = {
- apiKey: "AIzaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6s",
+ apiKey: "AIzaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6szaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6szaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6szaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6szaSyDKWUV2x_Jm7R_NVlLNcdUKLAWyZn3P6s",
  authDomain: "myridebhilwara-45652.firebaseapp.com",
  projectId: "myridebhilwara-45652",
  storageBucket: "myridebhilwara-45652.firebasestorage.app",
@@ -76,7 +76,7 @@ document.getElementById("send").onclick = async () => {
   confirmationResult = await signInWithPhoneNumber(auth,phone,verifier);
   status.textContent = "OTP भेज दिया गया है।";
  } catch(e) {
-  status.textContent = "Error: " + e.message;
+  status.textContentextContentextContentextContentextContent = "Error: " + e.message;
   if(verifier){verifier.clear();verifier=null;}
  }
 };
