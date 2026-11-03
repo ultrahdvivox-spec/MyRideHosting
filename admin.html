@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Ride Admin</title>
+<style>
+body {
+  margin: 0;
+  padding: 18px;
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  color: #172033;
+}
+.container {
+  max-width: 600px;
+  margin: auto;
+}
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 12px #0001;
+}
+input, button {
+  width: 100%;
+  padding: 13px;
+  margin: 8px 0;
+  border-radius: 9px;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+input { border: 1px solid #cbd5e1; }
+button {
+  border: 0;
+  background: #14213d;
+  color: white;
+  font-weight: bold;
+}
+.accept { background: #15803d; }
+.reject { background: #dc2626; }
+.booking {
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  margin: 12px 0;
+  box-shadow: 0 2px 8px #0001;
+}
+.hidden { display: none; }
+#message { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🚗 My Ride Admin</h1>
+
+  <div class="card" id="loginBox">
+    <h2>Admin Login</h2>
+    <input id="email" type="email" placeholder="Admin Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Login करें</button>
+    <p id="message"></p>
+  </div>
+
+  <div id="panel" class="hidden">
+    <div class="card">
+      <h2>सभी बुकिंग</h2>
+      <button id="refreshBtn">बुकिंग Refresh करें</button>
+      <button id="logoutBtn">Logout</button>
+      <p id="panelMessage"></p>
+    </div>
+    <div id="bookings"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from
+"https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+  authDomain: "myridebhilwara-45652.firebaseapp.com",
+  projectId: "myridebhilwara-45652",
+  storageBucket: "myridebhilwara-45652.firebasestorage.app",
+  messagingSenderId: "819961031572",
+  appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+};
+
+const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const loginBox = document.getElementById("loginBox");
+const panel = document.getElementById("panel");
+const message = document.getElementById("message");
+const bookingsDiv = document.getElementById("bookings");
+const panelMessage = document.getElementById("panelMessage");
+
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  if (!email || !password) {
+    message.textContent = "Email और Password भरें।";
+    return;
+  }
+
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true;
+  message.textContent = "Login हो रहा है...";
+
+  try {
+    const result = await signInWithEmailAndPassword(
+      auth, email, password
+    );
+
+    if (result.user.uid !== ADMIN_UID) {
+      await signOut(auth);
+      throw new Error("यह अकाउंट Admin नहीं है।");
+    }
+
+    loginBox.classList.add("hidden");
+    panel.classList.remove("hidden");
+    await loadBookings();
+
+  } catch (error) {
+    message.textContent = "Login Error: " + error.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+async function loadBookings() {
+  bookingsDiv.replaceChildren();
+  panelMessage.textContent = "बुकिंग लोड हो रही हैं...";
+
+  try {
+    const snapshot = await getDocs(collection(db, "Booking"));
+
+    if (snapshot.empty) {
+      panelMessage.textContent = "अभी कोई बुकिंग नहीं है।";
+      return;
+    }
+
+    panelMessage.textContent =
+      "कुल बुकिंग: " + snapshot.size;
+
+    snapshot.forEach((bookingDoc) => {
+      const data = bookingDoc.data();
+
+      const card = document.createElement("div");
+      card.className = "booking";
+
+      const details = document.createElement("div");
+      details.textContent =
+        "Booking ID: " + bookingDoc.id +
+        "\nशुरुआत: " + (data.pickup || "") +
+        "\nमंजिल: " + (data.destination || "") +
+        "\nवाहन: " + (data.vehicleType || "") +
+        "\nस्टेटस: " + (data.status || "Pending");
+
+      const accept = document.createElement("button");
+      accept.className = "accept";
+      accept.textContent = "Accept Booking";
+
+      const reject = document.createElement("button");
+      reject.className = "reject";
+      reject.textContent = "Reject Booking";
+
+      accept.onclick = () =>
+        changeStatus(bookingDoc.id, "Accepted", accept, reject);
+
+      reject.onclick = () =>
+        changeStatus(bookingDoc.id, "Rejected", accept, reject);
+
+      card.append(details, accept, reject);
+      bookingsDiv.appendChild(card);
+    });
+
+  } catch (error) {
+    panelMessage.textContent =
+      "बुकिंग लोड नहीं हुई: " + error.message;
+  }
+}
+
+async function changeStatus(id, status, accept, reject) {
+  accept.disabled = true;
+  reject.disabled = true;
+
+  try {
+    await updateDoc(doc(db, "Booking", id), {
+      status: status
+    });
+
+    panelMessage.textContent =
+      "बुकिंग का स्टेटस " + status + " हो गया।";
+
+    await loadBookings();
+
+  } catch (error) {
+    panelMessage.textContent =
+      "Update Error: " + error.message;
+    accept.disabled = false;
+    reject.disabled = false;
+  }
+}
+
+document.getElementById("refreshBtn").onclick = loadBookings;
+
+document.getElementById("logoutBtn").onclick = async () => {
+  await signOut(auth);
+  panel.classList.add("hidden");
+  loginBox.classList.remove("hidden");
+  bookingsDiv.replaceChildren();
+  message.textContent = "आप Logout हो गए हैं।";
+};
+</script>
+
+</body>
+</html>
