@@ -1,301 +1,75 @@
-
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>My Ride Admin Panel</title>
-<style>
-*{box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:14px;color:#172033}
-.container{max-width:850px;margin:auto}
-.card{background:white;padding:18px;border-radius:14px;margin:12px 0;box-shadow:0 3px 12px #0001}
-input,button,select{width:100%;padding:12px;margin:7px 0;border-radius:8px;border:1px solid #ccd3e0;font-size:15px}
-button{background:#2457d6;color:white;border:0;font-weight:bold;cursor:pointer}
-.secondary{background:#475569}
-.green{background:#16834a}
-.danger{background:#c62828}
-.small{font-size:13px;color:#64748b;overflow-wrap:anywhere}
-.item{border:1px solid #e2e8f0;border-radius:10px;padding:13px;margin:10px 0}
-.hidden{display:none}
-</style>
-</head>
-<body>
-<div class="container">
-<h2>🛡️ My Ride Admin Panel</h2>
-
-<div class="card" id="loginBox">
-<h3>Admin Login</h3>
-<input id="email" type="email" placeholder="Admin Email">
-<input id="password" type="password" placeholder="Password">
-<button id="loginBtn">Admin Login</button>
-<p id="loginMsg" class="small"></p>
-</div>
-
-<div id="panel" class="hidden">
-<div class="card">
-<h3>Welcome Admin</h3>
-<p id="adminInfo" class="small"></p>
-<button id="logoutBtn" class="danger">Logout</button>
-</div>
-
-<div class="card">
-<h3>📊 Dashboard</h3>
-<p id="stats">Loading...</p>
-<button id="refreshBtn" class="secondary">Refresh Dashboard</button>
-</div>
-
-<div class="card">
-<h3>👨‍✈️ Driver Management</h3>
-<div id="drivers">Loading Drivers...</div>
-</div>
-
-<div class="card">
-<h3>🚕 All Bookings</h3>
-<div id="bookings">Loading Bookings...</div>
-</div>
-</div>
-</div>
-
+<!doctype html>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Ride Admin</title><style>
+:root{font-family:Arial,sans-serif;color:#172033;background:#eef2ff}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:#eef2ff}
+.wrap{max-width:850px;margin:auto}.card{background:#fff;padding:18px;border-radius:16px;margin:12px 0;box-shadow:0 3px 14px #17203312}
+h1{font-size:24px;margin:4px 0 14px}h2{font-size:18px;margin:0 0 12px}
+input,select,button{font:inherit;width:100%;padding:12px;margin:6px 0;border:1px solid #cbd5e1;border-radius:10px}
+button{background:#1d4ed8;color:white;border:0;font-weight:700;cursor:pointer}
+button.secondary{background:#475569}button.danger{background:#b91c1c}button:disabled{opacity:.5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.small{font-size:13px;color:#64748b}.status{padding:8px 10px;background:#eff6ff;border-radius:8px;margin:8px 0}
+.item{border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin:10px 0}
+.hidden{display:none}.ok{color:#15803d}.err{color:#b91c1c;white-space:pre-wrap}
+@media(max-width:560px){.row{grid-template-columns:1fr}body{padding:10px}}
+</style></head>
+<body><main class="wrap"><h1>🛡️ My Ride Bhilwara — Admin</h1>
+<div class="card" id="authCard"><h2>Admin Login</h2><input id="email" type="email" placeholder="Admin Email"><input id="password" type="password" placeholder="Password"><button id="loginBtn">Login</button><p id="authMsg" class="err"></p></div>
+<div id="app" class="hidden"><div class="card"><div class="row"><b id="userLabel">Admin</b><button id="logoutBtn" class="secondary">Logout</button></div><p class="small">यह पैनल केवल निर्धारित Admin UID से खुलेगा।</p></div>
+<div class="card"><h2>Driver Verification</h2><button id="refreshDrivers" class="secondary">Refresh Drivers</button><div id="drivers">लोड हो रहा है…</div></div>
+<div class="card"><h2>सभी Bookings</h2><button id="refreshBookings" class="secondary">Refresh Bookings</button><div id="bookings">लोड हो रहा है…</div></div></div></main>
 <script type="module">
-import {initializeApp}
-from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-
-import {
- getAuth,signInWithEmailAndPassword,
- onAuthStateChanged,signOut
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-
-import {
- getFirestore,collection,getDocs,doc,
- updateDoc,serverTimestamp
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
-
-/* अपने Customer/Driver कोड वाली Firebase Config लगाएँ */
-const firebaseConfig={
- apiKey:"PASTE_YOUR_EXISTING_API_KEY",
- authDomain:"myridebhilwara-45652.firebaseapp.com",
- projectId:"myridebhilwara-45652",
- storageBucket:"myridebhilwara-45652.firebasestorage.app",
- messagingSenderId:"PASTE_YOUR_EXISTING_SENDER_ID",
- appId:"PASTE_YOUR_EXISTING_APP_ID"
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import {getFirestore,collection,getDocs,doc,updateDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+  authDomain: "myridebhilwara-45652.firebaseapp.com",
+  projectId: "myridebhilwara-45652",
+  storageBucket: "myridebhilwara-45652.firebasestorage.app",
+  messagingSenderId: "819961031572",
+  appId: "1:819961031572:web:b7e1f401c90d7335203d81",
+  measurementId: "G-WTYS5RWL4V"
 };
-
 const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
-
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-
-const $=id=>document.getElementById(id);
-
-let currentAdmin=null;
-
-function esc(v){
- return String(v??"").replace(/[&<>"']/g,c=>({
- "&":"&amp;","<":"&lt;",">":"&gt;",
- '"':"&quot;","'":"&#39;"
- })[c]);
-}
-
-function showMessage(id,text){
- $(id).textContent=text;
-}
-
-$("loginBtn").onclick=async()=>{
- try{
-  showMessage("loginMsg","Login हो रहा है...");
-  await signInWithEmailAndPassword(
-   auth,$("email").value.trim(),$("password").value
-  );
- }catch(e){
-  showMessage("loginMsg","Login Error: "+e.message);
- }
-};
-
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id);
+$("loginBtn").onclick=async()=>{try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);}catch(e){$("authMsg").textContent=e.message;}};
 $("logoutBtn").onclick=()=>signOut(auth);
-$("refreshBtn").onclick=loadDashboard;
-
-onAuthStateChanged(auth,async user=>{
- currentAdmin=user;
-
- if(user && user.uid===ADMIN_UID){
-  $("loginBox").classList.add("hidden");
-  $("panel").classList.remove("hidden");
-  $("adminInfo").textContent="Admin Email: "+(user.email||"");
-  await loadDashboard();
- }else{
-  $("panel").classList.add("hidden");
-  $("loginBox").classList.remove("hidden");
-  if(user){
-   await signOut(auth);
-   showMessage("loginMsg","यह Account Admin नहीं है। Access Denied.");
-  }
- }
+onAuthStateChanged(auth,async u=>{
+ if(u&&u.uid!==ADMIN_UID){await signOut(auth);$("authMsg").textContent="यह Account Admin नहीं है।";return;}
+ $("authCard").classList.toggle("hidden",!!u);$("app").classList.toggle("hidden",!u);
+ if(u){$("userLabel").textContent=u.email||u.uid;await loadDrivers();await loadBookings();}
 });
-
-async function loadDashboard(){
- if(!currentAdmin||currentAdmin.uid!==ADMIN_UID)return;
-
- $("drivers").textContent="Loading...";
- $("bookings").textContent="Loading...";
-
- try{
-  const [driverSnap,bookingSnap]=await Promise.all([
-   getDocs(collection(db,"Drivers")),
-   getDocs(collection(db,"Booking"))
-  ]);
-
-  let active=0,verified=0,pending=0,completed=0;
-
-  driverSnap.forEach(d=>{
-   const x=d.data();
-   if(x.active===true)active++;
-   if(x.verified===true)verified++;
-  });
-
-  bookingSnap.forEach(d=>{
-   const x=d.data();
-   if(x.status==="Pending")pending++;
-   if(x.status==="Completed")completed++;
-  });
-
-  showMessage("stats",
-   "कुल Drivers: "+driverSnap.size+
-   " | Active: "+active+
-   " | Verified: "+verified+
-   " | कुल Bookings: "+bookingSnap.size+
-   " | Pending: "+pending+
-   " | Completed: "+completed
-  );
-
-  renderDrivers(driverSnap);
-  renderBookings(bookingSnap);
-
- }catch(e){
-  showMessage("stats","Error: "+e.message);
-  $("drivers").textContent="Drivers Error: "+e.message;
-  $("bookings").textContent="Bookings Error: "+e.message;
- }
+$("refreshDrivers").onclick=loadDrivers;$("refreshBookings").onclick=loadBookings;
+async function loadDrivers(){
+ const host=$("drivers");host.textContent="लोड हो रहा है…";
+ try{const s=await getDocs(collection(db,"Drivers"));host.innerHTML="";
+ if(s.empty){host.textContent="कोई Driver Profile नहीं है।";return;}
+ s.forEach(x=>{const d=x.data(),el=document.createElement("div");el.className="item";
+ const b=document.createElement("b");b.textContent=d.name||"Unnamed Driver";
+ const p=document.createElement("p");p.textContent="Phone: "+(d.phone||"-")+" | Vehicle: "+(d.vehicleNumber||"-")+" | "+(d.vehicleModel||"-")+" | License: "+(d.licenseNumber||"-");
+ const st=document.createElement("div");st.className="status";st.textContent="Verified: "+!!d.verified+" | Active: "+!!d.active;
+ const verify=document.createElement("button");verify.textContent=d.verified?"Unverify":"Verify";verify.className="secondary";
+ verify.onclick=()=>setDriver(x.id,{verified:!d.verified,active:d.active===true});
+ const active=document.createElement("button");active.textContent=d.active?"Deactivate":"Activate";
+ active.onclick=()=>setDriver(x.id,{verified:d.verified===true,active:!d.active});
+ el.append(b,p,st,verify,active);host.append(el);});
+ }catch(e){host.textContent="Drivers Error: "+e.message;}
 }
-
-function renderDrivers(snapshot){
- const root=$("drivers");
- root.innerHTML="";
-
- if(snapshot.empty){
-  root.textContent="अभी कोई Driver Registered नहीं है।";
-  return;
- }
-
- snapshot.forEach(d=>{
-  const x=d.data();
-  const div=document.createElement("div");
-  div.className="item";
-
-  const active=x.active===true;
-  const verified=x.verified===true;
-
-  div.innerHTML=`
-   <b>Driver Name:</b> ${esc(x.name)}<br>
-   <b>UID:</b> ${esc(d.id)}<br>
-   <b>Phone:</b> ${esc(x.phone)}<br>
-   <b>Vehicle:</b> ${esc(x.vehicleNumber)}<br>
-   <b>Model:</b> ${esc(x.vehicleModel)}<br>
-   <b>License:</b> ${esc(x.licenseNumber)}<br>
-   <b>Active:</b> ${active?"Yes":"No"}<br>
-   <b>Verified:</b> ${verified?"Yes":"No"}
-  `;
-
-  const activeBtn=document.createElement("button");
-  activeBtn.textContent=active?"Deactivate Driver":"Activate Driver";
-  activeBtn.className=active?"danger":"green";
-  activeBtn.onclick=()=>changeDriver(d.id,{active:!active});
-
-  const verifyBtn=document.createElement("button");
-  verifyBtn.textContent=verified?"Remove Verification":"Verify Driver";
-  verifyBtn.className="secondary";
-  verifyBtn.onclick=()=>changeDriver(d.id,{verified:!verified});
-
-  div.append(activeBtn,verifyBtn);
-  root.appendChild(div);
- });
+async function setDriver(uid,values){try{await updateDoc(doc(db,"Drivers",uid),{...values,updatedAt:serverTimestamp()});await loadDrivers();}catch(e){alert("Driver Update Error: "+e.message);}}
+async function loadBookings(){
+ const host=$("bookings");host.textContent="लोड हो रहा है…";
+ try{const s=await getDocs(collection(db,"Booking"));host.innerHTML="";
+ if(s.empty){host.textContent="कोई Booking नहीं है।";return;}
+ const rows=s.docs.sort((a,b)=>(b.data().createdAt?.seconds||0)-(a.data().createdAt?.seconds||0));
+ rows.forEach(x=>{const d=x.data(),el=document.createElement("div");el.className="item";
+ const b=document.createElement("b");b.textContent=(d.pickup||"-")+" → "+(d.destination||"-");
+ const p=document.createElement("p");p.textContent="Customer: "+(d.customerPhone||"-")+" | Vehicle: "+(d.vehicleType||"-")+" | Driver: "+(d.driverName||"Not assigned");
+ const st=document.createElement("div");st.className="status";st.textContent="Status: "+d.status+" | Fare: ₹"+(d.fare??0);
+ const sel=document.createElement("select");["Pending","Accepted","Started","Completed","Cancelled"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;if(v===d.status)o.selected=true;sel.append(o);});
+ const btn=document.createElement("button");btn.textContent="Status Update";btn.onclick=async()=>{try{await updateDoc(doc(db,"Booking",x.id),{status:sel.value,adminUpdatedAt:serverTimestamp()});await loadBookings();}catch(e){alert(e.message);}};
+ el.append(b,p,st,sel,btn);host.append(el);});
+ }catch(e){host.textContent="Booking Error: "+e.message;}
 }
-
-async function changeDriver(uid,changes){
- if(!confirm("क्या आप इस Driver की जानकारी बदलना चाहते हैं?"))return;
-
- try{
-  await updateDoc(doc(db,"Drivers",uid),{
-   ...changes,
-   adminUpdatedAt:serverTimestamp()
-  });
-  alert("Driver Update हो गया।");
-  await loadDashboard();
- }catch(e){
-  alert("Driver Update Error: "+e.message);
- }
-}
-
-function renderBookings(snapshot){
- const root=$("bookings");
- root.innerHTML="";
-
- if(snapshot.empty){
-  root.textContent="अभी कोई Booking नहीं है।";
-  return;
- }
-
- snapshot.forEach(d=>{
-  const x=d.data();
-  const div=document.createElement("div");
-  div.className="item";
-
-  div.innerHTML=`
-   <b>Booking ID:</b> ${esc(d.id)}<br>
-   <b>Customer:</b> ${esc(x.customerEmail)}<br>
-   <b>Phone:</b> ${esc(x.customerPhone)}<br>
-   <b>Pickup:</b> ${esc(x.pickup)}<br>
-   <b>Destination:</b> ${esc(x.destination)}<br>
-   <b>Vehicle:</b> ${esc(x.vehicleType)}<br>
-   <b>Driver:</b> ${esc(x.driverName)}<br>
-   <b>Status:</b> ${esc(x.status)}<br>
-   <b>Fare:</b> ₹${esc(x.fare)}
-  `;
-
-  const select=document.createElement("select");
-  ["Pending","Accepted","Started","Completed","Cancelled"].forEach(s=>{
-   const option=document.createElement("option");
-   option.value=s;
-   option.textContent=s;
-   if(x.status===s)option.selected=true;
-   select.appendChild(option);
-  });
-
-  const save=document.createElement("button");
-  save.textContent="Update Booking Status";
-  save.className="secondary";
-  save.onclick=()=>changeBooking(d.id,select.value);
-
-  div.append(select,save);
-  root.appendChild(div);
- });
-}
-
-async function changeBooking(id,status){
- if(!confirm("Booking Status बदलना है?"))return;
-
- try{
-  await updateDoc(doc(db,"Booking",id),{
-   status,
-   adminUpdatedAt:serverTimestamp()
-  });
-  alert("Booking Update हो गई।");
-  await loadDashboard();
- }catch(e){
-  alert("Booking Update Error: "+e.message);
- }
-}
-</script>
-</body>
-</html>
+</script></body></html>
