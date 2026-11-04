@@ -91,6 +91,87 @@ document.getElementById("logout").onclick=async()=>{
  try{await signOut(auth);status.textContent="Logout हो गया";}
  catch(e){status.textContent="Logout Error: "+e.message;}
 };
+ 
+const {getFirestore, collection, getDocs, doc, runTransaction} =
+  await import("https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js");
+
+const db = getFirestore(app);
+
+const dashboard = document.createElement("div");
+dashboard.innerHTML = `
+  <hr>
+  <h3>🚕 Available Pending Bookings</h3>
+  <button id="loadBookings">Refresh Bookings</button>
+  <div id="driverBookings"></div>
+`;
+document.getElementById("account").appendChild(dashboard);
+
+async function loadDriverBookings() {
+  const list = document.getElementById("driverBookings");
+  list.textContent = "बुकिंग लोड हो रही हैं...";
+
+  try {
+    const snapshot = await getDocs(collection(db, "Booking"));
+    list.replaceChildren();
+
+    let count = 0;
+
+    snapshot.forEach(b => {
+      const data = b.data();
+      if (data.status !== "Pending") return;
+
+      count++;
+      const card = document.createElement("div");
+      card.style.cssText = "padding:14px;margin:12px 0;background:#eef2ff;border-radius:10px";
+
+      const details = document.createElement("p");
+      details.textContent =
+        "शुरुआत: " + (data.pickup || "") +
+        "\nमंजिल: " + (data.destination || "") +
+        "\nवाहन: " + (data.vehicleType || "");
+
+      const accept = document.createElement("button");
+      accept.textContent = "Accept Booking";
+
+      accept.onclick = async () => {
+        accept.disabled = true;
+        try {
+          await runTransaction(db, async transaction => {
+            const bookingRef = doc(db, "Booking", b.id);
+            const latest = await transaction.get(bookingRef);
+
+            if (!latest.exists() || latest.data().status !== "Pending") {
+              throw new Error("यह बुकिंग किसी दूसरे Driver ने ले ली है।");
+            }
+
+            transaction.update(bookingRef, {
+              status: "Accepted",
+              driverUid: auth.currentUser.uid,
+              driverEmail: auth.currentUser.email
+            });
+          });
+
+          alert("Booking Accept हो गई!");
+          await loadDriverBookings();
+        } catch (error) {
+          alert(error.message);
+          accept.disabled = false;
+        }
+      };
+
+      card.append(details, accept);
+      list.appendChild(card);
+    });
+
+    if (count === 0) list.textContent = "अभी कोई Pending Booking नहीं है।";
+  } catch (error) {
+    list.textContent = "Error: " + error.message;
+  }
+}
+
+document.getElementById("loadBookings").onclick = loadDriverBookings;
+loadDriverBookings();
+
 </script>
 </body>
 </html>
