@@ -7,69 +7,59 @@
 <title>My Ride Customer</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:15px;color:#172033}
-.container{max-width:600px;margin:auto}
-.card{background:white;padding:18px;border-radius:15px;margin:14px 0;box-shadow:0 3px 12px #0002}
-h2{text-align:center;color:#0756b8}
-input,select,button{width:100%;padding:14px;margin:8px 0;border-radius:9px;font-size:16px}
-input,select{border:1px solid #ccc}
-button{border:0;background:#0756b8;color:white;font-weight:bold}
+body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:14px;color:#172033}
+.container{max-width:650px;margin:auto}
+.card{background:white;padding:18px;border-radius:14px;margin:12px 0;box-shadow:0 3px 12px #0001}
+input,select,button{width:100%;padding:12px;margin:7px 0;border-radius:8px;border:1px solid #ccd3e0;font-size:15px}
+button{background:#2457d6;color:white;border:0;font-weight:bold;cursor:pointer}
 button:disabled{opacity:.5}
-.logout{background:#dc2626}
-.booking{background:#f1f5f9;padding:14px;border-radius:12px;margin:12px 0;overflow-wrap:anywhere}
+.secondary{background:#475569}
+.danger{background:#c62828}
 .hidden{display:none}
-.small{font-size:12px;color:#555}
-#message{white-space:pre-wrap;overflow-wrap:anywhere}
+.small{font-size:13px;color:#64748b;overflow-wrap:anywhere}
+.booking{border:1px solid #e2e8f0;padding:13px;border-radius:10px;margin:10px 0}
+.status{font-weight:bold;color:#2457d6}
 </style>
 </head>
 <body>
 <div class="container">
+<h2>🚕 My Ride Customer</h2>
+
+<div class="card" id="authBox">
+<h3>Customer Login / Register</h3>
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn">Login</button>
+<button id="registerBtn" class="secondary">New Customer Register</button>
+<p id="authMsg" class="small"></p>
+</div>
+
+<div id="appBox" class="hidden">
+<div class="card">
+<b>Customer Login सफल हुआ!</b>
+<p id="userInfo" class="small"></p>
+<button id="logoutBtn" class="danger">Logout</button>
+</div>
 
 <div class="card">
-<h2>🏍️ My Ride Customer</h2>
-
-<div id="login">
-<h3>Email Login / Register</h3>
-<input id="email" type="email" placeholder="अपना Email लिखें">
-<input id="password" type="password" placeholder="Password (कम से कम 6 अक्षर)">
-<button id="register">नया Account बनाएं</button>
-<button id="signin">Login करें</button>
-</div>
-
-<div id="account" class="hidden">
-<p id="customerInfo"></p>
-<button id="logout" class="logout">Logout</button>
-</div>
-
-<p id="message">Email और Password दर्ज करें।</p>
-</div>
-
-<div id="dashboard" class="hidden">
-
-<div class="card">
-<h3>🚕 नई Ride Book करें</h3>
-<label>Pickup Location</label>
-<input id="pickup" placeholder="कहाँ से जाना है?">
-
-<label>Destination</label>
-<input id="destination" placeholder="कहाँ जाना है?">
-
-<label>Vehicle चुनें</label>
+<h3>📍 नई Ride Book करें</h3>
+<input id="customerPhone" type="tel" placeholder="आपका Mobile Number">
+<input id="pickup" placeholder="Pickup Location">
+<input id="destination" placeholder="Destination">
 <select id="vehicleType">
 <option value="bike">Bike</option>
 <option value="auto">Auto</option>
 <option value="car">Car</option>
 </select>
-
-<button id="bookRide">Booking Confirm करें</button>
-<p class="small">किराया अभी ₹0 है। Fare सिस्टम बाद में जोड़ा जाएगा।</p>
+<button id="bookBtn">Confirm Booking</button>
+<p id="bookMsg" class="small"></p>
 </div>
 
 <div class="card">
 <h3>📋 मेरी Bookings</h3>
-<div id="myBookings">बुकिंग लोड हो रही हैं...</div>
+<button id="refreshBtn" class="secondary">Refresh Bookings</button>
+<div id="bookingList">Loading...</div>
 </div>
-
 </div>
 </div>
 
@@ -78,272 +68,236 @@ import {initializeApp}
 from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
- getAuth,
- createUserWithEmailAndPassword,
- signInWithEmailAndPassword,
- onAuthStateChanged,
- signOut
+ getAuth,createUserWithEmailAndPassword,
+ signInWithEmailAndPassword,onAuthStateChanged,signOut
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
- getFirestore,
- collection,
- addDoc,
- query,
- where,
- onSnapshot,
- serverTimestamp
+ getFirestore,collection,addDoc,query,where,
+ onSnapshot,serverTimestamp,doc,updateDoc
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const firebaseConfig={
- apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
- authDomain:"myridebhilwara-45652.firebaseapp.com",
- projectId:"myridebhilwara-45652",
- storageBucket:"myridebhilwara-45652.firebasestorage.app",
- messagingSenderId:"819961031572",
- appId:"1:819961031572:web:b7e1f401c90d7335203d81"
+const firebaseConfig = {
+ apiKey: "PASTE_YOUR_EXISTING_API_KEY",
+ authDomain: "myridebhilwara-45652.firebaseapp.com",
+ projectId: "myridebhilwara-45652",
+ storageBucket: "myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId: "PASTE_YOUR_EXISTING_SENDER_ID",
+ appId: "PASTE_YOUR_EXISTING_APP_ID"
 };
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
+const bookingRef=collection(db,"Booking");
 
-const message=document.getElementById("message");
-const loginBox=document.getElementById("login");
-const accountBox=document.getElementById("account");
-const dashboard=document.getElementById("dashboard");
-const bookingsBox=document.getElementById("myBookings");
-
+let user=null;
 let unsubscribeBookings=null;
 
-function showMessage(text){
- message.textContent=text;
+const $=id=>document.getElementById(id);
+
+function msg(id,text){
+ $(id).textContent=text;
 }
 
-function getDetails(){
- return {
-  email:document.getElementById("email").value.trim(),
-  password:document.getElementById("password").value
- };
+function esc(value){
+ return String(value??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",
+ '"':"&quot;","'":"&#39;"
+ })[c]);
 }
 
-// नया Account
-document.getElementById("register").onclick=async()=>{
+$("registerBtn").onclick=async()=>{
  try{
-  const {email,password}=getDetails();
-
+  const email=$("email").value.trim();
+  const password=$("password").value;
   if(!email||password.length<6){
-   showMessage("सही Email और कम से कम 6 अक्षर का Password डालें।");
+   msg("authMsg","Email और कम से कम 6 अक्षर का Password डालें।");
    return;
   }
-
-  showMessage("Account बनाया जा रहा है...");
   await createUserWithEmailAndPassword(auth,email,password);
-  showMessage("Account बन गया!");
  }catch(e){
-  showMessage("Register Error: "+e.message);
+  msg("authMsg",e.message);
  }
 };
 
-// Login
-document.getElementById("signin").onclick=async()=>{
+$("loginBtn").onclick=async()=>{
  try{
-  const {email,password}=getDetails();
-
-  if(!email||!password){
-   showMessage("Email और Password डालें।");
-   return;
-  }
-
-  showMessage("Login हो रहा है...");
-  await signInWithEmailAndPassword(auth,email,password);
-  showMessage("Login सफल!");
+  await signInWithEmailAndPassword(
+   auth,$("email").value.trim(),$("password").value
+  );
  }catch(e){
-  showMessage("Login Error: "+e.message);
+  msg("authMsg",e.message);
  }
 };
 
-// नई Booking
-document.getElementById("bookRide").onclick=async()=>{
- const user=auth.currentUser;
- if(!user){
-  showMessage("पहले Login करें।");
-  return;
- }
+$("logoutBtn").onclick=()=>signOut(auth);
+$("refreshBtn").onclick=()=>listenBookings();
 
- const pickup=document.getElementById("pickup").value.trim();
- const destination=document.getElementById("destination").value.trim();
- const vehicleType=document.getElementById("vehicleType").value;
+onAuthStateChanged(auth,currentUser=>{
+ user=currentUser;
 
- if(!pickup||!destination){
-  showMessage("Pickup और Destination भरें।");
-  return;
- }
-
- const button=document.getElementById("bookRide");
- button.disabled=true;
-
- try{
-  showMessage("Booking बनाई जा रही है...");
-
-  await addDoc(collection(db,"Booking"),{
-   customerUid:user.uid,
-   customerEmail:user.email||"",
-   customerPhone:"",
-   pickup:pickup,
-   destination:destination,
-   vehicleType:vehicleType,
-   City:"Bhilwara",
-   status:"Pending",
-   fare:0,
-   driverId:"",
-   driverUid:"",
-   driverName:"",
-   driverEmail:"",
-   vehicleNumber:"",
-   driverPhotoURL:"",
-   driverLat:null,
-   driverLng:null,
-   createdAt:serverTimestamp()
-  });
-
-  document.getElementById("pickup").value="";
-  document.getElementById("destination").value="";
-  showMessage("Booking सफल! Driver के Accept करने का इंतजार करें।");
-
- }catch(e){
-  showMessage("Booking Error: "+e.message);
- }finally{
-  button.disabled=false;
- }
-};
-
-// Booking Card
-function createBookingCard(data,id){
- const card=document.createElement("div");
- card.className="booking";
-
- function addText(label,value){
-  const p=document.createElement("p");
-  p.textContent=label+": "+(value??"अभी उपलब्ध नहीं");
-  card.appendChild(p);
- }
-
- addText("Booking ID",id);
- addText("Pickup",data.pickup);
- addText("Destination",data.destination);
- addText("Vehicle",data.vehicleType);
- addText("Status",data.status);
- addText("Driver",data.driverName);
- addText("Gaadi Number",data.vehicleNumber);
- addText("Fare","₹"+(data.fare??0));
-
- if(data.driverPhotoURL){
-  try{
-   const url=new URL(data.driverPhotoURL);
-   if(url.protocol==="https:"){
-    const photo=document.createElement("img");
-    photo.src=url.href;
-    photo.alt="Driver Photo";
-    photo.width=90;
-    photo.height=90;
-    photo.style.borderRadius="50%";
-    card.appendChild(photo);
-   }
-  }catch(e){}
- }
-
- if(["Accepted","Started","Ongoing"].includes(data.status)){
-  addText("DL Verification",
-   data.dlVerified===true?"Verified":"Verification Pending");
-
-  const lat=Number(data.driverLat);
-  const lng=Number(data.driverLng);
-
-  if(Number.isFinite(lat)&&Number.isFinite(lng)&&
-     lat>=-90&&lat<=90&&lng>=-180&&lng<=180){
-
-   const link=document.createElement("a");
-   link.href="https://www.openstreetmap.org/?mlat="+lat+
-    "&mlon="+lng+"#map=16/"+lat+"/"+lng;
-   link.target="_blank";
-   link.rel="noopener noreferrer";
-   link.textContent="🗺️ Driver की Location देखें";
-   card.appendChild(link);
-
-  }else{
-   addText("Live Location","Driver GPS अभी उपलब्ध नहीं है");
-  }
- }
-
- return card;
-}
-
-// Live Booking Updates
-function listenBookings(user){
  if(unsubscribeBookings){
   unsubscribeBookings();
   unsubscribeBookings=null;
  }
 
- bookingsBox.textContent="बुकिंग लोड हो रही हैं...";
+ if(user){
+  $("authBox").classList.add("hidden");
+  $("appBox").classList.remove("hidden");
+  $("userInfo").textContent=
+   "Email: "+(user.email||"")+" | UID: "+user.uid;
+  listenBookings();
+ }else{
+  $("authBox").classList.remove("hidden");
+  $("appBox").classList.add("hidden");
+  $("bookingList").innerHTML="";
+ }
+});
+
+$("bookBtn").onclick=async()=>{
+ if(!user)return;
+
+ const phone=$("customerPhone").value.trim();
+ const pickup=$("pickup").value.trim();
+ const destination=$("destination").value.trim();
+ const vehicleType=$("vehicleType").value;
+
+ if(!phone||!pickup||!destination){
+  msg("bookMsg","Mobile, Pickup और Destination भरें।");
+  return;
+ }
+
+ if(pickup.length>200||destination.length>200){
+  msg("bookMsg","Location 200 अक्षरों से छोटी रखें।");
+  return;
+ }
+
+ $("bookBtn").disabled=true;
+ msg("bookMsg","Booking भेजी जा रही है...");
+
+ try{
+  const booking={
+   customerUid:user.uid,
+   customerEmail:user.email||"",
+   customerPhone:phone,
+   city:"Bhilwara",
+   pickup,
+   destination,
+   vehicleType,
+   status:"Pending",
+   fare:0,
+   driverUid:"",
+   driverEmail:"",
+   driverName:"",
+   driverPhone:"",
+   vehicleNumber:"",
+   vehicleModel:"",
+   driverLat:null,
+   driverLng:null,
+   createdAt:serverTimestamp()
+  };
+
+  const result=await addDoc(bookingRef,booking);
+  msg("bookMsg","✅ Booking सफल! Booking ID: "+result.id);
+  $("pickup").value="";
+  $("destination").value="";
+ }catch(e){
+  msg("bookMsg","Booking Error: "+e.message);
+ }finally{
+  $("bookBtn").disabled=false;
+ }
+};
+
+function listenBookings(){
+ if(!user)return;
+
+ if(unsubscribeBookings)unsubscribeBookings();
+
+ msg("bookingList","Bookings लोड हो रही हैं...");
 
  const q=query(
-  collection(db,"Booking"),
+  bookingRef,
   where("customerUid","==",user.uid)
  );
 
  unsubscribeBookings=onSnapshot(q,snapshot=>{
-  bookingsBox.replaceChildren();
+  $("bookingList").innerHTML="";
 
   if(snapshot.empty){
-   bookingsBox.textContent="अभी कोई Booking नहीं है।";
+   $("bookingList").innerHTML="<p>अभी कोई Booking नहीं है।</p>";
    return;
   }
 
-  snapshot.forEach(item=>{
-   bookingsBox.appendChild(
-    createBookingCard(item.data(),item.id)
-   );
+  const bookings=[];
+  snapshot.forEach(d=>bookings.push({id:d.id,data:d.data()}));
+
+  bookings.sort((a,b)=>{
+   const ta=a.data.createdAt?.toMillis?.()||0;
+   const tb=b.data.createdAt?.toMillis?.()||0;
+   return tb-ta;
   });
 
+  bookings.forEach(item=>{
+   const b=item.data;
+   const div=document.createElement("div");
+   div.className="booking";
+
+   div.innerHTML=`
+    <b>Booking ID:</b> ${esc(item.id)}<br>
+    <b>Pickup:</b> ${esc(b.pickup)}<br>
+    <b>Destination:</b> ${esc(b.destination)}<br>
+    <b>Vehicle:</b> ${esc(b.vehicleType)}<br>
+    <b>Status:</b> <span class="status">${esc(b.status)}</span><br>
+    <b>Driver:</b> ${esc(b.driverName||"अभी Assign नहीं हुआ")}<br>
+    <b>Driver Mobile:</b> ${esc(b.driverPhone||"अभी उपलब्ध नहीं")}<br>
+    <b>Vehicle Number:</b> ${esc(b.vehicleNumber||"अभी उपलब्ध नहीं")}<br>
+    <b>Fare:</b> ₹${esc(b.fare??0)}
+   `;
+
+   if(b.status==="Pending"){
+    const cancel=document.createElement("button");
+    cancel.textContent="Cancel Booking";
+    cancel.className="danger";
+    cancel.onclick=()=>cancelBooking(item.id);
+    div.appendChild(cancel);
+   }
+
+   if(b.driverLat!=null && b.driverLng!=null &&
+      Number.isFinite(b.driverLat) && Number.isFinite(b.driverLng)){
+    const map=document.createElement("a");
+    map.href="https://www.openstreetmap.org/?mlat="+
+      encodeURIComponent(b.driverLat)+"&mlon="+
+      encodeURIComponent(b.driverLng)+"#map=17/"+
+      encodeURIComponent(b.driverLat)+"/"+
+      encodeURIComponent(b.driverLng);
+    map.target="_blank";
+    map.rel="noopener";
+    map.textContent="📍 Driver Location देखें";
+    map.style.display="block";
+    map.style.marginTop="12px";
+    div.appendChild(map);
+   }
+
+   $("bookingList").appendChild(div);
+  });
  },error=>{
-  bookingsBox.textContent="Booking Error: "+error.message;
+  msg("bookingList","Booking Error: "+error.message);
  });
 }
 
-// Login स्थिति
-onAuthStateChanged(auth,user=>{
- if(user){
-  loginBox.classList.add("hidden");
-  accountBox.classList.remove("hidden");
-  dashboard.classList.remove("hidden");
+async function cancelBooking(id){
+ if(!confirm("क्या आप यह Booking Cancel करना चाहते हैं?"))return;
 
-  document.getElementById("customerInfo").textContent=
-   "Customer: "+(user.email||"Logged In");
-
-  listenBookings(user);
- }else{
-  loginBox.classList.remove("hidden");
-  accountBox.classList.add("hidden");
-  dashboard.classList.add("hidden");
-
-  if(unsubscribeBookings){
-   unsubscribeBookings();
-   unsubscribeBookings=null;
-  }
- }
-});
-
-// Logout
-document.getElementById("logout").onclick=async()=>{
  try{
-  await signOut(auth);
-  showMessage("Logout हो गया।");
+  await updateDoc(doc(db,"Booking",id),{
+   status:"Cancelled"
+  });
+  alert("Booking Cancel हो गई।");
  }catch(e){
-  showMessage("Logout Error: "+e.message);
+  alert("Cancel Error: "+e.message);
  }
-};
+}
 </script>
 </body>
 </html>
