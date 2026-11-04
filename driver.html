@@ -1,39 +1,65 @@
 
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>My Ride Driver</title>
+
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:16px;color:#172033}
+body{
+ font-family:Arial,sans-serif;
+ background:#eef2ff;
+ margin:0;padding:14px;color:#172033
+}
 .container{max-width:600px;margin:auto}
-.card{background:white;padding:20px;border-radius:15px;margin:15px 0;box-shadow:0 3px 12px #0002}
+.card{
+ background:white;padding:18px;border-radius:15px;
+ margin:14px 0;box-shadow:0 3px 12px #0002
+}
 h2{text-align:center;color:#0756b8}
-input,button{width:100%;padding:14px;margin:9px 0;border-radius:9px;font-size:16px}
+input,button{
+ width:100%;padding:13px;margin:7px 0;
+ border-radius:9px;font-size:15px
+}
 input{border:1px solid #ccc}
-button{border:0;background:#0756b8;color:white;font-weight:bold}
+button{
+ border:0;background:#0756b8;color:white;
+ font-weight:bold;cursor:pointer
+}
 button:disabled{opacity:.5}
-.logout{background:#dc2626}
-.accept{background:#15803d}
-.booking{background:#f1f5f9;padding:14px;border-radius:12px;margin:12px 0;overflow-wrap:anywhere}
-#status,#panelMessage{white-space:pre-wrap;overflow-wrap:anywhere}
+.green{background:#15803d}
+.red{background:#dc2626}
+.orange{background:#ea580c}
+.booking{
+ background:#f1f5f9;padding:13px;
+ border-radius:12px;margin:12px 0;
+ overflow-wrap:anywhere
+}
 .hidden{display:none}
 .small{font-size:12px;color:#555;overflow-wrap:anywhere}
+.status{white-space:pre-wrap;overflow-wrap:anywhere}
+.driverPhoto{
+ width:100px;height:100px;border-radius:50%;
+ object-fit:cover;display:block;margin:10px auto;
+ border:3px solid #0756b8
+}
+hr{border:0;border-top:1px solid #ddd}
 </style>
 </head>
+
 <body>
 <div class="container">
 
 <div class="card">
-<h2>🏍️ My Ride Driver</h2>
+<h2>🏍️ MY RIDE DRIVER</h2>
 
 <div id="login">
 <h3>Email Login / Register</h3>
-<input id="email" type="email" placeholder="अपना Email लिखें">
-<input id="password" type="password" placeholder="Password (कम से कम 6 अक्षर)">
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password"
+ placeholder="Password (कम से कम 6 अक्षर)">
 <button id="register">नया Account बनाएं</button>
 <button id="signin">Login करें</button>
 </div>
@@ -42,13 +68,42 @@ button:disabled{opacity:.5}
 <h3>Login सफल हुआ!</h3>
 <p id="userEmail"></p>
 <p class="small" id="userUid"></p>
-<button id="logout" class="logout">Logout</button>
+<button id="logout" class="red">Logout</button>
 </div>
 
-<p id="status">Email और Password दर्ज करें।</p>
+<p id="status" class="status">Email और Password दर्ज करें।</p>
 </div>
 
 <div id="dashboard" class="hidden">
+
+<div class="card">
+<h3>👤 Driver Profile</h3>
+
+<img id="photoPreview" class="driverPhoto hidden" alt="Driver Photo">
+
+<input id="driverName" placeholder="Driver का पूरा नाम">
+<input id="driverPhone" type="tel" placeholder="मोबाइल नंबर">
+<input id="vehicleNumber" placeholder="गाड़ी नंबर (जैसे RJ06...)">
+<input id="vehicleModel" placeholder="गाड़ी का मॉडल">
+<input id="licenseNumber" placeholder="Driving Licence नंबर">
+
+<label>Driver की फोटो</label>
+<input id="driverPhoto" type="file" accept="image/*" capture="user">
+
+<label>Driving Licence की फोटो</label>
+<input id="dlPhoto" type="file" accept="image/*">
+
+<label>RC की फोटो</label>
+<input id="rcPhoto" type="file" accept="image/*">
+
+<button id="saveProfile" class="green">Profile Save करें</button>
+<p class="small">
+DL और RC केवल Driver के निजी रिकॉर्ड के लिए हैं।
+Customer को DL/RC की फोटो या नंबर नहीं दिखेंगे।
+</p>
+<p id="profileMessage" class="status"></p>
+</div>
+
 <div class="card">
 <h3>🚕 Pending Bookings</h3>
 <button id="refreshBtn">Refresh Bookings</button>
@@ -57,13 +112,15 @@ button:disabled{opacity:.5}
 </div>
 
 <div class="card">
-<h3>✅ मेरी Accepted Bookings</h3>
+<h3>✅ मेरी Accepted / Active Rides</h3>
 <div id="myBookings"></div>
 </div>
+
 </div>
 </div>
 
 <script type="module">
+
 import {initializeApp}
 from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
@@ -80,10 +137,22 @@ import {
  collection,
  getDocs,
  doc,
+ getDoc,
+ setDoc,
+ updateDoc,
  runTransaction,
  query,
- where
+ where,
+ serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+import {
+ getStorage,
+ ref,
+ uploadBytes,
+ getDownloadURL
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
 
 const firebaseConfig={
  apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
@@ -97,80 +166,247 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
+const storage=getStorage(app);
 
-const status=document.getElementById("status");
-const panelMessage=document.getElementById("panelMessage");
-const pendingBookings=document.getElementById("pendingBookings");
-const myBookings=document.getElementById("myBookings");
+const $=id=>document.getElementById(id);
 
-function getDetails(){
- return {
-  email:document.getElementById("email").value.trim(),
-  password:document.getElementById("password").value
- };
+let driverProfile=null;
+let locationWatch=null;
+let activeLocationBooking=null;
+
+function message(text){
+ $("status").textContent=text;
 }
 
-// नया Account
-document.getElementById("register").onclick=async()=>{
+function stopLocation(){
+ if(locationWatch!==null){
+  navigator.geolocation.clearWatch(locationWatch);
+  locationWatch=null;
+ }
+ activeLocationBooking=null;
+}
+
+
+// REGISTER
+$("register").onclick=async()=>{
  try{
-  const {email,password}=getDetails();
+  const email=$("email").value.trim();
+  const password=$("password").value;
+
   if(!email||password.length<6){
-   status.textContent="सही Email और कम से कम 6 अक्षर का Password डालें।";
+   message("सही Email और कम से कम 6 अक्षर का Password डालें।");
    return;
   }
-  status.textContent="Account बनाया जा रहा है...";
+
+  message("Account बनाया जा रहा है...");
   await createUserWithEmailAndPassword(auth,email,password);
-  status.textContent="Account बन गया!";
+  message("Account बन गया!");
  }catch(e){
-  status.textContent="Error: "+e.message;
+  message("Register Error: "+e.message);
  }
 };
 
-// Login
-document.getElementById("signin").onclick=async()=>{
+
+// LOGIN
+$("signin").onclick=async()=>{
  try{
-  const {email,password}=getDetails();
+  const email=$("email").value.trim();
+  const password=$("password").value;
+
   if(!email||!password){
-   status.textContent="Email और Password डालें।";
+   message("Email और Password डालें।");
    return;
   }
-  status.textContent="Login हो रहा है...";
+
+  message("Login हो रहा है...");
   await signInWithEmailAndPassword(auth,email,password);
-  status.textContent="Login सफल!";
+  message("Login सफल!");
  }catch(e){
-  status.textContent="Login Error: "+e.message;
+  message("Login Error: "+e.message);
  }
 };
 
-// Booking Card
+
+// PHOTO UPLOAD
+async function uploadFile(file,path){
+ if(!file)return "";
+
+ if(!file.type.startsWith("image/")){
+  throw new Error("केवल फोटो अपलोड करें।");
+ }
+
+ if(file.size>5*1024*1024){
+  throw new Error("फोटो 5 MB से छोटी रखें।");
+ }
+
+ const fileRef=ref(storage,path);
+ await uploadBytes(fileRef,file,{
+  contentType:file.type
+ });
+
+ return await getDownloadURL(fileRef);
+}
+
+
+// LOAD DRIVER PROFILE
+async function loadProfile(){
+ const user=auth.currentUser;
+ if(!user)return;
+
+ try{
+  const snap=await getDoc(doc(db,"Drivers",user.uid));
+
+  if(!snap.exists()){
+   driverProfile=null;
+   return;
+  }
+
+  driverProfile=snap.data();
+
+  $("driverName").value=driverProfile.name||"";
+  $("driverPhone").value=driverProfile.phone||"";
+  $("vehicleNumber").value=driverProfile.vehicleNumber||"";
+  $("vehicleModel").value=driverProfile.vehicleModel||"";
+  $("licenseNumber").value=driverProfile.licenseNumber||"";
+
+  if(driverProfile.photoURL){
+   $("photoPreview").src=driverProfile.photoURL;
+   $("photoPreview").classList.remove("hidden");
+  }
+
+ }catch(e){
+  $("profileMessage").textContent="Profile Error: "+e.message;
+ }
+}
+
+
+// SAVE PROFILE
+$("saveProfile").onclick=async()=>{
+ const user=auth.currentUser;
+ if(!user)return;
+
+ const btn=$("saveProfile");
+
+ try{
+  btn.disabled=true;
+  $("profileMessage").textContent="Profile Save हो रही है...";
+
+  const name=$("driverName").value.trim();
+  const phone=$("driverPhone").value.trim();
+  const vehicleNumber=$("vehicleNumber").value.trim();
+  const vehicleModel=$("vehicleModel").value.trim();
+  const licenseNumber=$("licenseNumber").value.trim();
+
+  if(!name||!phone||!vehicleNumber||!licenseNumber){
+   throw new Error("नाम, मोबाइल, गाड़ी नंबर और DL नंबर भरें।");
+  }
+
+  let photoURL=driverProfile?.photoURL||"";
+
+  if($("driverPhoto").files[0]){
+   photoURL=await uploadFile(
+    $("driverPhoto").files[0],
+    "Drivers/"+user.uid+"/profile.jpg"
+   );
+  }
+
+  // DL और RC की फाइलें निजी Storage में रहेंगी।
+  let dlPath=driverProfile?.dlPath||"";
+  let rcPath=driverProfile?.rcPath||"";
+
+  if($("dlPhoto").files[0]){
+   await uploadFile(
+    $("dlPhoto").files[0],
+    "Drivers/"+user.uid+"/documents/dl"
+   );
+   dlPath="Drivers/"+user.uid+"/documents/dl";
+  }
+
+  if($("rcPhoto").files[0]){
+   await uploadFile(
+    $("rcPhoto").files[0],
+    "Drivers/"+user.uid+"/documents/rc"
+   );
+   rcPath="Drivers/"+user.uid+"/documents/rc";
+  }
+
+  const data={
+   uid:user.uid,
+   name,
+   phone,
+   vehicleNumber,
+   vehicleModel,
+   licenseNumber,
+   photoURL,
+   dlPath,
+   rcPath,
+   updatedAt:serverTimestamp()
+  };
+
+  await setDoc(doc(db,"Drivers",user.uid),data,{merge:true});
+
+  driverProfile={...data};
+
+  if(photoURL){
+   $("photoPreview").src=photoURL;
+   $("photoPreview").classList.remove("hidden");
+  }
+
+  $("profileMessage").textContent="Profile सफलतापूर्वक Save हो गई!";
+  await loadDriverBookings();
+
+ }catch(e){
+  $("profileMessage").textContent="Error: "+e.message;
+ }finally{
+  btn.disabled=false;
+ }
+};
+
+
+// BOOKING CARD
 function createBookingCard(data,id,isMine){
+
  const card=document.createElement("div");
  card.className="booking";
 
  const details=document.createElement("p");
+
  details.textContent=
  "Booking ID: "+id+
  "\nशुरुआत: "+(data.pickup||"")+
  "\nमंजिल: "+(data.destination||"")+
  "\nवाहन: "+(data.vehicleType||"")+
- "\nस्टेटस: "+(data.status||"");
+ "\nस्टेटस: "+(data.status||"")+
+ (data.vehicleNumber?
+  "\nगाड़ी नंबर: "+data.vehicleNumber:"");
 
  card.appendChild(details);
 
  if(!isMine){
+
   const accept=document.createElement("button");
-  accept.className="accept";
+  accept.className="green";
   accept.textContent="Accept Booking";
 
   accept.onclick=async()=>{
    const user=auth.currentUser;
+
    if(!user)return;
+
+   if(!driverProfile?.name||
+      !driverProfile?.vehicleNumber||
+      !driverProfile?.photoURL){
+    alert("पहले Driver Profile, फोटो और गाड़ी नंबर Save करें।");
+    return;
+   }
 
    accept.disabled=true;
    accept.textContent="Accept हो रहा है...";
 
    try{
+
     await runTransaction(db,async(transaction)=>{
+
      const bookingRef=doc(db,"Booking",id);
      const latest=await transaction.get(bookingRef);
 
@@ -185,8 +421,15 @@ function createBookingCard(data,id,isMine){
      transaction.update(bookingRef,{
       status:"Accepted",
       driverUid:user.uid,
-      driverEmail:user.email
+      driverEmail:user.email,
+      driverName:driverProfile.name,
+      driverPhone:driverProfile.phone,
+      driverPhotoURL:driverProfile.photoURL,
+      vehicleNumber:driverProfile.vehicleNumber,
+      vehicleModel:driverProfile.vehicleModel,
+      acceptedAt:serverTimestamp()
      });
+
     });
 
     alert("Booking सफलतापूर्वक Accept हो गई!");
@@ -202,19 +445,191 @@ function createBookingCard(data,id,isMine){
   card.appendChild(accept);
  }
 
+
+ if(isMine){
+
+  // RIDE START
+  if(data.status==="Accepted"){
+
+   const start=document.createElement("button");
+   start.className="green";
+   start.textContent="▶ Ride Start करें";
+
+   start.onclick=async()=>{
+    try{
+     await updateDoc(doc(db,"Booking",id),{
+      status:"Started",
+      rideStartedAt:serverTimestamp()
+     });
+
+     alert("Ride Start हो गई!");
+     await loadDriverBookings();
+     startLiveLocation(id);
+
+    }catch(e){
+     alert("Error: "+e.message);
+    }
+   };
+
+   card.appendChild(start);
+  }
+
+
+  // LOCATION
+  if(data.status==="Started"){
+
+   const loc=document.createElement("button");
+   loc.className="orange";
+   loc.textContent="📍 Live Location चालू करें";
+
+   loc.onclick=()=>startLiveLocation(id);
+
+   card.appendChild(loc);
+
+
+   // PHOTO UPDATE
+   const photo=document.createElement("input");
+   photo.type="file";
+   photo.accept="image/*";
+   photo.setAttribute("capture","user");
+
+   const photoBtn=document.createElement("button");
+   photoBtn.textContent="📸 Ride Photo Update";
+
+   photoBtn.onclick=async()=>{
+    try{
+     const file=photo.files[0];
+
+     if(!file){
+      alert("पहले फोटो लें या चुनें।");
+      return;
+     }
+
+     const url=await uploadFile(
+      file,
+      "Drivers/"+auth.currentUser.uid+
+      "/ridePhotos/"+id+"_"+Date.now()
+     );
+
+     await updateDoc(doc(db,"Booking",id),{
+      driverPhotoURL:url,
+      photoUpdatedAt:serverTimestamp()
+     });
+
+     alert("फोटो अपडेट हो गई!");
+     await loadDriverBookings();
+
+    }catch(e){
+     alert("Photo Error: "+e.message);
+    }
+   };
+
+   card.appendChild(photo);
+   card.appendChild(photoBtn);
+
+
+   // COMPLETE
+   const complete=document.createElement("button");
+   complete.className="red";
+   complete.textContent="✓ Ride Complete करें";
+
+   complete.onclick=async()=>{
+    if(!confirm("क्या Ride पूरी हो गई है?"))return;
+
+    try{
+     stopLocation();
+
+     await updateDoc(doc(db,"Booking",id),{
+      status:"Completed",
+      rideCompletedAt:serverTimestamp()
+     });
+
+     alert("Ride सफलतापूर्वक Complete हो गई!");
+     await loadDriverBookings();
+
+    }catch(e){
+     alert("Error: "+e.message);
+    }
+   };
+
+   card.appendChild(complete);
+  }
+ }
+
  return card;
 }
 
-// सुरक्षित तरीके से Bookings लोड करना
-async function loadDriverBookings(){
+
+// LIVE LOCATION
+function startLiveLocation(bookingId){
+
  const user=auth.currentUser;
  if(!user)return;
 
- pendingBookings.replaceChildren();
- myBookings.replaceChildren();
- panelMessage.textContent="बुकिंग लोड हो रही हैं...";
+ if(!navigator.geolocation){
+  alert("आपके Browser में Location उपलब्ध नहीं है।");
+  return;
+ }
+
+ if(locationWatch!==null){
+  if(activeLocationBooking===bookingId){
+   alert("Live Location पहले से चालू है।");
+   return;
+  }
+  stopLocation();
+ }
+
+ activeLocationBooking=bookingId;
+
+ alert("Location Permission Allow करें। Ride के दौरान Location साझा होगी।");
+
+ locationWatch=navigator.geolocation.watchPosition(
+  async(position)=>{
+
+   try{
+    const lat=position.coords.latitude;
+    const lng=position.coords.longitude;
+
+    await updateDoc(doc(db,"Booking",bookingId),{
+     driverLocation:{
+      lat,
+      lng,
+      accuracy:position.coords.accuracy
+     },
+     locationUpdatedAt:serverTimestamp()
+    });
+
+   }catch(e){
+    console.log("Location Error:",e.message);
+   }
+  },
+
+  (error)=>{
+   alert("Location Error: "+error.message);
+   stopLocation();
+  },
+
+  {
+   enableHighAccuracy:true,
+   maximumAge:5000,
+   timeout:20000
+  }
+ );
+}
+
+
+// LOAD BOOKINGS
+async function loadDriverBookings(){
+
+ const user=auth.currentUser;
+ if(!user)return;
+
+ $("pendingBookings").replaceChildren();
+ $("myBookings").replaceChildren();
+ $("panelMessage").textContent="बुकिंग लोड हो रही हैं...";
 
  try{
+
   const bookingRef=collection(db,"Booking");
 
   const pendingQuery=query(
@@ -233,74 +648,83 @@ async function loadDriverBookings(){
   ]);
 
   pendingSnap.forEach(item=>{
-   pendingBookings.appendChild(
+   $("pendingBookings").appendChild(
     createBookingCard(item.data(),item.id,false)
    );
   });
 
-  let myCount=0;
+  let count=0;
 
   mySnap.forEach(item=>{
    const data=item.data();
 
-   if(data.status==="Accepted"){
-    myCount++;
-    myBookings.appendChild(
+   if(["Accepted","Started","Completed"].includes(data.status)){
+    count++;
+    $("myBookings").appendChild(
      createBookingCard(data,item.id,true)
     );
    }
   });
 
-  panelMessage.textContent=
+  $("panelMessage").textContent=
    "कुल Pending Bookings: "+pendingSnap.size;
 
   if(pendingSnap.empty){
-   pendingBookings.textContent="अभी कोई Pending Booking नहीं है।";
+   $("pendingBookings").textContent=
+    "अभी कोई Pending Booking नहीं है।";
   }
 
-  if(myCount===0){
-   myBookings.textContent="अभी आपकी कोई Accepted Booking नहीं है।";
+  if(count===0){
+   $("myBookings").textContent=
+    "अभी आपकी कोई Booking नहीं है।";
   }
 
  }catch(e){
-  panelMessage.textContent="बुकिंग लोड नहीं हुई: "+e.message;
+  $("panelMessage").textContent=
+   "बुकिंग लोड नहीं हुई: "+e.message;
  }
 }
 
-// Login स्थिति
-onAuthStateChanged(auth,async(user)=>{
- const login=document.getElementById("login");
- const account=document.getElementById("account");
- const dashboard=document.getElementById("dashboard");
 
- login.classList.toggle("hidden",!!user);
- account.classList.toggle("hidden",!user);
- dashboard.classList.toggle("hidden",!user);
+// AUTH STATE
+onAuthStateChanged(auth,async(user)=>{
+
+ const logged=!!user;
+
+ $("login").classList.toggle("hidden",logged);
+ $("account").classList.toggle("hidden",!logged);
+ $("dashboard").classList.toggle("hidden",!logged);
 
  if(user){
-  document.getElementById("userEmail").textContent=
-   "Driver Email: "+user.email;
 
-  document.getElementById("userUid").textContent=
-   "Driver UID: "+user.uid;
+  $("userEmail").textContent="Driver Email: "+user.email;
+  $("userUid").textContent="Driver UID: "+user.uid;
 
+  await loadProfile();
   await loadDriverBookings();
+
+ }else{
+  stopLocation();
+  driverProfile=null;
  }
 });
 
-// Refresh
-document.getElementById("refreshBtn").onclick=
- loadDriverBookings;
 
-// Logout
-document.getElementById("logout").onclick=async()=>{
+// REFRESH
+$("refreshBtn").onclick=loadDriverBookings;
+
+
+// LOGOUT
+$("logout").onclick=async()=>{
  try{
+  stopLocation();
   await signOut(auth);
-  status.textContent="Logout हो गया।";
+  message("Logout हो गया।");
  }catch(e){
-  status.textContent="Logout Error: "+e.message;
+  message("Logout Error: "+e.message);
  }
 };
+
 </script>
 </body>
 </html>
