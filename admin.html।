@@ -1,393 +1,301 @@
-<!DOCTYPE html>  <html lang="hi">    <head>    
-<meta charset="UTF-8">    
-<meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>My Ride - Admin Panel</title>  <style>    
-* {    
-  box-sizing: border-box;    
-}    body {
-margin: 0;
-font-family: Arial, sans-serif;
-background: #f1f5f9;
-color: #172033;
-}
 
-header {
-background: #101c35;
-color: white;
-padding: 22px;
-}
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Ride Admin Panel</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:14px;color:#172033}
+.container{max-width:850px;margin:auto}
+.card{background:white;padding:18px;border-radius:14px;margin:12px 0;box-shadow:0 3px 12px #0001}
+input,button,select{width:100%;padding:12px;margin:7px 0;border-radius:8px;border:1px solid #ccd3e0;font-size:15px}
+button{background:#2457d6;color:white;border:0;font-weight:bold;cursor:pointer}
+.secondary{background:#475569}
+.green{background:#16834a}
+.danger{background:#c62828}
+.small{font-size:13px;color:#64748b;overflow-wrap:anywhere}
+.item{border:1px solid #e2e8f0;border-radius:10px;padding:13px;margin:10px 0}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>🛡️ My Ride Admin Panel</h2>
 
-header h1 {
-margin: 0;
-}
+<div class="card" id="loginBox">
+<h3>Admin Login</h3>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn">Admin Login</button>
+<p id="loginMsg" class="small"></p>
+</div>
 
-.container {
-max-width: 750px;
-margin: auto;
-padding: 16px;
-}
+<div id="panel" class="hidden">
+<div class="card">
+<h3>Welcome Admin</h3>
+<p id="adminInfo" class="small"></p>
+<button id="logoutBtn" class="danger">Logout</button>
+</div>
 
-.card {
-background: white;
-padding: 18px;
-margin-bottom: 16px;
-border-radius: 15px;
-box-shadow: 0 3px 12px #00000010;
-}
+<div class="card">
+<h3>📊 Dashboard</h3>
+<p id="stats">Loading...</p>
+<button id="refreshBtn" class="secondary">Refresh Dashboard</button>
+</div>
 
-input, button {
-width: 100%;
-padding: 13px;
-margin-top: 12px;
-border-radius: 9px;
-font-size: 16px;
-}
+<div class="card">
+<h3>👨‍✈️ Driver Management</h3>
+<div id="drivers">Loading Drivers...</div>
+</div>
 
-input {
-border: 1px solid #cbd5e1;
-}
+<div class="card">
+<h3>🚕 All Bookings</h3>
+<div id="bookings">Loading Bookings...</div>
+</div>
+</div>
+</div>
 
-button {
-border: none;
-background: #ffbb00;
-font-weight: bold;
-cursor: pointer;
-}
-
-button:disabled {
-opacity: 0.6;
-}
-
-.secondary {
-background: #e2e8f0;
-}
-
-.accept {
-background: #16a34a;
-color: white;
-}
-
-.reject {
-background: #dc2626;
-color: white;
-}
-
-.booking {
-border: 1px solid #e2e8f0;
-padding: 14px;
-margin-top: 14px;
-border-radius: 12px;
-overflow-wrap: anywhere;
-}
-
-.booking p {
-line-height: 1.7;
-}
-
-.status {
-font-weight: bold;
-}
-
-#message {
-white-space: pre-wrap;
-overflow-wrap: anywhere;
-line-height: 1.6;
-}
-</style>  </head>  <body>  <header>
-
-  <h1>🚗 My Ride Admin</h1>    
-  <p>बुकिंग मैनेजमेंट पैनल</p>    
-</header>  <div class="container">    <div class="card" id="loginCard">    
-    <h2>Admin Login</h2>  <input    
-  type="email"    
-  id="email"    
-  placeholder="Admin Email"    
-  autocomplete="username"    
->    <input
-type="password"
-id="password"
-placeholder="Password"
-autocomplete="current-password"
-
-> 
-
-<button id="loginBtn">Login करें</button>
-
-<p class="small">    
-  केवल अधिकृत Admin ही बुकिंग देख सकता है।    
-</p>    </div>    <div class="card" id="dashboard" hidden>    
-    <h2>📋 सभी बुकिंग</h2>  <button id="refreshBtn" class="secondary">    
-  🔄 बुकिंग Refresh करें    
-</button>    <button id="logoutBtn" class="secondary">    
-  Logout    
-</button>    <div id="bookings"></div>    </div>    <div class="card">    
-    <p id="message">Admin लॉगिन का इंतजार है।</p>    
-  </div>  </div>  <script type="module">    import { initializeApp }
-from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+<script type="module">
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
-getAuth,
-signInWithEmailAndPassword,
-signOut,
-onAuthStateChanged
-}
-from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+ getAuth,signInWithEmailAndPassword,
+ onAuthStateChanged,signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
-getFirestore,
-collection,
-getDocs,
-doc,
-updateDoc,
-query,
-orderBy
-}
-from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+ getFirestore,collection,getDocs,doc,
+ updateDoc,serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const firebaseConfig = {
-apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
-authDomain: "myridebhilwara-45652.firebaseapp.com",
-projectId: "myridebhilwara-45652",
-storageBucket: "myridebhilwara-45652.firebasestorage.app",
-messagingSenderId: "819961031572",
-appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+/* अपने Customer/Driver कोड वाली Firebase Config लगाएँ */
+const firebaseConfig={
+ apiKey:"PASTE_YOUR_EXISTING_API_KEY",
+ authDomain:"myridebhilwara-45652.firebaseapp.com",
+ projectId:"myridebhilwara-45652",
+ storageBucket:"myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId:"PASTE_YOUR_EXISTING_SENDER_ID",
+ appId:"PASTE_YOUR_EXISTING_APP_ID"
 };
 
-const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
 
-const loginCard = document.getElementById("loginCard");
-const dashboard = document.getElementById("dashboard");
-const message = document.getElementById("message");
-const bookingsDiv = document.getElementById("bookings");
-const loginBtn = document.getElementById("loginBtn");
+const $=id=>document.getElementById(id);
 
-let busy = false;
+let currentAdmin=null;
 
-function showMessage(text) {
-message.textContent = text;
+function esc(v){
+ return String(v??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",
+ '"':"&quot;","'":"&#39;"
+ })[c]);
 }
 
-function showAdmin(isAdmin) {
-loginCard.hidden = isAdmin;
-dashboard.hidden = !isAdmin;
+function showMessage(id,text){
+ $(id).textContent=text;
 }
 
-document.getElementById("loginBtn").onclick = async () => {
-
-if (busy) return;
-
-const email = document.getElementById("email").value.trim();
-const password = document.getElementById("password").value;
-
-if (!email || !password) {
-showMessage("Email और Password दर्ज करें।");
-return;
-}
-
-busy = true;
-loginBtn.disabled = true;
-showMessage("लॉगिन हो रहा है...");
-
-try {
-
-const result = await signInWithEmailAndPassword(    
-  auth,    
-  email,    
-  password    
-);    
-
-if (result.user.uid !== ADMIN_UID) {    
-  await signOut(auth);    
-  showAdmin(false);    
-  showMessage("यह अकाउंट अधिकृत Admin नहीं है।");    
-  return;    
-}    
-
-showAdmin(true);    
-showMessage("Admin Login सफल हुआ।");    
-
-await loadBookings();
-
-} catch (error) {
-
-showMessage(    
-  "Login Error: " + error.code +    
-  "\nकृपया Email और Password जाँचें।"    
-);
-
-} finally {
-
-busy = false;    
-loginBtn.disabled = false;
-
-}
+$("loginBtn").onclick=async()=>{
+ try{
+  showMessage("loginMsg","Login हो रहा है...");
+  await signInWithEmailAndPassword(
+   auth,$("email").value.trim(),$("password").value
+  );
+ }catch(e){
+  showMessage("loginMsg","Login Error: "+e.message);
+ }
 };
 
-onAuthStateChanged(auth, async (user) => {
+$("logoutBtn").onclick=()=>signOut(auth);
+$("refreshBtn").onclick=loadDashboard;
 
-if (!user) {
-showAdmin(false);
-return;
-}
+onAuthStateChanged(auth,async user=>{
+ currentAdmin=user;
 
-if (user.uid !== ADMIN_UID) {
-showAdmin(false);
-await signOut(auth);
-showMessage("अनधिकृत अकाउंट। Admin Login करें।");
-return;
-}
-
-showAdmin(true);
-showMessage("Admin Login सफल हुआ।");
-
-try {
-await loadBookings();
-} catch (error) {
-showMessage(
-"बुकिंग लोड नहीं हुई: " + error.code
-);
-}
-
+ if(user && user.uid===ADMIN_UID){
+  $("loginBox").classList.add("hidden");
+  $("panel").classList.remove("hidden");
+  $("adminInfo").textContent="Admin Email: "+(user.email||"");
+  await loadDashboard();
+ }else{
+  $("panel").classList.add("hidden");
+  $("loginBox").classList.remove("hidden");
+  if(user){
+   await signOut(auth);
+   showMessage("loginMsg","यह Account Admin नहीं है। Access Denied.");
+  }
+ }
 });
 
-async function loadBookings() {
+async function loadDashboard(){
+ if(!currentAdmin||currentAdmin.uid!==ADMIN_UID)return;
 
-bookingsDiv.replaceChildren();
+ $("drivers").textContent="Loading...";
+ $("bookings").textContent="Loading...";
 
-showMessage("बुकिंग लोड हो रही हैं...");
+ try{
+  const [driverSnap,bookingSnap]=await Promise.all([
+   getDocs(collection(db,"Drivers")),
+   getDocs(collection(db,"Booking"))
+  ]);
 
-try {
+  let active=0,verified=0,pending=0,completed=0;
 
-const bookingsQuery = query(    
-  collection(db, "Booking"),    
-  orderBy("createdAt", "desc")    
-);    
+  driverSnap.forEach(d=>{
+   const x=d.data();
+   if(x.active===true)active++;
+   if(x.verified===true)verified++;
+  });
 
-const snapshot = await getDocs(bookingsQuery);    
+  bookingSnap.forEach(d=>{
+   const x=d.data();
+   if(x.status==="Pending")pending++;
+   if(x.status==="Completed")completed++;
+  });
 
-if (snapshot.empty) {    
-  showMessage("अभी कोई बुकिंग नहीं मिली।");    
-  return;    
-}    
+  showMessage("stats",
+   "कुल Drivers: "+driverSnap.size+
+   " | Active: "+active+
+   " | Verified: "+verified+
+   " | कुल Bookings: "+bookingSnap.size+
+   " | Pending: "+pending+
+   " | Completed: "+completed
+  );
 
-snapshot.forEach((bookingDoc) => {    
+  renderDrivers(driverSnap);
+  renderBookings(bookingSnap);
 
-  const data = bookingDoc.data();    
-
-  const card = document.createElement("div");    
-  card.className = "booking";    
-
-  function addLine(label, value) {    
-    const p = document.createElement("p");    
-    const strong = document.createElement("strong");    
-
-    strong.textContent = label + ": ";    
-    p.append(    
-      strong,    
-      document.createTextNode(    
-        value == null ? "उपलब्ध नहीं" : String(value)    
-      )    
-    );    
-
-    card.appendChild(p);    
-  }    
-
-  addLine("Booking ID", bookingDoc.id);    
-  addLine("शुरुआत", data.pickup);    
-  addLine("मंजिल", data.destination);    
-  addLine("वाहन", data.vehicleType);    
-  addLine("शहर", data.city);    
-  addLine("स्थिति", data.status || "Pending");    
-
-  const actions = document.createElement("div");    
-
-  const acceptBtn = document.createElement("button");    
-  acceptBtn.textContent = "✅ बुकिंग Confirm करें";    
-  acceptBtn.className = "accept";    
-
-  const rejectBtn = document.createElement("button");    
-  rejectBtn.textContent = "❌ बुकिंग Cancel करें";    
-  rejectBtn.className = "reject";    
-
-  async function changeStatus(status) {    
-
-    if (busy) return;    
-
-    if (auth.currentUser?.uid !== ADMIN_UID) {    
-      showMessage("Admin Login आवश्यक है।");    
-      return;    
-    }    
-
-    busy = true;    
-    acceptBtn.disabled = true;    
-    rejectBtn.disabled = true;    
-
-    try {    
-
-      await updateDoc(    
-        doc(db, "Booking", bookingDoc.id),    
-        { status: status }    
-      );    
-
-      showMessage(    
-        "बुकिंग की स्थिति अपडेट हुई: " + status    
-      );    
-
-      await loadBookings();    
-
-    } catch (error) {    
-
-      showMessage(    
-        "Update Error: " + error.code    
-      );    
-
-    } finally {    
-
-      busy = false;    
-      acceptBtn.disabled = false;    
-      rejectBtn.disabled = false;    
-
-    }    
-  }    
-
-  acceptBtn.onclick = () => changeStatus("Accepted");    
-  rejectBtn.onclick = () => changeStatus("Rejected");    
-
-  actions.append(acceptBtn, rejectBtn);    
-  card.appendChild(actions);    
-  bookingsDiv.appendChild(card);    
-
-});    
-
-showMessage(    
-  "कुल बुकिंग: " + snapshot.size    
-);
-
-} catch (error) {
-
-showMessage(    
-  "बुकिंग लोड Error: " + error.code +    
-  "\nFirestore Rules और कनेक्शन जाँचें।"    
-);
-
-}
+ }catch(e){
+  showMessage("stats","Error: "+e.message);
+  $("drivers").textContent="Drivers Error: "+e.message;
+  $("bookings").textContent="Bookings Error: "+e.message;
+ }
 }
 
-document.getElementById("refreshBtn").onclick =
-loadBookings;
+function renderDrivers(snapshot){
+ const root=$("drivers");
+ root.innerHTML="";
 
-document.getElementById("logoutBtn").onclick =
-async () => {
+ if(snapshot.empty){
+  root.textContent="अभी कोई Driver Registered नहीं है।";
+  return;
+ }
 
-await signOut(auth);    
-showAdmin(false);    
-showMessage("आप Logout हो गए हैं।");
+ snapshot.forEach(d=>{
+  const x=d.data();
+  const div=document.createElement("div");
+  div.className="item";
 
-};
+  const active=x.active===true;
+  const verified=x.verified===true;
 
-</script>  </body>
+  div.innerHTML=`
+   <b>Driver Name:</b> ${esc(x.name)}<br>
+   <b>UID:</b> ${esc(d.id)}<br>
+   <b>Phone:</b> ${esc(x.phone)}<br>
+   <b>Vehicle:</b> ${esc(x.vehicleNumber)}<br>
+   <b>Model:</b> ${esc(x.vehicleModel)}<br>
+   <b>License:</b> ${esc(x.licenseNumber)}<br>
+   <b>Active:</b> ${active?"Yes":"No"}<br>
+   <b>Verified:</b> ${verified?"Yes":"No"}
+  `;
 
+  const activeBtn=document.createElement("button");
+  activeBtn.textContent=active?"Deactivate Driver":"Activate Driver";
+  activeBtn.className=active?"danger":"green";
+  activeBtn.onclick=()=>changeDriver(d.id,{active:!active});
+
+  const verifyBtn=document.createElement("button");
+  verifyBtn.textContent=verified?"Remove Verification":"Verify Driver";
+  verifyBtn.className="secondary";
+  verifyBtn.onclick=()=>changeDriver(d.id,{verified:!verified});
+
+  div.append(activeBtn,verifyBtn);
+  root.appendChild(div);
+ });
+}
+
+async function changeDriver(uid,changes){
+ if(!confirm("क्या आप इस Driver की जानकारी बदलना चाहते हैं?"))return;
+
+ try{
+  await updateDoc(doc(db,"Drivers",uid),{
+   ...changes,
+   adminUpdatedAt:serverTimestamp()
+  });
+  alert("Driver Update हो गया।");
+  await loadDashboard();
+ }catch(e){
+  alert("Driver Update Error: "+e.message);
+ }
+}
+
+function renderBookings(snapshot){
+ const root=$("bookings");
+ root.innerHTML="";
+
+ if(snapshot.empty){
+  root.textContent="अभी कोई Booking नहीं है।";
+  return;
+ }
+
+ snapshot.forEach(d=>{
+  const x=d.data();
+  const div=document.createElement("div");
+  div.className="item";
+
+  div.innerHTML=`
+   <b>Booking ID:</b> ${esc(d.id)}<br>
+   <b>Customer:</b> ${esc(x.customerEmail)}<br>
+   <b>Phone:</b> ${esc(x.customerPhone)}<br>
+   <b>Pickup:</b> ${esc(x.pickup)}<br>
+   <b>Destination:</b> ${esc(x.destination)}<br>
+   <b>Vehicle:</b> ${esc(x.vehicleType)}<br>
+   <b>Driver:</b> ${esc(x.driverName)}<br>
+   <b>Status:</b> ${esc(x.status)}<br>
+   <b>Fare:</b> ₹${esc(x.fare)}
+  `;
+
+  const select=document.createElement("select");
+  ["Pending","Accepted","Started","Completed","Cancelled"].forEach(s=>{
+   const option=document.createElement("option");
+   option.value=s;
+   option.textContent=s;
+   if(x.status===s)option.selected=true;
+   select.appendChild(option);
+  });
+
+  const save=document.createElement("button");
+  save.textContent="Update Booking Status";
+  save.className="secondary";
+  save.onclick=()=>changeBooking(d.id,select.value);
+
+  div.append(select,save);
+  root.appendChild(div);
+ });
+}
+
+async function changeBooking(id,status){
+ if(!confirm("Booking Status बदलना है?"))return;
+
+ try{
+  await updateDoc(doc(db,"Booking",id),{
+   status,
+   adminUpdatedAt:serverTimestamp()
+  });
+  alert("Booking Update हो गई।");
+  await loadDashboard();
+ }catch(e){
+  alert("Booking Update Error: "+e.message);
+ }
+}
+</script>
+</body>
 </html>
