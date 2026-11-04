@@ -1,1 +1,326 @@
 
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111111">
+<title>My Ride Admin</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:15px;background:#f1f5f9;color:#172033;font-family:Arial}
+header{background:#111;color:#fff;padding:18px;border-radius:12px;margin-bottom:15px}
+header h2{margin:0;color:#ffcc00}
+.card{background:#fff;padding:15px;margin:12px 0;border-radius:12px;box-shadow:0 2px 8px #0001}
+input,select,button{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:8px;font-size:15px}
+button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
+.red{background:#dc2626;color:white}
+.green{background:#15803d;color:white}
+.gray{background:#475569;color:white}
+.small{font-size:13px;color:#64748b;word-break:break-word}
+.hidden{display:none}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#111;color:white;padding:15px;border-radius:10px}
+.stat b{display:block;color:#ffcc00;font-size:24px;margin-top:5px}
+h3{margin-top:5px}
+</style>
+</head>
+<body>
+
+<header>
+<h2>🚗 MY RIDE ADMIN</h2>
+<p>Admin Control Panel</p>
+</header>
+
+<div class="card" id="loginBox">
+<h3>Admin Login</h3>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn">LOGIN</button>
+<p id="loginMsg"></p>
+</div>
+
+<div id="dashboard" class="hidden">
+
+<div class="card">
+<button id="refreshBtn">🔄 Refresh Data</button>
+<button id="logoutBtn" class="red">Logout</button>
+<p id="adminInfo" class="small"></p>
+</div>
+
+<div class="card">
+<h3>📊 Dashboard Summary</h3>
+<div class="stats">
+<div class="stat">Total Bookings<b id="totalBookings">0</b></div>
+<div class="stat">Pending<b id="pendingBookings">0</b></div>
+<div class="stat">Accepted<b id="acceptedBookings">0</b></div>
+<div class="stat">Completed<b id="completedBookings">0</b></div>
+<div class="stat">Total Drivers<b id="totalDrivers">0</b></div>
+<div class="stat">Active Drivers<b id="activeDrivers">0</b></div>
+</div>
+</div>
+
+<div class="card">
+<h3>📋 All Bookings</h3>
+<select id="bookingFilter">
+<option value="All">All Bookings</option>
+<option>Pending</option>
+<option>Accepted</option>
+<option>Started</option>
+<option>Completed</option>
+<option>Cancelled</option>
+<option>Rejected</option>
+</select>
+<div id="bookingList">Loading...</div>
+</div>
+
+<div class="card">
+<h3>🚕 Driver Management</h3>
+<select id="driverFilter">
+<option value="All">All Drivers</option>
+<option value="Pending">Verification Pending</option>
+<option value="Active">Active Drivers</option>
+<option value="Inactive">Inactive Drivers</option>
+</select>
+<div id="driverList">Loading...</div>
+</div>
+
+</div>
+
+<script type="module">
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+getFirestore,collection,doc,onSnapshot,updateDoc,serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "PASTE_YOUR_API_KEY",
+authDomain: "myridebhilwara-45652.firebaseapp.com",
+projectId: "myridebhilwara-45652",
+storageBucket: "myridebhilwara-45652.firebasestorage.app",
+messagingSenderId: "819961031572",
+appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+};
+
+const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = id => document.getElementById(id);
+
+let bookings = [];
+let drivers = [];
+let unsubBookings = null;
+let unsubDrivers = null;
+
+function message(id,text){
+$(id).textContent = text;
+}
+
+function showDashboard(user){
+$("loginBox").classList.add("hidden");
+$("dashboard").classList.remove("hidden");
+message("adminInfo","Admin UID: "+user.uid);
+startLiveData();
+}
+
+function stopLiveData(){
+if(unsubBookings) unsubBookings();
+if(unsubDrivers) unsubDrivers();
+unsubBookings=null;
+unsubDrivers=null;
+}
+
+function startLiveData(){
+stopLiveData();
+
+unsubBookings = onSnapshot(collection(db,"Booking"),snap=>{
+bookings = snap.docs.map(d=>({id:d.id,...d.data()}));
+renderBookings();
+renderStats();
+},error=>{
+message("bookingList","Booking Error: "+error.message);
+});
+
+unsubDrivers = onSnapshot(collection(db,"Drivers"),snap=>{
+drivers = snap.docs.map(d=>({id:d.id,...d.data()}));
+renderDrivers();
+renderStats();
+},error=>{
+message("driverList","Driver Error: "+error.message);
+});
+}
+
+function renderStats(){
+$("totalBookings").textContent=bookings.length;
+$("pendingBookings").textContent=bookings.filter(x=>x.status==="Pending").length;
+$("acceptedBookings").textContent=bookings.filter(x=>x.status==="Accepted").length;
+$("completedBookings").textContent=bookings.filter(x=>x.status==="Completed").length;
+$("totalDrivers").textContent=drivers.length;
+$("activeDrivers").textContent=drivers.filter(x=>x.active===true&&x.verified===true).length;
+}
+
+function safe(value){
+return String(value??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+}
+
+function renderBookings(){
+const filter=$("bookingFilter").value;
+const list=bookings.filter(b=>filter==="All"||b.status===filter);
+
+if(!list.length){
+$("bookingList").textContent="कोई Booking नहीं मिली।";
+return;
+}
+
+$("bookingList").innerHTML=list.map(b=>`
+<div class="card">
+<h3>Booking ID: ${safe(b.id)}</h3>
+<p><b>Pickup:</b> ${safe(b.pickup)}</p>
+<p><b>Destination:</b> ${safe(b.destination)}</p>
+<p><b>Vehicle:</b> ${safe(b.vehicleType)}</p>
+<p><b>Fare:</b> ₹${safe(b.fare??b.estimatedFare??0)}</p>
+<p><b>Customer:</b> ${safe(b.customerName)}</p>
+<p><b>Driver:</b> ${safe(b.driverName||"Not Assigned")}</p>
+<p><b>Status:</b> ${safe(b.status)}</p>
+<select id="status_${safe(b.id)}">
+${["Pending","Accepted","Started","Completed","Cancelled","Rejected"].map(s=>
+`<option value="${s}" ${b.status===s?"selected":""}>${s}</option>`
+).join("")}
+</select>
+<button data-booking="${safe(b.id)}">Update Booking Status</button>
+</div>
+`).join("");
+
+$("bookingList").querySelectorAll("[data-booking]").forEach(btn=>{
+btn.addEventListener("click",()=>changeBooking(btn.dataset.booking));
+});
+}
+
+async function changeBooking(id){
+const b=bookings.find(x=>x.id===id);
+if(!b)return;
+
+const status=$("status_"+id).value;
+if(status===b.status)return alert("Status पहले से यही है।");
+
+if(!confirm("Booking status "+status+" करना है?"))return;
+
+try{
+await updateDoc(doc(db,"Booking",id),{
+status,
+adminUpdatedAt:serverTimestamp()
+});
+alert("Booking status updated.");
+}catch(e){
+alert("Update Error: "+e.message);
+}
+}
+
+function renderDrivers(){
+const filter=$("driverFilter").value;
+
+const list=drivers.filter(d=>{
+if(filter==="Pending")return d.verified!==true;
+if(filter==="Active")return d.active===true&&d.verified===true;
+if(filter==="Inactive")return d.active!==true;
+return true;
+});
+
+if(!list.length){
+$("driverList").textContent="कोई Driver नहीं मिला।";
+return;
+}
+
+$("driverList").innerHTML=list.map(d=>`
+<div class="card">
+<h3>🚕 ${safe(d.name||"Driver")}</h3>
+<p><b>UID:</b> ${safe(d.id)}</p>
+<p><b>Phone:</b> ${safe(d.phone)}</p>
+<p><b>Vehicle:</b> ${safe(d.vehicleNumber)}</p>
+<p><b>Model:</b> ${safe(d.vehicleModel)}</p>
+<p><b>License:</b> ${safe(d.licenseNumber)}</p>
+<p><b>Verified:</b> ${d.verified===true?"Yes":"No"}</p>
+<p><b>Active:</b> ${d.active===true?"Yes":"No"}</p>
+<button class="green" data-action="activate" data-id="${safe(d.id)}">Verify + Activate</button>
+<button class="gray" data-action="inactive" data-id="${safe(d.id)}">Verified + Inactive</button>
+<button class="red" data-action="unverify" data-id="${safe(d.id)}">Unverify + Inactive</button>
+</div>
+`).join("");
+
+$("driverList").querySelectorAll("[data-action]").forEach(btn=>{
+btn.addEventListener("click",()=>updateDriver(btn.dataset.id,btn.dataset.action));
+});
+}
+
+async function updateDriver(uid,action){
+let verified=false,active=false;
+
+if(action==="activate"){verified=true;active=true;}
+if(action==="inactive"){verified=true;active=false;}
+
+if(!confirm("Driver profile update करना है?"))return;
+
+try{
+await updateDoc(doc(db,"Drivers",uid),{
+verified,active,updatedAt:serverTimestamp()
+});
+alert("Driver profile updated.");
+}catch(e){
+alert("Driver Update Error: "+e.message);
+}
+}
+
+$("loginBtn").addEventListener("click",async()=>{
+const email=$("email").value.trim();
+const password=$("password").value;
+
+if(!email||!password){
+message("loginMsg","Email और Password भरें।");
+return;
+}
+
+try{
+const result=await signInWithEmailAndPassword(auth,email,password);
+if(result.user.uid!==ADMIN_UID){
+await signOut(auth);
+message("loginMsg","यह Account Admin नहीं है।");
+return;
+}
+}catch(e){
+message("loginMsg","Login Error: "+e.message);
+}
+});
+
+$("logoutBtn").addEventListener("click",async()=>{
+stopLiveData();
+await signOut(auth);
+});
+
+$("refreshBtn").addEventListener("click",startLiveData);
+$("bookingFilter").addEventListener("change",renderBookings);
+$("driverFilter").addEventListener("change",renderDrivers);
+
+onAuthStateChanged(auth,user=>{
+if(user&&user.uid===ADMIN_UID){
+showDashboard(user);
+}else{
+stopLiveData();
+$("dashboard").classList.add("hidden");
+$("loginBox").classList.remove("hidden");
+}
+});
+</script>
+</body>
+</html>
+
