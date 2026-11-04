@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -18,6 +17,7 @@ button{background:#1d4ed8;color:white;border:0;font-weight:bold}
 .red{background:#b91c1c}
 .item{border:1px solid #ddd;padding:13px;border-radius:10px;margin:12px 0;overflow-wrap:anywhere}
 .hidden{display:none}
+.small{color:#475569;font-size:14px}
 </style>
 </head>
 <body>
@@ -38,10 +38,10 @@ button{background:#1d4ed8;color:white;border:0;font-weight:bold}
 <button id="logoutBtn" class="secondary">Logout</button>
 </div>
 
-<div class="card" id="profileBox">
+<div class="card">
 <h3>Driver Profile</h3>
 <input id="name" placeholder="Driver Name">
-<input id="phone" maxlength="10" placeholder="Mobile Number">
+<input id="phone" maxlength="10" inputmode="numeric" placeholder="Mobile Number">
 <input id="vehicleNumber" placeholder="Vehicle Number">
 <input id="vehicleModel" placeholder="Vehicle Model">
 <input id="licenseNumber" placeholder="Driving License Number">
@@ -63,7 +63,8 @@ button{background:#1d4ed8;color:white;border:0;font-weight:bold}
 </div>
 
 <script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
 getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut
@@ -94,21 +95,30 @@ let profile=null;
 let stopPending=null;
 let stopActive=null;
 
+function stopListeners(){
+if(stopPending){stopPending();stopPending=null;}
+if(stopActive){stopActive();stopActive=null;}
+}
+
 $("loginBtn").onclick=async()=>{
+$("message").textContent="Login हो रहा है...";
 try{
 await signInWithEmailAndPassword(
 auth,$("email").value.trim(),$("password").value
 );
-}catch(e){$("message").textContent=e.message;}
+$("message").textContent="";
+}catch(e){
+$("message").textContent="Login Error: "+e.message;
+}
 };
 
 $("logoutBtn").onclick=()=>signOut(auth);
+$("refreshBtn").onclick=()=>location.reload();
 
 onAuthStateChanged(auth,async u=>{
+stopListeners();
 user=u;
-
-if(stopPending)stopPending();
-if(stopActive)stopActive();
+profile=null;
 
 $("loginBox").classList.toggle("hidden",!!u);
 $("panel").classList.toggle("hidden",!u);
@@ -116,6 +126,8 @@ $("panel").classList.toggle("hidden",!u);
 if(!u)return;
 
 $("driverLabel").textContent=u.email||u.uid;
+$("pending").textContent="लोड हो रहा है...";
+$("active").textContent="लोड हो रहा है...";
 
 try{
 const snap=await getDoc(doc(db,"Drivers",u.uid));
@@ -123,68 +135,83 @@ profile=snap.exists()?snap.data():null;
 
 if(profile){
 $("name").value=profile.name||"";
-$("phone").value=profile.phone||"";
+$("phone").value=profile.phone||profile.mobile||"";
 $("vehicleNumber").value=profile.vehicleNumber||"";
 $("vehicleModel").value=profile.vehicleModel||"";
-$("licenseNumber").value=profile.licenseNumber||"";
+$("licenseNumber").value=profile.licenseNumber||profile.license||"";
 }
 
-if(profile?.verified===true&&profile?.active===true){
-$("profileMsg").textContent="Verified और Active";
-}else{
-$("profileMsg").textContent="Profile भरें। Admin Verification के बाद Booking मिलेगी।";
-}
-
+updateProfileMessage();
 watchBookings();
+
 }catch(e){
 $("profileMsg").textContent="Profile Error: "+e.message;
+$("pending").textContent="Error: "+e.message;
 }
 });
+
+function updateProfileMessage(){
+if(profile?.verified===true&&profile?.active===true){
+$("profileMsg").textContent="Verified और Active — आप Booking Accept कर सकते हैं।";
+}else{
+$("profileMsg").textContent=
+"Profile भरें। Admin Verification और Activation के बाद Booking मिलेगी।";
+}
+}
 
 $("saveProfile").onclick=async()=>{
 if(!user)return;
 
-const data={
-uid:user.uid,
-name:$("name").value.trim(),
-phone:$("phone").value.trim(),
-vehicleNumber:$("vehicleNumber").value.trim(),
-vehicleModel:$("vehicleModel").value.trim(),
-licenseNumber:$("licenseNumber").value.trim(),
-updatedAt:serverTimestamp()
-};
+const name=$("name").value.trim();
+const phone=$("phone").value.trim();
+const vehicleNumber=$("vehicleNumber").value.trim();
+const vehicleModel=$("vehicleModel").value.trim();
+const licenseNumber=$("licenseNumber").value.trim();
 
-if(!data.name||!/^\\d{10}$/.test(data.phone)||
-!data.vehicleNumber||!data.vehicleModel||!data.licenseNumber){
-$("profileMsg").textContent="सभी जानकारी सही भरें।";
+if(!name||!/^\d{10}$/.test(phone)||
+!vehicleNumber||!vehicleModel||!licenseNumber){
+$("profileMsg").textContent="सभी जानकारी सही भरें। मोबाइल नंबर 10 अंकों का होना चाहिए।";
 return;
 }
 
 try{
-await setDoc(doc(db,"Drivers",user.uid),{
-...data,
+const data={
+uid:user.uid,
+name,
+phone,
+mobile:phone,
+vehicleNumber,
+vehicleModel,
+licenseNumber,
+license:licenseNumber,
 verified:profile?.verified===true,
-active:profile?.active===true
-},{merge:true});
+active:profile?.active===true,
+updatedAt:serverTimestamp()
+};
+
+await setDoc(doc(db,"Drivers",user.uid),data,{merge:true});
 
 profile={...profile,...data};
-$("profileMsg").textContent="Profile Save हो गई। Admin Verification का इंतजार करें।";
+updateProfileMessage();
+watchBookings();
+
 }catch(e){
-$("profileMsg").textContent="Error: "+e.message;
+$("profileMsg").textContent="Profile Save Error: "+e.message;
 }
 };
 
 function watchBookings(){
-if(stopPending)stopPending();
-if(stopActive)stopActive();
+stopListeners();
+
+if(!user)return;
 
 stopPending=onSnapshot(
 query(collection(db,"Booking"),where("status","==","Pending")),
 snapshot=>{
 $("pending").innerHTML="";
 
-if(!profile?.verified||!profile?.active){
-$("pending").textContent="Admin Verification जरूरी है।";
+if(profile?.verified!==true||profile?.active!==true){
+$("pending").textContent="Admin Verification और Activation जरूरी है।";
 return;
 }
 
@@ -199,30 +226,30 @@ const el=document.createElement("div");
 el.className="item";
 
 const info=document.createElement("p");
-info.textContent=(d.pickup||"—")+" → "+(d.destination||"—")+
+info.textContent=
+(d.pickup||"—")+" → "+(d.destination||"—")+
 " | Vehicle: "+(d.vehicleType||"—")+
-" | Customer: "+(d.customerName||d.customerPhone||"—");
-el.append(info);
+" | Customer: "+(d.customerName||"—")+
+" | Mobile: "+(d.customerPhone||"—");
 
 const btn=document.createElement("button");
 btn.textContent="Accept Booking";
 btn.onclick=()=>acceptBooking(s.id);
-el.append(btn);
+
+el.append(info,btn);
 $("pending").append(el);
-}
-);
+});
 },
 error=>{
-$("pending").textContent="Error: "+error.message;
-});
-
-const q=query(
-collection(db,"Booking"),
-where("driverUid","==",user.uid)
+$("pending").textContent="Booking Error: "+error.message;
+}
 );
 
-stopActive=onSnapshot(q,snapshot=>{
+stopActive=onSnapshot(
+query(collection(db,"Booking"),where("driverUid","==",user.uid)),
+snapshot=>{
 $("active").innerHTML="";
+
 const rows=snapshot.docs.filter(s=>
 ["Accepted","Started"].includes(s.data().status)
 );
@@ -238,11 +265,19 @@ const el=document.createElement("div");
 el.className="item";
 
 const info=document.createElement("p");
-info.textContent=(d.pickup||"—")+" → "+(d.destination||"—")+
-" | Customer: "+(d.customerName||d.customerPhone||"—")+
+info.textContent=
+(d.pickup||"—")+" → "+(d.destination||"—")+
+" | Customer: "+(d.customerName||"—")+
 " | Mobile: "+(d.customerPhone||"—")+
 " | Status: "+d.status;
-el.append(info);
+
+const vehicle=document.createElement("p");
+vehicle.className="small";
+vehicle.textContent=
+"गाड़ी: "+(d.vehicleNumber||"—")+
+" | मॉडल: "+(d.vehicleModel||"—");
+
+el.append(info,vehicle);
 
 if(d.status==="Accepted"){
 const start=document.createElement("button");
@@ -262,9 +297,11 @@ el.append(done);
 
 $("active").append(el);
 });
-},error=>{
-$("active").textContent="Error: "+error.message;
-});
+},
+error=>{
+$("active").textContent="Active Ride Error: "+error.message;
+}
+);
 }
 
 async function acceptBooking(id){
@@ -290,7 +327,7 @@ throw new Error("Booking या Driver Profile नहीं मिली।");
 const b=bookingSnap.data();
 const d=driverSnap.data();
 
-if(b.status!=="Pending"){
+if(b.status!=="Pending"||b.driverUid){
 throw new Error("यह Booking पहले ही किसी ने ले ली है।");
 }
 
@@ -303,7 +340,8 @@ status:"Accepted",
 driverUid:user.uid,
 driverEmail:user.email||"",
 driverName:d.name,
-driverPhone:d.phone,
+driverPhone:d.phone||d.mobile||"",
+driverMobile:d.phone||d.mobile||"",
 vehicleNumber:d.vehicleNumber,
 vehicleModel:d.vehicleModel,
 acceptedAt:serverTimestamp()
@@ -326,7 +364,9 @@ if(!snap.exists())throw new Error("Booking नहीं मिली।");
 
 const d=snap.data();
 
-if(d.driverUid!==user.uid)throw new Error("यह आपकी Booking नहीं है।");
+if(d.driverUid!==user.uid){
+throw new Error("यह आपकी Booking नहीं है।");
+}
 
 if(status==="Started"&&d.status!=="Accepted"){
 throw new Error("Ride अभी Start नहीं हो सकती।");
@@ -337,16 +377,15 @@ throw new Error("Ride पहले Start करें।");
 }
 
 transaction.update(ref,{
-status:status,
+status,
 updatedAt:serverTimestamp()
 });
 });
+
 }catch(e){
 alert("Status Error: "+e.message);
 }
 }
-
-$("refreshBtn").onclick=()=>location.reload();
 </script>
 </body>
 </html>
