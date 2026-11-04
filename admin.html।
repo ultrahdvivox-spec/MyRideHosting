@@ -1,440 +1,92 @@
 
 
-<!DOCTYPE html>
-<html lang="hi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Ride Admin Panel</title>
+rules_version = '2';
 
-<style>
-*{box-sizing:border-box}
-body{
-  margin:0;padding:15px;
-  font-family:Arial,sans-serif;
-  background:#eef2ff;color:#172033
-}
-.container{max-width:950px;margin:auto}
-.card{
-  background:white;padding:18px;
-  border-radius:14px;margin-bottom:16px;
-  box-shadow:0 3px 12px #00000010
-}
-h2{color:#263b80}
-input,select{
-  width:100%;padding:12px;
-  margin:7px 0 12px;
-  border:1px solid #ccd3e0;
-  border-radius:8px;font-size:15px
-}
-button{
-  border:0;border-radius:8px;
-  padding:11px 15px;margin:4px;
-  color:white;background:#3156c9;
-  font-weight:bold;cursor:pointer
-}
-.green{background:#16864b}
-.red{background:#d93636}
-.gray{background:#606b7d}
-.orange{background:#e58b19}
-.hidden{display:none}
-.item{
-  border:1px solid #e0e5ef;
-  padding:14px;border-radius:10px;
-  margin:12px 0;background:#fafbff
-}
-.status{font-weight:bold;color:#3156c9}
-.small{font-size:13px;color:#657087}
-.header{
- display:flex;justify-content:space-between;
- align-items:center;flex-wrap:wrap;gap:8px
-}
-</style>
-</head>
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-<body>
-<div class="container">
+    // ADMIN UID
+    function signedIn() {
+      return request.auth != null;
+    }
 
-<div class="card header">
-  <div>
-    <h2>🚗 My Ride Bhilwara</h2>
-    <b>Admin Control Panel</b>
-  </div>
-  <button id="logoutBtn" class="red hidden">Logout</button>
-</div>
+    function isAdmin() {
+      return signedIn()
+        && request.auth.uid == "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+    }
 
-<div id="loginBox" class="card">
-  <h2>🔐 Admin Login</h2>
-  <input id="email" type="email"
-    placeholder="Admin Email">
-  <input id="password" type="password"
-    placeholder="Password">
-  <button id="loginBtn" class="green">Login करें</button>
-  <p id="loginMsg"></p>
-</div>
+    // ACTIVE DRIVER CHECK
+    function isActiveDriver() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/Drivers/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/Drivers/$(request.auth.uid)
+        ).data.active == true;
+    }
 
-<div id="dashboard" class="hidden">
+    // CUSTOMER BOOKING
+    match /Booking/{bookingId} {
 
-<div class="card">
-  <h2>📊 Dashboard</h2>
-  <p>कुल Bookings: <b id="bookingCount">0</b></p>
-  <p>कुल Drivers: <b id="driverCount">0</b></p>
-  <p id="connectionMsg" class="small">Firebase से कनेक्ट हो रहा है...</p>
-  <button id="refreshBtn">Refresh करें</button>
-</div>
+      // Admin, booking owner or authorized driver
+      allow read: if isAdmin()
+        || (
+          signedIn()
+          && resource.data.customerUid == request.auth.uid
+        )
+        || (
+          isActiveDriver()
+          && (
+            resource.data.status == "Pending"
+            || resource.data.driverUid == request.auth.uid
+          )
+        );
 
-<div class="card">
-  <h2>🚕 सभी Bookings</h2>
-  <div id="bookingList">Loading...</div>
-</div>
+      // Customer can create own Pending booking
+      allow create: if signedIn()
+        && request.resource.data.customerUid == request.auth.uid
+        && request.resource.data.status == "Pending"
+        && (
+          !("driverUid" in request.resource.data)
+          || request.resource.data.driverUid == ""
+        );
 
-<div class="card">
-  <h2>🚘 Drivers सेक्शन</h2>
+      // Admin can update any booking
+      // Driver can accept only an unassigned Pending booking
+      allow update: if isAdmin()
+        || (
+          isActiveDriver()
+          && resource.data.status == "Pending"
+          && (
+            !("driverUid" in resource.data)
+            || resource.data.driverUid == ""
+          )
+          && request.resource.data.status == "Accepted"
+          && request.resource.data.driverUid == request.auth.uid
+          && request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(["status", "driverUid", "driverEmail"])
+        );
 
-  <h3>नया Driver जोड़ें</h3>
+      // Only admin can delete bookings
+      allow delete: if isAdmin();
+    }
 
-  <form id="driverForm">
-    <input id="driverUid" required
-      placeholder="Driver Firebase UID">
+    // DRIVER PROFILES
+    match /Drivers/{driverId} {
 
-    <input id="driverName" required
-      placeholder="Driver का पूरा नाम">
+      // Admin can read all; driver can read own profile
+      allow read: if isAdmin()
+        || (signedIn() && request.auth.uid == driverId);
 
-    <input id="driverPhone" required
-      type="tel" pattern="[0-9]{10}"
-      placeholder="10 Digit Mobile Number">
+      // Only admin can add, edit or remove drivers
+      allow create, update, delete: if isAdmin();
+    }
 
-    <input id="vehicleNumber" required
-      placeholder="Vehicle Number">
-
-    <input id="vehicleModel"
-      placeholder="Vehicle Model">
-
-    <input id="license"
-      placeholder="Driving License Number">
-
-    <label>
-      <input id="driverActive" type="checkbox"
-        style="width:auto">
-      Driver Active
-    </label>
-
-    <br>
-
-    <label>
-      <input id="driverVerified" type="checkbox"
-        style="width:auto">
-      Driver Verified
-    </label>
-
-    <br><br>
-    <button class="green" type="submit">
-      + Driver जोड़ें
-    </button>
-  </form>
-</div>
-
-<div class="card">
-  <h2>👨‍✈️ सभी Drivers</h2>
-  <div id="driverList">Loading...</div>
-</div>
-
-</div>
-</div>
-
-<script type="module">
-
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-
-import {
- getAuth,
- signInWithEmailAndPassword,
- onAuthStateChanged,
- signOut
-} from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
-
-import {
- getFirestore,
- collection,
- doc,
- setDoc,
- updateDoc,
- deleteDoc,
- onSnapshot,
- serverTimestamp
-} from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
-
-// YOUR FIREBASE CONFIG
-const firebaseConfig = {
- apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
- authDomain: "myridebhilwara-45652.firebaseapp.com",
- projectId: "myridebhilwara-45652",
- storageBucket: "myridebhilwara-45652.firebasestorage.app",
- messagingSenderId: "819961031572",
- appId: "1:819961031572:web:b7e1f401c90d7335203d81",
- measurementId: "G-WTYS5RWL4V"
-};
-
-const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const $ = id => document.getElementById(id);
-
-let stopBookings = null;
-let stopDrivers = null;
-let bookings = [];
-let drivers = [];
-
-function safe(value){
- return String(value ?? "").replace(/[&<>"']/g,
- c => ({
-  "&":"&amp;",
-  "<":"&lt;",
-  ">":"&gt;",
-  '"':"&quot;",
-  "'":"&#39;"
- }[c]));
-}
-
-function message(text){
- $("connectionMsg").textContent = text;
-}
-
-$("loginBtn").addEventListener("click",async()=>{
- const email=$("email").value.trim();
- const password=$("password").value;
-
- if(!email || !password){
-  $("loginMsg").textContent="Email और Password डालें";
-  return;
- }
-
- try{
-  $("loginBtn").disabled=true;
-  await signInWithEmailAndPassword(auth,email,password);
-  $("loginMsg").textContent="Login सफल";
- }catch(e){
-  $("loginMsg").textContent="Login Error: "+e.message;
- }finally{
-  $("loginBtn").disabled=false;
- }
-});
-
-onAuthStateChanged(auth,async user=>{
- if(user && user.uid===ADMIN_UID){
-  $("loginBox").classList.add("hidden");
-  $("dashboard").classList.remove("hidden");
-  $("logoutBtn").classList.remove("hidden");
-  startListeners();
- }else{
-  stopListeners();
-  $("dashboard").classList.add("hidden");
-  $("logoutBtn").classList.add("hidden");
-  $("loginBox").classList.remove("hidden");
-
-  if(user){
-   $("loginMsg").textContent="यह Account Admin नहीं है।";
-   await signOut(auth);
+    // Everything else is denied
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
- }
-});
-
-function stopListeners(){
- if(stopBookings) stopBookings();
- if(stopDrivers) stopDrivers();
- stopBookings=null;
- stopDrivers=null;
 }
-
-function startListeners(){
- stopListeners();
- message("Firebase Connected: Data Loading...");
-
- stopBookings=onSnapshot(
-  collection(db,"Booking"),
-  snapshot=>{
-   bookings=snapshot.docs.map(d=>({
-    id:d.id,...d.data()
-   }));
-   renderBookings();
-   message("Bookings Live Updated");
-  },
-  error=>{
-   message("Booking Error: "+error.message);
-  }
- );
-
- stopDrivers=onSnapshot(
-  collection(db,"Drivers"),
-  snapshot=>{
-   drivers=snapshot.docs.map(d=>({
-    id:d.id,...d.data()
-   }));
-   renderDrivers();
-   message("Firebase Live Connected");
-  },
-  error=>{
-   message("Driver Error: "+error.message);
-  }
- );
-}
-
-function renderBookings(){
- $("bookingCount").textContent=bookings.length;
-
- if(!bookings.length){
-  $("bookingList").innerHTML="अभी कोई Booking नहीं है।";
-  return;
- }
-
- $("bookingList").innerHTML=bookings.map(b=>`
-  <div class="item">
-   <b>Booking ID:</b> ${safe(b.id)}<br>
-   <b>शुरुआत:</b> ${safe(b.pickup)}<br>
-   <b>मंजिल:</b> ${safe(b.destination)}<br>
-   <b>वाहन:</b> ${safe(b.vehicleType)}<br>
-   <b>शहर:</b> ${safe(b.city)}<br>
-   <b>Customer:</b> ${safe(b.customerPhone || b.customerEmail || "-")}<br>
-   <b>Status:</b>
-   <span class="status">${safe(b.status || "Pending")}</span>
-   <br><br>
-   <button class="green"
-    data-booking="${safe(b.id)}"
-    data-status="Accepted">Accept Booking</button>
-
-   <button class="red"
-    data-booking="${safe(b.id)}"
-    data-status="Rejected">Reject Booking</button>
-  </div>
- `).join("");
-}
-
-$("bookingList").addEventListener("click",async e=>{
- const btn=e.target.closest("button[data-booking]");
- if(!btn)return;
-
- const id=btn.dataset.booking;
- const status=btn.dataset.status;
-
- if(!confirm("Booking "+status+" करें?"))return;
-
- try{
-  await updateDoc(doc(db,"Booking",id),{
-   status:status
-  });
-  alert("Booking "+status+" हो गई");
- }catch(e){
-  alert("Error: "+e.message);
- }
-});
-
-function renderDrivers(){
- $("driverCount").textContent=drivers.length;
-
- if(!drivers.length){
-  $("driverList").innerHTML="अभी कोई Driver नहीं है।";
-  return;
- }
-
- $("driverList").innerHTML=drivers.map(d=>`
-  <div class="item">
-   <b>Driver UID:</b> ${safe(d.id)}<br>
-   <b>नाम:</b> ${safe(d.name)}<br>
-   <b>मोबाइल:</b> ${safe(d.mobile)}<br>
-   <b>वाहन:</b> ${safe(d.vehicleNumber)}<br>
-   <b>मॉडल:</b> ${safe(d.vehicleModel || "-")}<br>
-   <b>License:</b> ${safe(d.license || "-")}<br>
-   <b>Active:</b> ${d.active===true?"Yes":"No"}<br>
-   <b>Verified:</b> ${d.verified===true?"Yes":"No"}<br>
-   <button class="orange"
-    data-toggle="${safe(d.id)}">
-    ${d.active===true?"Deactivate":"Activate"}
-   </button>
-   <button class="red"
-    data-delete="${safe(d.id)}">
-    Remove Driver
-   </button>
-  </div>
- `).join("");
-}
-
-$("driverForm").addEventListener("submit",async e=>{
- e.preventDefault();
-
- const uid=$("driverUid").value.trim();
-
- if(!uid){
-  alert("Driver UID जरूरी है");
-  return;
- }
-
- const data={
-  name:$("driverName").value.trim(),
-  mobile:$("driverPhone").value.trim(),
-  vehicleNumber:$("vehicleNumber").value.trim(),
-  vehicleModel:$("vehicleModel").value.trim(),
-  license:$("license").value.trim(),
-  active:$("driverActive").checked,
-  verified:$("driverVerified").checked,
-  createdAt:serverTimestamp()
- };
-
- try{
-  await setDoc(doc(db,"Drivers",uid),data);
-  alert("Driver सफलतापूर्वक जोड़ दिया गया");
-  $("driverForm").reset();
- }catch(e){
-  alert("Driver Error: "+e.message);
- }
-});
-
-$("driverList").addEventListener("click",async e=>{
- const toggle=e.target.closest("button[data-toggle]");
- const remove=e.target.closest("button[data-delete]");
-
- if(toggle){
-  const uid=toggle.dataset.toggle;
-  const driver=drivers.find(d=>d.id===uid);
-  if(!driver)return;
-
-  try{
-   await updateDoc(doc(db,"Drivers",uid),{
-    active:driver.active!==true
-   });
-   alert("Driver Status Updated");
-  }catch(e){
-   alert("Error: "+e.message);
-  }
- }
-
- if(remove){
-  const uid=remove.dataset.delete;
-
-  if(!confirm("इस Driver को हटाना चाहते हैं?"))return;
-
-  try{
-   await deleteDoc(doc(db,"Drivers",uid));
-   alert("Driver हटा दिया गया");
-  }catch(e){
-   alert("Delete Error: "+e.message);
-  }
- }
-});
-
-$("refreshBtn").addEventListener("click",()=>{
- if(auth.currentUser?.uid===ADMIN_UID){
-  startListeners();
- }
-});
-
-$("logoutBtn").addEventListener("click",async()=>{
- await signOut(auth);
-});
-
-</script>
-</body>
-</html>
