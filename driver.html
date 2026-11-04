@@ -1,61 +1,29 @@
 
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>My Ride Driver</title>
-
 <style>
 *{box-sizing:border-box}
-body{
- font-family:Arial,sans-serif;
- background:#eef2ff;
- margin:0;
- padding:16px;
- color:#172033;
-}
+body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:16px;color:#172033}
 .container{max-width:600px;margin:auto}
-.card{
- background:white;
- padding:20px;
- border-radius:15px;
- margin:15px 0;
- box-shadow:0 3px 12px #0002;
-}
+.card{background:white;padding:20px;border-radius:15px;margin:15px 0;box-shadow:0 3px 12px #0002}
 h2{text-align:center;color:#0756b8}
-input,button{
- width:100%;
- padding:14px;
- margin:9px 0;
- border-radius:9px;
- font-size:16px;
-}
+input,button{width:100%;padding:14px;margin:9px 0;border-radius:9px;font-size:16px}
 input{border:1px solid #ccc}
-button{
- border:0;
- background:#0756b8;
- color:white;
- font-weight:bold;
-}
+button{border:0;background:#0756b8;color:white;font-weight:bold}
 button:disabled{opacity:.5}
 .logout{background:#dc2626}
 .accept{background:#15803d}
-.booking{
- background:#f1f5f9;
- padding:14px;
- border-radius:12px;
- margin:12px 0;
- overflow-wrap:anywhere;
-}
-#status,#panelMessage{
- white-space:pre-wrap;
- overflow-wrap:anywhere;
-}
+.booking{background:#f1f5f9;padding:14px;border-radius:12px;margin:12px 0;overflow-wrap:anywhere}
+#status,#panelMessage{white-space:pre-wrap;overflow-wrap:anywhere}
 .hidden{display:none}
+.small{font-size:12px;color:#555;overflow-wrap:anywhere}
 </style>
 </head>
-
 <body>
 <div class="container">
 
@@ -64,13 +32,8 @@ button:disabled{opacity:.5}
 
 <div id="login">
 <h3>Email Login / Register</h3>
-
-<input id="email" type="email"
-placeholder="अपना Email लिखें">
-
-<input id="password" type="password"
-placeholder="Password (कम से कम 6 अक्षर)">
-
+<input id="email" type="email" placeholder="अपना Email लिखें">
+<input id="password" type="password" placeholder="Password (कम से कम 6 अक्षर)">
 <button id="register">नया Account बनाएं</button>
 <button id="signin">Login करें</button>
 </div>
@@ -78,6 +41,7 @@ placeholder="Password (कम से कम 6 अक्षर)">
 <div id="account" class="hidden">
 <h3>Login सफल हुआ!</h3>
 <p id="userEmail"></p>
+<p class="small" id="userUid"></p>
 <button id="logout" class="logout">Logout</button>
 </div>
 
@@ -85,7 +49,6 @@ placeholder="Password (कम से कम 6 अक्षर)">
 </div>
 
 <div id="dashboard" class="hidden">
-
 <div class="card">
 <h3>🚕 Pending Bookings</h3>
 <button id="refreshBtn">Refresh Bookings</button>
@@ -97,12 +60,10 @@ placeholder="Password (कम से कम 6 अक्षर)">
 <h3>✅ मेरी Accepted Bookings</h3>
 <div id="myBookings"></div>
 </div>
-
 </div>
 </div>
 
 <script type="module">
-
 import {initializeApp}
 from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
@@ -119,7 +80,9 @@ import {
  collection,
  getDocs,
  doc,
- runTransaction
+ runTransaction,
+ query,
+ where
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -147,41 +110,32 @@ function getDetails(){
  };
 }
 
-// नया Driver Account
+// नया Account
 document.getElementById("register").onclick=async()=>{
  try{
   const {email,password}=getDetails();
-
   if(!email||password.length<6){
-   status.textContent=
-   "सही Email और कम से कम 6 अक्षर का Password डालें।";
+   status.textContent="सही Email और कम से कम 6 अक्षर का Password डालें।";
    return;
   }
-
   status.textContent="Account बनाया जा रहा है...";
-
   await createUserWithEmailAndPassword(auth,email,password);
-
   status.textContent="Account बन गया!";
  }catch(e){
   status.textContent="Error: "+e.message;
  }
 };
 
-// Driver Login
+// Login
 document.getElementById("signin").onclick=async()=>{
  try{
   const {email,password}=getDetails();
-
   if(!email||!password){
    status.textContent="Email और Password डालें।";
    return;
   }
-
   status.textContent="Login हो रहा है...";
-
   await signInWithEmailAndPassword(auth,email,password);
-
   status.textContent="Login सफल!";
  }catch(e){
   status.textContent="Login Error: "+e.message;
@@ -190,18 +144,16 @@ document.getElementById("signin").onclick=async()=>{
 
 // Booking Card
 function createBookingCard(data,id,isMine){
-
  const card=document.createElement("div");
  card.className="booking";
 
  const details=document.createElement("p");
-
  details.textContent=
  "Booking ID: "+id+
  "\nशुरुआत: "+(data.pickup||"")+
  "\nमंजिल: "+(data.destination||"")+
  "\nवाहन: "+(data.vehicleType||"")+
- "\nस्टेटस: "+(data.status||"Pending");
+ "\nस्टेटस: "+(data.status||"");
 
  card.appendChild(details);
 
@@ -212,18 +164,13 @@ function createBookingCard(data,id,isMine){
 
   accept.onclick=async()=>{
    const user=auth.currentUser;
-
-   if(!user){
-    alert("पहले Login करें।");
-    return;
-   }
+   if(!user)return;
 
    accept.disabled=true;
    accept.textContent="Accept हो रहा है...";
 
    try{
     await runTransaction(db,async(transaction)=>{
-
      const bookingRef=doc(db,"Booking",id);
      const latest=await transaction.get(bookingRef);
 
@@ -231,9 +178,7 @@ function createBookingCard(data,id,isMine){
       throw new Error("Booking उपलब्ध नहीं है।");
      }
 
-     const latestData=latest.data();
-
-     if(latestData.status!=="Pending"){
+     if(latest.data().status!=="Pending"){
       throw new Error("यह Booking पहले ही Accept हो चुकी है।");
      }
 
@@ -260,71 +205,70 @@ function createBookingCard(data,id,isMine){
  return card;
 }
 
-// Firebase Bookings लोड करना
+// सुरक्षित तरीके से Bookings लोड करना
 async function loadDriverBookings(){
-
  const user=auth.currentUser;
-
  if(!user)return;
 
  pendingBookings.replaceChildren();
  myBookings.replaceChildren();
-
  panelMessage.textContent="बुकिंग लोड हो रही हैं...";
 
  try{
-  const snapshot=await getDocs(collection(db,"Booking"));
+  const bookingRef=collection(db,"Booking");
 
-  let pendingCount=0;
+  const pendingQuery=query(
+   bookingRef,
+   where("status","==","Pending")
+  );
+
+  const myQuery=query(
+   bookingRef,
+   where("driverUid","==",user.uid)
+  );
+
+  const [pendingSnap,mySnap]=await Promise.all([
+   getDocs(pendingQuery),
+   getDocs(myQuery)
+  ]);
+
+  pendingSnap.forEach(item=>{
+   pendingBookings.appendChild(
+    createBookingCard(item.data(),item.id,false)
+   );
+  });
+
   let myCount=0;
 
-  snapshot.forEach(bookingDoc=>{
+  mySnap.forEach(item=>{
+   const data=item.data();
 
-   const data=bookingDoc.data();
-   const id=bookingDoc.id;
-
-   if(data.status==="Pending"){
-    pendingCount++;
-    pendingBookings.appendChild(
-     createBookingCard(data,id,false)
-    );
-   }
-
-   if(
-    data.status==="Accepted" &&
-    data.driverUid===user.uid
-   ){
+   if(data.status==="Accepted"){
     myCount++;
     myBookings.appendChild(
-     createBookingCard(data,id,true)
+     createBookingCard(data,item.id,true)
     );
    }
   });
 
   panelMessage.textContent=
-   "कुल Pending Bookings: "+pendingCount;
+   "कुल Pending Bookings: "+pendingSnap.size;
 
-  if(pendingCount===0){
-   pendingBookings.textContent=
-   "अभी कोई Pending Booking नहीं है।";
+  if(pendingSnap.empty){
+   pendingBookings.textContent="अभी कोई Pending Booking नहीं है।";
   }
 
   if(myCount===0){
-   myBookings.textContent=
-   "अभी आपकी कोई Accepted Booking नहीं है।";
+   myBookings.textContent="अभी आपकी कोई Accepted Booking नहीं है।";
   }
 
  }catch(e){
-
-  panelMessage.textContent=
-  "बुकिंग लोड नहीं हुई: "+e.message;
-
+  panelMessage.textContent="बुकिंग लोड नहीं हुई: "+e.message;
  }
 }
 
-// Login की स्थिति
+// Login स्थिति
 onAuthStateChanged(auth,async(user)=>{
-
  const login=document.getElementById("login");
  const account=document.getElementById("account");
  const dashboard=document.getElementById("dashboard");
@@ -335,7 +279,10 @@ onAuthStateChanged(auth,async(user)=>{
 
  if(user){
   document.getElementById("userEmail").textContent=
-  "Driver Email: "+user.email;
+   "Driver Email: "+user.email;
+
+  document.getElementById("userUid").textContent=
+   "Driver UID: "+user.uid;
 
   await loadDriverBookings();
  }
@@ -343,7 +290,7 @@ onAuthStateChanged(auth,async(user)=>{
 
 // Refresh
 document.getElementById("refreshBtn").onclick=
-loadDriverBookings;
+ loadDriverBookings;
 
 // Logout
 document.getElementById("logout").onclick=async()=>{
@@ -354,8 +301,6 @@ document.getElementById("logout").onclick=async()=>{
   status.textContent="Logout Error: "+e.message;
  }
 };
-
 </script>
 </body>
 </html>
-
