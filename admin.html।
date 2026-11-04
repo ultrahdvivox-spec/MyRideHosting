@@ -1,92 +1,1035 @@
 
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>My Ride Bhilwara - Admin</title>
 
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // ADMIN UID
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return signedIn()
-        && request.auth.uid == "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
-    }
-
-    // ACTIVE DRIVER CHECK
-    function isActiveDriver() {
-      return signedIn()
-        && exists(
-          /databases/$(database)/documents/Drivers/$(request.auth.uid)
-        )
-        && get(
-          /databases/$(database)/documents/Drivers/$(request.auth.uid)
-        ).data.active == true;
-    }
-
-    // CUSTOMER BOOKING
-    match /Booking/{bookingId} {
-
-      // Admin, booking owner or authorized driver
-      allow read: if isAdmin()
-        || (
-          signedIn()
-          && resource.data.customerUid == request.auth.uid
-        )
-        || (
-          isActiveDriver()
-          && (
-            resource.data.status == "Pending"
-            || resource.data.driverUid == request.auth.uid
-          )
-        );
-
-      // Customer can create own Pending booking
-      allow create: if signedIn()
-        && request.resource.data.customerUid == request.auth.uid
-        && request.resource.data.status == "Pending"
-        && (
-          !("driverUid" in request.resource.data)
-          || request.resource.data.driverUid == ""
-        );
-
-      // Admin can update any booking
-      // Driver can accept only an unassigned Pending booking
-      allow update: if isAdmin()
-        || (
-          isActiveDriver()
-          && resource.data.status == "Pending"
-          && (
-            !("driverUid" in resource.data)
-            || resource.data.driverUid == ""
-          )
-          && request.resource.data.status == "Accepted"
-          && request.resource.data.driverUid == request.auth.uid
-          && request.resource.data.diff(resource.data)
-              .affectedKeys()
-              .hasOnly(["status", "driverUid", "driverEmail"])
-        );
-
-      // Only admin can delete bookings
-      allow delete: if isAdmin();
-    }
-
-    // DRIVER PROFILES
-    match /Drivers/{driverId} {
-
-      // Admin can read all; driver can read own profile
-      allow read: if isAdmin()
-        || (signedIn() && request.auth.uid == driverId);
-
-      // Only admin can add, edit or remove drivers
-      allow create, update, delete: if isAdmin();
-    }
-
-    // Everything else is denied
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:14px;
+  font-family:Arial,sans-serif;
+  background:#f1f5f9;
+  color:#172033
 }
+.container{max-width:1000px;margin:auto}
+h2{color:#1d4ed8}
+.card{
+  background:#fff;
+  padding:17px;
+  border-radius:12px;
+  margin:12px 0;
+  box-shadow:0 2px 8px #00000012
+}
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  font-size:15px
+}
+button{
+  background:#1d4ed8;
+  color:white;
+  border:0;
+  font-weight:bold;
+  cursor:pointer
+}
+button:disabled{opacity:.55;cursor:not-allowed}
+.green{background:#15803d}
+.red{background:#b91c1c}
+.gray{background:#475569}
+.orange{background:#c2410c}
+.hidden{display:none!important}
+.item{
+  border:1px solid #dbe2ea;
+  border-radius:10px;
+  padding:13px;
+  margin:12px 0;
+  background:#fff;
+  overflow-wrap:anywhere
+}
+.item p{line-height:1.5;margin:7px 0}
+.small{font-size:13px;color:#64748b}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px
+}
+.stat{
+  background:#eff6ff;
+  padding:14px;
+  border-radius:9px;
+  text-align:center
+}
+.stat b{font-size:22px;color:#1d4ed8}
+.status{
+  display:inline-block;
+  padding:5px 9px;
+  background:#e2e8f0;
+  border-radius:20px;
+  font-size:13px;
+  margin:3px
+}
+.msg{font-size:14px;line-height:1.5}
+hr{border:0;border-top:1px solid #e2e8f0;margin:12px 0}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>🚕 My Ride Bhilwara</h2>
+<p>Admin Control Panel</p>
+
+<!-- LOGIN -->
+<div class="card" id="loginBox">
+
+<h3>🔐 Admin Login</h3>
+
+<input id="email" type="email"
+placeholder="Admin Email">
+
+<input id="password" type="password"
+placeholder="Admin Password">
+
+<button id="loginBtn">Admin Login</button>
+
+<p id="loginMsg" class="msg"></p>
+
+</div>
+
+
+<!-- ADMIN DASHBOARD -->
+<div id="dashboard" class="hidden">
+
+<div class="card">
+
+<b>✅ Admin Dashboard</b>
+
+<p id="adminEmail" class="small"></p>
+
+<button id="refreshBtn" class="gray">
+Refresh All Data
+</button>
+
+<button id="logoutBtn" class="red">
+Logout
+</button>
+
+</div>
+
+
+<!-- STATISTICS -->
+<div class="card">
+
+<h3>📊 Dashboard Summary</h3>
+
+<div class="stats">
+
+<div class="stat">
+<b id="totalBookings">0</b>
+<p>Total Bookings</p>
+</div>
+
+<div class="stat">
+<b id="pendingBookings">0</b>
+<p>Pending Bookings</p>
+</div>
+
+<div class="stat">
+<b id="totalDrivers">0</b>
+<p>Total Drivers</p>
+</div>
+
+<div class="stat">
+<b id="activeDrivers">0</b>
+<p>Active Drivers</p>
+</div>
+
+</div>
+
+</div>
+
+
+<!-- BOOKINGS -->
+<div class="card">
+
+<h3>📋 All Customer Bookings</h3>
+
+<select id="bookingFilter">
+<option value="ALL">सभी Bookings</option>
+<option value="Pending">Pending</option>
+<option value="Accepted">Accepted</option>
+<option value="Started">Started</option>
+<option value="Completed">Completed</option>
+<option value="Cancelled">Cancelled</option>
+</select>
+
+<p id="bookingMsg" class="msg"></p>
+
+<div id="bookingList">
+लोड हो रहा है...
+</div>
+
+</div>
+
+
+<!-- DRIVERS -->
+<div class="card">
+
+<h3>🚗 Driver Management</h3>
+
+<select id="driverFilter">
+<option value="ALL">सभी Drivers</option>
+<option value="PENDING">Verification Pending</option>
+<option value="ACTIVE">Active Drivers</option>
+<option value="INACTIVE">Inactive Drivers</option>
+</select>
+
+<p id="driverMsg" class="msg"></p>
+
+<div id="driverList">
+लोड हो रहा है...
+</div>
+
+</div>
+
+
+<div class="card">
+<h3>ℹ️ Admin Instructions</h3>
+<p>1. नए Driver की Profile जाँचें।</p>
+<p>2. सही जानकारी होने पर Verified और Active करें।</p>
+<p>3. जरूरत पड़ने पर Driver को Inactive करें।</p>
+<p>4. Customer Booking का Status नियंत्रित करें।</p>
+<p>5. Driver की जानकारी बिना जाँच के Verify न करें।</p>
+</div>
+
+</div>
+</div>
+
+
+<script type="module">
+
+/* FIREBASE IMPORTS */
+
+import {
+initializeApp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+getAuth,
+signInWithEmailAndPassword,
+onAuthStateChanged,
+signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+getFirestore,
+collection,
+doc,
+onSnapshot,
+updateDoc,
+serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+
+/* FIREBASE CONFIG */
+
+const firebaseConfig = {
+apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+authDomain:"myridebhilwara-45652.firebaseapp.com",
+projectId:"myridebhilwara-45652",
+storageBucket:"myridebhilwara-45652.firebasestorage.app",
+messagingSenderId:"819961031572",
+appId:"1:819961031572:web:b7e1f401c90d7335203d81",
+measurementId:"G-WTYS5RWL4V"
+};
+
+
+/* ADMIN UID */
+
+const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+
+
+/* INITIALIZE */
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+
+/* ELEMENT HELPER */
+
+const $ = id => document.getElementById(id);
+
+
+/* VARIABLES */
+
+let currentAdmin = null;
+
+let bookings = [];
+let drivers = [];
+
+let stopBookings = null;
+let stopDrivers = null;
+
+let busy = false;
+
+
+/* SAFE TEXT */
+
+function addText(parent,tag,text){
+
+  const el = document.createElement(tag);
+  el.textContent = text ?? "—";
+  parent.appendChild(el);
+  return el;
+
+}
+
+function showMessage(id,text){
+  $(id).textContent = text;
+}
+
+
+/* STOP LIVE LISTENERS */
+
+function stopListeners(){
+
+  if(stopBookings){
+    stopBookings();
+    stopBookings = null;
+  }
+
+  if(stopDrivers){
+    stopDrivers();
+    stopDrivers = null;
+  }
+
+}
+
+
+/* LOGIN */
+
+$("loginBtn").addEventListener("click",async()=>{
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
+
+  if(!email || !password){
+
+    showMessage(
+      "loginMsg",
+      "Email और Password भरें।"
+    );
+
+    return;
+
+  }
+
+  $("loginBtn").disabled = true;
+
+  showMessage("loginMsg","Login हो रहा है...");
+
+  try{
+
+    await signInWithEmailAndPassword(
+      auth,email,password
+    );
+
+    showMessage("loginMsg","");
+
+  }catch(error){
+
+    showMessage(
+      "loginMsg",
+      "Login Error: "+error.message
+    );
+
+  }finally{
+
+    $("loginBtn").disabled = false;
+
+  }
+
+});
+
+
+/* LOGOUT */
+
+$("logoutBtn").addEventListener("click",async()=>{
+
+  $("logoutBtn").disabled = true;
+
+  try{
+
+    stopListeners();
+    await signOut(auth);
+
+  }catch(error){
+
+    alert("Logout Error: "+error.message);
+
+  }finally{
+
+    $("logoutBtn").disabled = false;
+
+  }
+
+});
+
+
+/* AUTH CHECK */
+
+onAuthStateChanged(auth,user=>{
+
+  stopListeners();
+
+  currentAdmin = null;
+  bookings = [];
+  drivers = [];
+
+  $("loginBox").classList.remove("hidden");
+  $("dashboard").classList.add("hidden");
+
+  if(!user)return;
+
+  if(user.uid !== ADMIN_UID){
+
+    alert("Access Denied: यह Admin Account नहीं है।");
+
+    signOut(auth).catch(error=>{
+      console.error(error);
+    });
+
+    return;
+
+  }
+
+  currentAdmin = user;
+
+  $("loginBox").classList.add("hidden");
+  $("dashboard").classList.remove("hidden");
+
+  $("adminEmail").textContent =
+    "Logged in: "+(user.email || user.uid);
+
+  startLiveData();
+
+});
+
+
+/* LIVE DATA */
+
+function startLiveData(){
+
+  stopListeners();
+
+  if(!currentAdmin ||
+     currentAdmin.uid !== ADMIN_UID)return;
+
+
+  /* BOOKINGS LISTENER */
+
+  stopBookings = onSnapshot(
+    collection(db,"Booking"),
+
+    snapshot=>{
+
+      bookings = snapshot.docs.map(s=>({
+
+        id:s.id,
+        ...s.data()
+
+      }));
+
+      renderBookings();
+      updateStats();
+
+      showMessage(
+        "bookingMsg",
+        "✅ Booking Data Live Updated"
+      );
+
+    },
+
+    error=>{
+
+      showMessage(
+        "bookingMsg",
+        "Booking Error: "+error.message
+      );
+
+    }
+
+  );
+
+
+  /* DRIVERS LISTENER */
+
+  stopDrivers = onSnapshot(
+    collection(db,"Drivers"),
+
+    snapshot=>{
+
+      drivers = snapshot.docs.map(s=>({
+
+        id:s.id,
+        ...s.data()
+
+      }));
+
+      renderDrivers();
+      updateStats();
+
+      showMessage(
+        "driverMsg",
+        "✅ Driver Data Live Updated"
+      );
+
+    },
+
+    error=>{
+
+      showMessage(
+        "driverMsg",
+        "Driver Error: "+error.message
+      );
+
+    }
+
+  );
+
+}
+
+
+/* DASHBOARD COUNTS */
+
+function updateStats(){
+
+  $("totalBookings").textContent =
+    bookings.length;
+
+  $("pendingBookings").textContent =
+    bookings.filter(b=>
+      b.status === "Pending"
+    ).length;
+
+  $("totalDrivers").textContent =
+    drivers.length;
+
+  $("activeDrivers").textContent =
+    drivers.filter(d=>
+      d.active === true &&
+      d.verified === true
+    ).length;
+
+}
+
+
+/* BOOKING FILTER */
+
+$("bookingFilter").addEventListener(
+  "change",
+  renderBookings
+);
+
+
+/* RENDER BOOKINGS */
+
+function renderBookings(){
+
+  const list = $("bookingList");
+  list.replaceChildren();
+
+  let rows = [...bookings];
+
+  const filter = $("bookingFilter").value;
+
+  if(filter !== "ALL"){
+
+    rows = rows.filter(b=>
+      b.status === filter
+    );
+
+  }
+
+  rows.sort((a,b)=>
+    (b.createdAt?.seconds || 0) -
+    (a.createdAt?.seconds || 0)
+  );
+
+  if(!rows.length){
+
+    addText(
+      list,
+      "p",
+      "इस Filter में कोई Booking नहीं मिली।"
+    );
+
+    return;
+
+  }
+
+  rows.forEach(b=>{
+
+    const item = document.createElement("div");
+    item.className = "item";
+
+    addText(
+      item,
+      "b",
+      (b.pickup || "—")+" → "+(b.destination || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Booking ID: "+b.id
+    );
+
+    addText(
+      item,
+      "p",
+      "Customer: "+(b.customerName || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Customer Email: "+(b.customerEmail || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Customer Mobile: "+(b.customerPhone || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Alternate Mobile: "+(b.alternatePhone || "Not Provided")
+    );
+
+    addText(
+      item,
+      "p",
+      "Vehicle: "+(b.vehicleType || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Fare: ₹"+(b.fare ?? 0)
+    );
+
+    const status = addText(
+      item,
+      "p",
+      "Status: "+(b.status || "—")
+    );
+
+    status.className = "status";
+
+    addText(
+      item,
+      "p",
+      "Driver: "+(b.driverName || "Not Assigned")
+    );
+
+    addText(
+      item,
+      "p",
+      "Driver Mobile: "+(b.driverPhone || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Vehicle Number: "+(b.vehicleNumber || "—")
+    );
+
+    const select = document.createElement("select");
+
+    const statuses = [
+      "Pending",
+      "Accepted",
+      "Started",
+      "Completed",
+      "Cancelled"
+    ];
+
+    statuses.forEach(value=>{
+
+      const option = document.createElement("option");
+
+      option.value = value;
+      option.textContent = value;
+
+      if(value === b.status){
+        option.selected = true;
+      }
+
+      select.append(option);
+
+    });
+
+    item.append(select);
+
+    const updateButton =
+      document.createElement("button");
+
+    updateButton.textContent =
+      "Update Booking Status";
+
+    updateButton.addEventListener("click",async()=>{
+
+      if(select.value === b.status){
+
+        alert("Status पहले से यही है।");
+        return;
+
+      }
+
+      await changeBookingStatus(
+        b.id,
+        select.value,
+        updateButton
+      );
+
+    });
+
+    item.append(updateButton);
+
+    list.append(item);
+
+  });
+
+}
+
+
+/* UPDATE BOOKING STATUS */
+
+async function changeBookingStatus(
+  bookingId,
+  newStatus,
+  button
+){
+
+  if(!currentAdmin ||
+     currentAdmin.uid !== ADMIN_UID)return;
+
+  if(busy)return;
+
+  const allowed = [
+    "Pending",
+    "Accepted",
+    "Started",
+    "Completed",
+    "Cancelled"
+  ];
+
+  if(!allowed.includes(newStatus)){
+
+    alert("Invalid Booking Status");
+    return;
+
+  }
+
+  if(!confirm(
+    "Booking Status "+newStatus+" करना चाहते हैं?"
+  ))return;
+
+  busy = true;
+
+  if(button)button.disabled = true;
+
+  try{
+
+    await updateDoc(
+      doc(db,"Booking",bookingId),
+      {
+        status:newStatus,
+        adminUpdatedAt:serverTimestamp()
+      }
+    );
+
+    alert("✅ Booking Status Updated");
+
+  }catch(error){
+
+    alert(
+      "Booking Update Error: "+error.message
+    );
+
+  }finally{
+
+    busy = false;
+
+    if(button)button.disabled = false;
+
+  }
+
+}
+
+
+/* DRIVER FILTER */
+
+$("driverFilter").addEventListener(
+  "change",
+  renderDrivers
+);
+
+
+/* RENDER DRIVERS */
+
+function renderDrivers(){
+
+  const list = $("driverList");
+  list.replaceChildren();
+
+  let rows = [...drivers];
+
+  const filter = $("driverFilter").value;
+
+  if(filter === "PENDING"){
+
+    rows = rows.filter(d=>
+      d.verified !== true
+    );
+
+  }else if(filter === "ACTIVE"){
+
+    rows = rows.filter(d=>
+      d.active === true &&
+      d.verified === true
+    );
+
+  }else if(filter === "INACTIVE"){
+
+    rows = rows.filter(d=>
+      d.active !== true ||
+      d.verified !== true
+    );
+
+  }
+
+  if(!rows.length){
+
+    addText(
+      list,
+      "p",
+      "इस Filter में कोई Driver नहीं मिला।"
+    );
+
+    return;
+
+  }
+
+  rows.forEach(d=>{
+
+    const item = document.createElement("div");
+    item.className = "item";
+
+    addText(
+      item,
+      "b",
+      "🚗 "+(d.name || "Driver")
+    );
+
+    addText(
+      item,
+      "p",
+      "Driver UID: "+d.id
+    );
+
+    addText(
+      item,
+      "p",
+      "Mobile: "+(d.phone || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Vehicle Number: "+(d.vehicleNumber || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Vehicle Model: "+(d.vehicleModel || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "License Number: "+(d.licenseNumber || "—")
+    );
+
+    addText(
+      item,
+      "p",
+      "Verified: "+(d.verified === true ? "Yes" : "No")
+    );
+
+    addText(
+      item,
+      "p",
+      "Active: "+(d.active === true ? "Yes" : "No")
+    );
+
+    const verifyButton =
+      document.createElement("button");
+
+    verifyButton.className = "green";
+    verifyButton.textContent =
+      "Verify + Activate Driver";
+
+    verifyButton.addEventListener("click",async()=>{
+
+      await updateDriverAccess(
+        d.id,true,true,verifyButton
+      );
+
+    });
+
+    const inactiveButton =
+      document.createElement("button");
+
+    inactiveButton.className = "orange";
+    inactiveButton.textContent =
+      "Verified रखें, Inactive करें";
+
+    inactiveButton.addEventListener("click",async()=>{
+
+      await updateDriverAccess(
+        d.id,true,false,inactiveButton
+      );
+
+    });
+
+    const rejectButton =
+      document.createElement("button");
+
+    rejectButton.className = "red";
+    rejectButton.textContent =
+      "Verification हटाएँ और Inactive करें";
+
+    rejectButton.addEventListener("click",async()=>{
+
+      await updateDriverAccess(
+        d.id,false,false,rejectButton
+      );
+
+    });
+
+    item.append(
+      verifyButton,
+      inactiveButton,
+      rejectButton
+    );
+
+    list.append(item);
+
+  });
+
+}
+
+
+/* DRIVER VERIFICATION / ACTIVATION */
+
+async function updateDriverAccess(
+  driverUid,
+  verified,
+  active,
+  button
+){
+
+  if(!currentAdmin ||
+     currentAdmin.uid !== ADMIN_UID)return;
+
+  if(busy)return;
+
+  let action = "Driver Status बदलना चाहते हैं?";
+
+  if(verified && active){
+    action = "Driver को Verify और Activate करना चाहते हैं?";
+  }
+
+  if(verified && !active){
+    action = "Driver को Inactive करना चाहते हैं?";
+  }
+
+  if(!verified && !active){
+    action = "Driver Verification हटाकर Inactive करना चाहते हैं?";
+  }
+
+  if(!confirm(action))return;
+
+  busy = true;
+
+  if(button)button.disabled = true;
+
+  try{
+
+    await updateDoc(
+      doc(db,"Drivers",driverUid),
+      {
+        active:active,
+        verified:verified,
+        updatedAt:serverTimestamp()
+      }
+    );
+
+    alert("✅ Driver Status Successfully Updated");
+
+  }catch(error){
+
+    alert(
+      "Driver Update Error: "+error.message
+    );
+
+  }finally{
+
+    busy = false;
+
+    if(button)button.disabled = false;
+
+  }
+
+}
+
+
+/* MANUAL REFRESH */
+
+$("refreshBtn").addEventListener("click",()=>{
+
+  if(!currentAdmin ||
+     currentAdmin.uid !== ADMIN_UID)return;
+
+  showMessage(
+    "bookingMsg",
+    "Data Refresh हो रहा है..."
+  );
+
+  showMessage(
+    "driverMsg",
+    "Data Refresh हो रहा है..."
+  );
+
+  startLiveData();
+
+});
+
+</script>
+
+</body>
+</html>
