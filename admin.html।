@@ -3,19 +3,23 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>My Ride Bhilwara Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Ride Admin</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial;background:#eef2ff;color:#172033;margin:0;padding:14px}
+body{font-family:Arial,sans-serif;background:#eef2ff;margin:0;padding:14px;color:#172033}
 .container{max-width:900px;margin:auto}
-.card{background:white;padding:18px;border-radius:13px;margin:12px 0}
-input,button{width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:8px;font-size:15px}
-button{background:#1d4ed8;color:white;border:0;font-weight:bold}
-.reject{background:#b91c1c}
-.refresh{background:#475569}
-.item{border:1px solid #ddd;padding:13px;border-radius:10px;margin:12px 0;overflow-wrap:anywhere}
+.card{background:white;padding:16px;border-radius:12px;margin:12px 0;box-shadow:0 2px 8px #0001}
+h2{margin-top:0}
+input{width:100%;padding:12px;margin:7px 0;border:1px solid #ccd2df;border-radius:8px}
+button{padding:10px 14px;border:0;border-radius:8px;background:#2457d6;color:white;margin:5px 4px 5px 0;cursor:pointer}
+button.red{background:#c62828}
+button.green{background:#16834a}
+button.gray{background:#555}
+.small{color:#64748b;font-size:13px}
+.status{font-weight:bold}
 .hidden{display:none}
+.item{border:1px solid #e1e5ee;border-radius:10px;padding:12px;margin:10px 0}
 </style>
 </head>
 <body>
@@ -26,192 +30,232 @@ button{background:#1d4ed8;color:white;border:0;font-weight:bold}
 <h3>Admin Login</h3>
 <input id="email" type="email" placeholder="Admin Email">
 <input id="password" type="password" placeholder="Password">
-<button id="loginBtn">Login</button>
-<p id="message"></p>
+<button id="loginBtn">Login करें</button>
+<p id="loginMsg"></p>
 </div>
 
-<div id="panel" class="hidden">
+<div id="adminPanel" class="hidden">
 <div class="card">
-<b>Admin Panel</b>
-<button id="logoutBtn" class="refresh">Logout</button>
-</div>
-
-<div class="card">
-<h3>सभी बुकिंग</h3>
-<h3 id="total">कुल बुकिंग: 0</h3>
-<button id="refreshBtn" class="refresh">बुकिंग Refresh करें</button>
-<div id="bookings">लोड हो रहा है...</div>
+<b id="adminEmail"></b>
+<button class="gray" id="logoutBtn">Logout</button>
 </div>
 
 <div class="card">
-<h3>Driver Verification</h3>
-<div id="drivers">लोड हो रहा है...</div>
+<h2>🚕 सभी Bookings</h2>
+<button id="refreshBookings">Bookings Refresh करें</button>
+<p id="bookingCount">लोड हो रहा है...</p>
+<div id="bookings"></div>
+</div>
+
+<div class="card">
+<h2>🚘 Driver Profiles</h2>
+<button id="refreshDrivers">Drivers Refresh करें</button>
+<p id="driverCount">लोड हो रहा है...</p>
+<div id="drivers"></div>
 </div>
 </div>
 </div>
 
 <script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import {
-getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut
+ getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 import {
-getFirestore,collection,doc,onSnapshot,updateDoc,
-serverTimestamp
+ getFirestore, collection, onSnapshot, doc, updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const firebaseConfig={
-apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
-authDomain:"myridebhilwara-45652.firebaseapp.com",
-projectId:"myridebhilwara-45652",
-storageBucket:"myridebhilwara-45652.firebasestorage.app",
-messagingSenderId:"819961031572",
-appId:"1:819961031572:web:b7e1f401c90d7335203d81",
-measurementId:"G-WTYS5RWL4V"
+const firebaseConfig = {
+ apiKey: "YOUR_API_KEY",
+ authDomain: "myridebhilwara-45652.firebaseapp.com",
+ projectId: "myridebhilwara-45652",
+ storageBucket: "myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId: "819961031572",
+ appId: "1:819961031572:web:b7e1f401c90d7335203d81",
+ measurementId: "G-WTYS5RWL4V"
 };
 
-const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
 
-const app=initializeApp(firebaseConfig);
-const auth=getAuth(app);
-const db=getFirestore(app);
-const $=id=>document.getElementById(id);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-let stopBookings=null;
-let stopDrivers=null;
+const $ = id => document.getElementById(id);
+let stopBookings = null;
+let stopDrivers = null;
 
-$("loginBtn").onclick=async()=>{
-try{
-await signInWithEmailAndPassword(
-auth,$("email").value.trim(),$("password").value
-);
-}catch(e){$("message").textContent=e.message;}
+function showMessage(id, message) {
+ $(id).textContent = message;
+}
+
+function safe(value) {
+ return String(value ?? "").replace(/[&<>"']/g, ch => ({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ })[ch]);
+}
+
+$("loginBtn").onclick = async () => {
+ const email = $("email").value.trim();
+ const password = $("password").value;
+ if (!email || !password) {
+  showMessage("loginMsg","Email और Password भरें।");
+  return;
+ }
+ try {
+  await signInWithEmailAndPassword(auth,email,password);
+ } catch(error) {
+  showMessage("loginMsg","Login Error: " + error.message);
+ }
 };
 
-$("logoutBtn").onclick=()=>signOut(auth);
+$("logoutBtn").onclick = () => signOut(auth);
 
-onAuthStateChanged(auth,user=>{
-if(stopBookings)stopBookings();
-if(stopDrivers)stopDrivers();
+onAuthStateChanged(auth, user => {
+ if (stopBookings) stopBookings();
+ if (stopDrivers) stopDrivers();
+ stopBookings = null;
+ stopDrivers = null;
 
-const allowed=user&&user.uid===ADMIN_UID;
+ if (!user) {
+  $("loginBox").classList.remove("hidden");
+  $("adminPanel").classList.add("hidden");
+  return;
+ }
 
-$("loginBox").classList.toggle("hidden",!!allowed);
-$("panel").classList.toggle("hidden",!allowed);
+ if (user.uid !== ADMIN_UID) {
+  $("loginBox").classList.remove("hidden");
+  $("adminPanel").classList.add("hidden");
+  showMessage("loginMsg","यह Account Admin नहीं है।");
+  signOut(auth);
+  return;
+ }
 
-if(user&&!allowed){
-$("message").textContent="यह Account Admin नहीं है।";
-signOut(auth);
-return;
-}
+ $("loginBox").classList.add("hidden");
+ $("adminPanel").classList.remove("hidden");
+ $("adminEmail").textContent = user.email || "Admin";
 
-if(allowed)startListeners();
+ loadBookings();
+ loadDrivers();
 });
 
-function startListeners(){
-stopBookings=onSnapshot(collection(db,"Booking"),snapshot=>{
-$("total").textContent="कुल बुकिंग: "+snapshot.size;
-const host=$("bookings");
-host.innerHTML="";
+function loadBookings() {
+ if (stopBookings) stopBookings();
 
-const rows=snapshot.docs.sort((a,b)=>
-(b.data().createdAt?.seconds||0)-
-(a.data().createdAt?.seconds||0)
-);
+ stopBookings = onSnapshot(collection(db,"Booking"), snapshot => {
+  $("bookingCount").textContent = "कुल बुकिंग: " + snapshot.size;
 
-rows.forEach(s=>{
-const d=s.data();
-const el=document.createElement("div");
-el.className="item";
+  if (snapshot.empty) {
+   $("bookings").textContent = "अभी कोई Booking नहीं है।";
+   return;
+  }
 
-function line(label,value){
-const p=document.createElement("p");
-p.textContent=label+": "+(value??"—");
-el.append(p);
+  $("bookings").innerHTML = snapshot.docs.map(item => {
+   const b = item.data();
+   const id = item.id;
+   return `
+    <div class="item">
+     <b>Booking ID:</b> ${safe(id)}<br>
+     <b>शुरुआत:</b> ${safe(b.pickup || "-")}<br>
+     <b>मंजिल:</b> ${safe(b.destination || "-")}<br>
+     <b>वाहन:</b> ${safe(b.vehicleType || "-")}<br>
+     <b>Customer:</b> ${safe(b.customerName || "-")}<br>
+     <b>Customer Phone:</b> ${safe(b.customerPhone || "-")}<br>
+     <b>Driver:</b> ${safe(b.driverName || "-")}<br>
+     <b>Driver Phone:</b> ${safe(b.driverPhone || "-")}<br>
+     <b>स्टेटस:</b> <span class="status">${safe(b.status || "-")}</span><br>
+     ${b.status === "Pending" ? `<button class="red" data-reject="${safe(id)}">Reject Booking</button>` : ""}
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll("[data-reject]").forEach(button => {
+   button.onclick = () => rejectBooking(button.dataset.reject);
+  });
+
+ }, error => {
+  showMessage("bookingCount","Booking Error: " + error.message);
+ });
 }
 
-line("Booking ID",s.id);
-line("शुरुआत",d.pickup);
-line("मंजिल",d.destination);
-line("वाहन",d.vehicleType);
-line("Customer",d.customerName);
-line("Customer Mobile",d.customerPhone);
-line("Driver",d.driverName);
-line("Driver Mobile",d.driverPhone);
-line("स्टेटस",d.status);
-line("Fare","₹"+(d.fare??0));
-
-if(["Pending","Accepted","Started"].includes(d.status)){
-if(d.status==="Pending"){
-const accept=document.createElement("button");
-accept.textContent="Accept Booking";
-accept.onclick=()=>changeStatus(s.id,"Accepted");
-el.append(accept);
+async function rejectBooking(id) {
+ if (!confirm("क्या आप यह Booking Reject करना चाहते हैं?")) return;
+ try {
+  await updateDoc(doc(db,"Booking",id), {
+   status:"Rejected",
+   adminUpdatedAt:serverTimestamp()
+  });
+  alert("Booking Reject हो गई।");
+ } catch(error) {
+  alert("Reject Error: " + error.message);
+ }
 }
 
-const reject=document.createElement("button");
-reject.textContent="Reject Booking";
-reject.className="reject";
-reject.onclick=()=>changeStatus(s.id,"Rejected");
-el.append(reject);
+function loadDrivers() {
+ if (stopDrivers) stopDrivers();
+
+ stopDrivers = onSnapshot(collection(db,"Drivers"), snapshot => {
+  $("driverCount").textContent = "कुल Driver Profiles: " + snapshot.size;
+
+  if (snapshot.empty) {
+   $("drivers").textContent =
+    "अभी कोई Driver Profile नहीं मिली। Driver को पहले अपना Profile Save करना होगा।";
+   return;
+  }
+
+  $("drivers").innerHTML = snapshot.docs.map(item => {
+   const d = item.data();
+   const id = item.id;
+   const verified = d.verified === true;
+   const active = d.active === true;
+   const enabled = verified && active;
+
+   return `
+    <div class="item">
+     <b>Driver Name:</b> ${safe(d.name || "-")}<br>
+     <b>Mobile:</b> ${safe(d.phone || "-")}<br>
+     <b>Vehicle:</b> ${safe(d.vehicleNumber || "-")}<br>
+     <b>Model:</b> ${safe(d.vehicleModel || "-")}<br>
+     <b>Verified:</b> ${verified ? "Yes" : "No"}<br>
+     <b>Active:</b> ${active ? "Yes" : "No"}<br>
+     <b>Driver UID:</b> <span class="small">${safe(id)}</span><br>
+     <button class="${enabled ? "red" : "green"}"
+       data-driver="${safe(id)}"
+       data-enabled="${enabled ? "yes" : "no"}">
+       ${enabled ? "Deactivate Driver" : "Verify / Activate"}
+     </button>
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll("[data-driver]").forEach(button => {
+   button.onclick = () => toggleDriver(
+    button.dataset.driver,
+    button.dataset.enabled === "yes"
+   );
+  });
+
+ }, error => {
+  showMessage("driverCount","Drivers Error: " + error.message);
+ });
 }
 
-host.append(el);
-});
-},error=>{
-$("bookings").textContent="Error: "+error.message;
-});
+async function toggleDriver(id, currentlyEnabled) {
+ const action = currentlyEnabled ? "Deactivate" : "Verify और Activate";
+ if (!confirm("क्या आप Driver को " + action + " करना चाहते हैं?")) return;
 
-stopDrivers=onSnapshot(collection(db,"Drivers"),snapshot=>{
-const host=$("drivers");
-host.innerHTML="";
-
-snapshot.forEach(s=>{
-const d=s.data();
-const el=document.createElement("div");
-el.className="item";
-
-const info=document.createElement("p");
-info.textContent=(d.name||"नाम नहीं")+
-" | "+(d.phone||"मोबाइल नहीं")+
-" | "+(d.vehicleNumber||"गाड़ी नंबर नहीं")+
-" | Verified: "+!!d.verified+
-" | Active: "+!!d.active;
-el.append(info);
-
-const btn=document.createElement("button");
-btn.textContent=d.verified&&d.active?
-"Driver Disable करें":"Verify और Activate करें";
-
-btn.onclick=async()=>{
-try{
-await updateDoc(doc(db,"Drivers",s.id),{
-verified:!(d.verified&&d.active),
-active:!(d.verified&&d.active),
-updatedAt:serverTimestamp()
-});
-}catch(e){alert("Driver Update Error: "+e.message);}
-};
-el.append(btn);
-host.append(el);
-});
-},error=>{
-$("drivers").textContent="Driver Error: "+error.message;
-});
+ try {
+  await updateDoc(doc(db,"Drivers",id), {
+   verified: !currentlyEnabled,
+   active: !currentlyEnabled,
+   updatedAt: serverTimestamp()
+  });
+  alert("Driver Profile अपडेट हो गई।");
+ } catch(error) {
+  alert("Driver Update Error: " + error.message);
+ }
 }
 
-async function changeStatus(id,status){
-try{
-await updateDoc(doc(db,"Booking",id),{
-status:status,
-adminUpdatedAt:serverTimestamp()
-});
-}catch(e){
-alert("Update Error: "+e.message);
-}
-}
-
-$("refreshBtn").onclick=()=>location.reload();
+$("refreshBookings").onclick = loadBookings;
+$("refreshDrivers").onclick = loadDrivers;
 </script>
 </body>
 </html>
