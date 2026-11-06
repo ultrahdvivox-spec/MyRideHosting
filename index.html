@@ -1,124 +1,157 @@
 
-// CREATE BOOKING
-$("bookBtn").onclick=async()=>{
+function normalizeVehicleType(value) {
+  const v = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
 
- if(!currentUser){
-  $("bookMsg").textContent="पहले Login करें।";
-  return;
- }
-
- const name=$("customerName").value.trim();
- const phone=$("phone").value.replace(/\D/g,"");
- const alternatePhone=$("alternatePhone").value.replace(/\D/g,"");
- const pickup=$("pickup").value.trim();
- const destination=$("destination").value.trim();
- const vehicle=selectedVehicle();
-
- if(!name){
-  $("bookMsg").textContent="अपना पूरा नाम भरें।";
-  return;
- }
-
- if(!/^\d{10}$/.test(phone)){
-  $("bookMsg").textContent="सही 10 अंकों का मोबाइल नंबर भरें।";
-  return;
- }
-
- if(alternatePhone&&!/^\d{10}$/.test(alternatePhone)){
-  $("bookMsg").textContent="Alternate Number सही भरें या खाली छोड़ें।";
-  return;
- }
-
- if(!pickup||!destination){
-  $("bookMsg").textContent="Pickup और Destination भरें।";
-  return;
- }
-
- if(pickup.toLowerCase()===destination.toLowerCase()){
-  $("bookMsg").textContent="Pickup और Destination अलग-अलग रखें।";
-  return;
- }
-
- if(routeFare===null || routeDistanceKm===null){
-  $("bookMsg").textContent="पहले Map पर Route और किराया Calculate करें।";
-  return;
- }
-
- const btn=$("bookBtn");
- btn.disabled=true;
- $("bookMsg").textContent="Booking भेजी जा रही है...";
-
- try{
-
-  const bookingData={
-   customerUid:currentUser.uid,
-   customerName:name,
-   customerEmail:currentUser.email||"",
-   customerPhone:phone,
-   city:"Bhilwara",
-   pickup:pickup,
-   destination:destination,
-   vehicleType:vehicle,
-   status:"Pending",
-   fare:routeFare,
-   driverUid:"",
-   driverEmail:"",
-   driverName:"",
-   driverPhone:"",
-   vehicleNumber:"",
-   vehicleModel:"",
-   driverLat:null,
-   driverLng:null,
-   createdAt:serverTimestamp()
+  const types = {
+    "bike": "bike",
+    "motorcycle": "bike",
+    "car": "car",
+    "auto": "auto",
+    "auto-rickshaw": "auto",
+    "e-rickshaw": "e-rickshaw",
+    "erickshaw": "e-rickshaw"
   };
 
-  if(alternatePhone){
-   bookingData.alternatePhone=alternatePhone;
+  return types[v] || "";
+}
+
+// CREATE BOOKING
+$("bookBtn").onclick = async () => {
+
+  if (!currentUser) {
+    $("bookMsg").textContent = "पहले Login करें।";
+    return;
   }
 
-  await addDoc(collection(db,"Booking"),bookingData);
+  const name = $("customerName").value.trim();
+  const phone = $("phone").value.replace(/\D/g, "");
+  const alternatePhone =
+    $("alternatePhone").value.replace(/\D/g, "");
 
-  $("bookMsg").textContent=
-   "✅ Booking सफल! अनुमानित किराया ₹"+routeFare;
+  const pickup = $("pickup").value.trim();
+  const destination = $("destination").value.trim();
 
-  $("pickup").value="";
-  $("destination").value="";
-  $("alternatePhone").value="";
+  const vehicle = normalizeVehicleType(selectedVehicle());
+  const fare = Number(routeFare);
 
-  routeDistanceKm=null;
-  routeFare=null;
-  $("fareText").textContent="₹0";
-  $("routeInfo").textContent="नई Booking के लिए Route calculate करें।";
+  if (!name) {
+    $("bookMsg").textContent = "अपना पूरा नाम भरें।";
+    return;
+  }
 
-  watchBookings();
+  if (!/^\d{10}$/.test(phone)) {
+    $("bookMsg").textContent = "सही 10 अंकों का मोबाइल नंबर भरें।";
+    return;
+  }
 
- }catch(e){
-  console.error("Booking Error:",e);
-  $("bookMsg").textContent=
-   "Booking Error: "+e.code+" - "+e.message;
- }finally{
-  btn.disabled=false;
- }
+  if (alternatePhone && !/^\d{10}$/.test(alternatePhone)) {
+    $("bookMsg").textContent = "Alternate Number सही भरें या खाली छोड़ें।";
+    return;
+  }
+
+  if (!pickup || !destination) {
+    $("bookMsg").textContent = "Pickup और Destination भरें।";
+    return;
+  }
+
+  if (pickup.toLowerCase() === destination.toLowerCase()) {
+    $("bookMsg").textContent = "दोनों जगह अलग-अलग रखें।";
+    return;
+  }
+
+  if (!vehicle) {
+    $("bookMsg").textContent = "कृपया सही वाहन चुनें।";
+    return;
+  }
+
+  if (
+    routeFare === null ||
+    routeDistanceKm === null ||
+    !Number.isFinite(fare) ||
+    fare <= 0 ||
+    fare > 100000
+  ) {
+    $("bookMsg").textContent =
+      "पहले सही Route और किराया Calculate करें।";
+    return;
+  }
+
+  const btn = $("bookBtn");
+  btn.disabled = true;
+
+  $("bookMsg").textContent = "Booking भेजी जा रही है...";
+
+  try {
+
+    const bookingData = {
+      customerUid: currentUser.uid,
+      customerName: name,
+      customerEmail: currentUser.email || "",
+      customerPhone: phone,
+
+      city: "Bhilwara",
+      pickup: pickup,
+      destination: destination,
+
+      vehicleType: vehicle,
+      status: "Pending",
+
+      fare: fare,
+
+      driverUid: "",
+      driverEmail: "",
+      driverName: "",
+      driverPhone: "",
+      vehicleNumber: "",
+      vehicleModel: "",
+
+      driverLat: null,
+      driverLng: null,
+
+      createdAt: serverTimestamp()
+    };
+
+    if (alternatePhone) {
+      bookingData.alternatePhone = alternatePhone;
+    }
+
+    const bookingRef = await addDoc(
+      collection(db, "Booking"),
+      bookingData
+    );
+
+    $("bookMsg").textContent =
+      "✅ Booking सफल! ID: " + bookingRef.id +
+      " | अनुमानित किराया ₹" + fare;
+
+    $("pickup").value = "";
+    $("destination").value = "";
+    $("alternatePhone").value = "";
+
+    routeDistanceKm = null;
+    routeFare = null;
+
+    $("fareText").textContent = "₹0";
+    $("routeInfo").textContent =
+      "नई Booking के लिए Route calculate करें।";
+
+    if (typeof watchBookings === "function") {
+      watchBookings();
+    }
+
+  } catch (e) {
+
+    console.error("Booking Error:", e);
+
+    $("bookMsg").textContent =
+      "Booking Error: " +
+      (e.code || "unknown") +
+      " - " + e.message;
+
+  } finally {
+    btn.disabled = false;
+  }
 };
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
-  authDomain: "myridebhilwara-45652.firebaseapp.com",
-  databaseURL: "https://myridebhilwara-45652-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "myridebhilwara-45652",
-  storageBucket: "myridebhilwara-45652.firebasestorage.app",
-  messagingSenderId: "819961031572",
-  appId: "1:819961031572:web:b7e1f401c90d7335203d81",
-  measurementId: "G-WTYS5RWL4V"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
