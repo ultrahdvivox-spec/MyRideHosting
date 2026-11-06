@@ -1,211 +1,266 @@
-// HELPER FUNCTION TO CHOOSE ELEMENTS
-const $ = (id) => document.getElementById(id);
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Ride - Super Dashboard</title>
 
-// OPENSTREETMAP BLOCK (403 ERROR) AND GEOCODING CORRECTION CODE
-let map;
-let routeDistanceKm = null;
-let routeFare = null;
+<!-- Leaflet Map CSS -->
+<link rel="stylesheet" href="https://unpkg.com">
 
-// नक्शा इनिशियलाइज़ करने का फंक्शन (CartoDB सिक्योर टाइल्स के साथ)
-function initMap() {
-  if (map) return;
+<style>
+:root {
+  --primary: #101c35;
+  --accent: #ffbb00;
+  --bg: #f1f5f9;
+  --text: #172033;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 🏢 टॉप सुपर हेडर */
+header {
+  background: var(--primary);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+header h1 { font-size: 28px; margin-bottom: 5px; }
+header p { color: #cbd5e1; font-size: 14px; }
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 15px;
+}
+
+/* 🎛️ ऐप नेविगेशन टैब्स (रैपिडो स्टाइल) */
+.tab-navigation {
+  display: flex;
+  background: #e2e8f0;
+  padding: 5px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: bold;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.tab-btn.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* 📦 कॉमन कार्ड डिज़ाइन */
+.app-panel { display: none; }
+.app-panel.active { display: block; }
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 18px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  margin-bottom: 15px;
+}
+
+h2 { margin-bottom: 15px; font-size: 20px; color: var(--primary); border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+label { display: block; margin: 12px 0 6px; font-weight: bold; font-size: 14px; }
+input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px; margin-bottom: 5px; }
+
+button {
+  width: 100%; padding: 14px; margin-top: 12px; border: none; border-radius: 10px;
+  background: var(--accent); color: var(--text); font-size: 16px; font-weight: bold; cursor: pointer;
+}
+button:disabled { opacity: 0.6; }
+
+/* 🗺️ मैप और रिज़ल्ट */
+#map { height: 280px; margin-top: 15px; border-radius: 12px; overflow: hidden; }
+#result { margin-top: 15px; padding: 12px; background: #eff6ff; border-radius: 10px; line-height: 1.8; }
+.small { font-size: 12px; color: #64748b; margin-top: 10px; }
+
+/* 🚨 ड्राइवर और एडमिन कस्टम स्टाइल */
+.booking-box { background: #fffbeb; border: 2px solid #f59e0b; padding: 14px; border-radius: 10px; margin-top: 15px; }
+.booking-item { border-bottom: 1px dashed #cbd5e1; padding: 8px 0; font-size: 14px; }
+.booking-item:last-child { border: none; }
+.btn-accept { background: #10b981; color: white; }
+.btn-reject { background: #ef4444; color: white; }
+.btn-status { background: #3b82f6; color: white; }
+
+/* 📊 एडमिन पैनल ग्रिड */
+.admin-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+.stat-box { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border-top: 4px solid var(--primary); }
+.stat-box h4 { font-size: 12px; color: #64748b; }
+.stat-box p { font-size: 18px; font-weight: bold; margin-top: 5px; }
+.admin-list { background: #f8fafc; padding: 10px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏍️ My Ride - सुपर डैशबोर्ड</h1>
+  <p>भीलवाड़ा ज़िला परिवहन नेटवर्क</p>
+</header>
+
+<div class="container">
   
-  // भीलवाड़ा को सेंटर मानकर मैप लोड करें
-  map = L.map('map').setView([25.3407, 74.6313], 13);
+  <!-- 🎛️ मुख्य स्विच बटन -->
+  <div class="tab-navigation">
+    <button class="tab-btn active" onclick="switchApp('passenger')">🙋‍♂️ पैसेंजर</button>
+    <button class="tab-btn" onclick="switchApp('driver')">🚖 ड्राइवर</button>
+    <button class="tab-btn" onclick="switchApp('admin')">📊 एडमिन</button>
+  </div>
 
-  // CartoDB Voyager मैप लेयर - यह कभी भी 403 ब्लॉक एरर नहीं देगा
-  L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    maxZoom: 20
-  }).addTo(map);
+  <!-- ==================== 1. पैसेंजर पैनल ==================== -->
+  <div id="passengerPanel" class="app-panel active">
+    <div class="card">
+      <h2>अपनी राइड बुक करें</h2>
+      
+      <label for="vehicleType">🚗 वाहन चुनें</label>
+      <select id="vehicleType" onchange="updateFareAutomatically()">
+        <option value="bike">Bike (मोटरबाइक)</option>
+        <option value="e-rickshaw">E-Rickshaw (ई-रिक्शा)</option>
+        <option value="auto">Auto (ऑटो रिक्शा)</option>
+        <option value="car">Car (कार क्याब)</option>
+      </select>
+
+      <label for="pickup">📍 कहाँ से जाना है?</label>
+      <input id="pickup" placeholder="जैसे: Asind, Bhilwara">
+
+      <label for="drop">🏁 कहाँ जाना है?</label>
+      <input id="drop" placeholder="जैसे: Gangapur, Bhilwara">
+
+      <button id="searchBtn" onclick="calculateRide()">🗺️ दूरी और किराया देखें</button>
+      <div id="result">यात्रा की दोनों जगह दर्ज करें।</div>
+      <div id="map"></div>
+      <button id="bookBtn" onclick="saveBooking()">बुकिंग करें</button>
+      <p class="small">भाड़ा भीलवाड़ा ट्रैफिक और लाइव दूरी के अनुसार ऑटोमैटिक सेट होता है।</p>
+    </div>
+  </div>
+
+  <!-- ==================== 2. ड्राइवर पैनल ==================== -->
+  <div id="driverPanel" class="app-panel">
+    <div class="card">
+      <h2>ड्राइवर ड्यूटी रूम</h2>
+      
+      <div id="driverLogin">
+        <label>📱 मोबाइल नंबर</label>
+        <input id="driverPhone" type="tel" placeholder="+91 मोबाइल नंबर">
+        <button onclick="mockDriverLogin()">ड्यूटी ऑनलाइन करें</button>
+      </div>
+
+      <div id="driverDashboard" style="display: none;">
+        <p id="activeDriverMobile" style="font-weight: bold; color: #059669; margin-bottom: 10px;"></p>
+        <button onclick="driverLogout()" style="background: #64748b; padding: 6px; font-size: 12px; width: auto; margin-bottom: 15px;">ऑफलाइन जाएँ</button>
+        <div id="driverLiveRequests">
+          <p style="text-align: center; color: #64748b; font-style: italic;">लाइव बुकिंग्स का इंतज़ार कर रहे हैं...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3. एडमिन पैनल ==================== -->
+  <div id="adminPanel" class="app-panel">
+    <div class="card">
+      <h2>कंट्रोल रूम डैशबोर्ड</h2>
+      <div class="admin-stats">
+        <div class="stat-box" style="border-top-color: #f59e0b;"><h4>कुल बुकिंग</h4><p id="statTotal">0</p></div>
+        <div class="stat-box" style="border-top-color: #3b82f6;"><h4>पेंडिंग</h4><p id="statPending">0</p></div>
+        <div class="stat-box" style="border-top-color: #10b981;"><h4>कमाई</h4><p id="statRevenue">₹0</p></div>
+      </div>
+      <h3>📋 भीलवाड़ा लाइव ट्रैकर</h3>
+      <div class="admin-list" id="adminLog">कनेक्ट किया जा रहा है...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Leaflet Map JS -->
+<script src="https://unpkg.com"></script>
+
+<script>
+// टैब स्विच करने का लॉजिक
+function switchApp(panelName) {
+  document.querySelectorAll('.app-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  
+  document.getElementById(panelName + 'Panel').classList.add('active');
+  event.target.classList.add('active');
+  
+  if (panelName === 'passenger' && map) {
+    setTimeout(() => map.invalidateSize(), 200);
+  }
 }
 
-// "दूरी और किराया देखें" बटन और जियोकोडिंग (सर्च) का फंक्शन
-async function calculateDistanceAndFare() {
-  const pickupInput = $("pickup").value.trim();
-  const destInput = $("destination").value.trim();
+// 🗺️ पैसेंजर मैप सर्विस
+navigator.userAgent = "MyValueRideBhilwaraApp/1.0";
+const map = L.map("map").setView([25.35, 74.64], 9);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
-  if (!pickupInput || !destInput) {
-    $("routeInfo").textContent = "कृपया Pickup और Destination दोनों जगहें भरें।";
-    return;
-  }
-
-  // भीलवाड़ा शहर के लिए सर्च को सटीक बनाने के लिए बाउंडेशन जोड़ना
-  const citySuffix = ", Bhilwara, Rajasthan";
-  const finalPickupQuery = pickupInput.toLowerCase().includes("bhilwara") ? pickupInput : pickupInput + citySuffix;
-  const finalDestQuery = destInput.toLowerCase().includes("bhilwara") ? destInput : destInput + citySuffix;
-
-  $("routeInfo").textContent = "जगह खोजी जा रही है और रूट कैलकुलेट हो रहा है...";
-
-  try {
-    // फ्री ओपन-सोर्स नॉमिनेटिम एपीआई कस्टम यूजर-एजेंट के साथ ताकि ब्लॉक न हो
-    const headers = { 'User-Agent': 'MyRideBhilwaraApp/1.0' };
-    
-    const pRes = await fetch(`https://openstreetmap.org{encodeURIComponent(finalPickupQuery)}`, { headers });
-    const pData = await pRes.json();
-    
-    const dRes = await fetch(`https://openstreetmap.org{encodeURIComponent(finalDestQuery)}`, { headers });
-    const dData = await dRes.json();
-
-    if (!pData.length || !dData.length) {
-      $("routeInfo").textContent = "जगह खोजने की सेवा उपलब्ध नहीं है या नाम गलत है। कृपया भीलवाड़ा के आसपास की सही जगह लिखें।";
-      return;
-    }
-
-    // लैटिट्यूड और लॉन्गीट्यूड निकालना
-    const pLat = parseFloat(pData[0].lat);
-    const pLng = parseFloat(pData[0].lon);
-    const dLat = parseFloat(dData[0].lat);
-    const dLng = parseFloat(dData[0].lon);
-
-    // दोनों जगहों के बीच की हवाई दूरी (Haversine Formula) कैलकुलेट करना
-    const R = 6371; // पृथ्वी की त्रिज्या किमी में
-    const dLatRad = (dLat - pLat) * Math.PI / 180;
-    const dLngRad = (dLng - pLng) * Math.PI / 180;
-    const a = Math.sin(dLatRad / 2) * Math.sin(dLatRad / 2) +
-              Math.cos(pLat * Math.PI / 180) * Math.cos(dLat * Math.PI / 180) *
-              Math.sin(dLngRad / 2) * Math.sin(dLngRad / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
-    // रोड डिस्टेंस का अनुमान लगाने के लिए फैक्टर गुणा करना
-    routeDistanceKm = parseFloat((R * c * 1.25).toFixed(1)); 
-    
-    // ₹12 प्रति किलोमीटर के हिसाब से किराया
-    routeFare = Math.round(routeDistanceKm * 12); 
-
-    // स्क्रीन पर डेटा अपडेट करना
-    $("fareText").textContent = "₹" + routeFare;
-    $("routeInfo").innerHTML = `<b>शुरुआत:</b> ${pData[0].display_name.split(',')[0]}<br><b>मंजिल:</b> ${dData[0].display_name.split(',')[0]}<br><b>दूरी:</b> ${routeDistanceKm} km<br><b>अनुमानित किराया:</b> ₹${routeFare}`;
-
-  } catch (error) {
-    console.error("Geocoding Error:", error);
-    $("routeInfo").textContent = "रूट कैलकुलेट करने में सर्वर एरर आया। कृपया दोबारा कोशिश करें।";
-  }
-}
-
-// VEHICLE NORMALIZATION
-function normalizeVehicleType(value) {
-  const v = String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, "-");
-
-  const types = {
-    "bike": "bike",
-    "motorcycle": "bike",
-    "car": "car",
-    "auto": "auto",
-    "auto-rickshaw": "auto",
-    "e-rickshaw": "e-rickshaw",
-    "erickshaw": "e-rickshaw"
-  };
-
-  return types[v] || "";
-}
-
-// CREATE BOOKING (आपका ओरिजिनल वर्किंग बुकिंग कोड)
-$("bookBtn").onclick = async () => {
-  if (!currentUser) {
-    $("bookMsg").textContent = "पहले Login करें।";
-    return;
-  }
-
-  const name = $("customerName").value.trim();
-  const phone = $("phone").value.replace(/\D/g, "");
-  const alternatePhone = $("alternatePhone").value.replace(/\D/g, "");
-  const pickup = $("pickup").value.trim();
-  const destination = $("destination").value.trim();
-  const vehicle = normalizeVehicleType(selectedVehicle());
-  const fare = Number(routeFare);
-
-  if (!name) {
-    $("bookMsg").textContent = "अपना पूरा नाम भरें।";
-    return;
-  }
-  if (!/^\d{10}$/.test(phone)) {
-    $("bookMsg").textContent = "सही 10 अंकों का मोबाइल नंबर भरें।";
-    return;
-  }
-  if (alternatePhone && !/^\d{10}$/.test(alternatePhone)) {
-    $("bookMsg").textContent = "Alternate Number सही भरें या खाली छोड़ें।";
-    return;
-  }
-  if (!pickup || !destination) {
-    $("bookMsg").textContent = "Pickup और Destination भरें।";
-    return;
-  }
-  if (pickup.toLowerCase() === destination.toLowerCase()) {
-    $("bookMsg").textContent = "दोनों जगह अलग-अलग रखें।";
-    return;
-  }
-  if (!vehicle) {
-    $("bookMsg").textContent = "कृपया सही वाहन चुनें।";
-    return;
-  }
-  if (routeFare === null || routeDistanceKm === null || !Number.isFinite(fare) || fare <= 0 || fare > 100000) {
-    $("bookMsg").textContent = "पहले सही Route और किराया Calculate करें।";
-    return;
-  }
-
-  const btn = $("bookBtn");
-  btn.disabled = true;
-  $("bookMsg").textContent = "Booking भेजी जा रही है...";
-
-  try {
-    const bookingData = {
-      customerUid: currentUser.uid,
-      customerName: name,
-      customerEmail: currentUser.email || "",
-      customerPhone: phone,
-      city: "Bhilwara",
-      pickup: pickup,
-      destination: destination,
-      vehicleType: vehicle,
-      status: "Pending",
-      fare: fare,
-      driverUid: "",
-      driverEmail: "",
-      driverName: "",
-      driverPhone: "",
-      vehicleNumber: "",
-      vehicleModel: "",
-      driverLat: null,
-      driverLng: null,
-      createdAt: serverTimestamp()
-    };
-
-    if (alternatePhone) {
-      bookingData.alternatePhone = alternatePhone;
-    }
-
-    const bookingRef = await addDoc(collection(db, "Booking"), bookingData);
-
-    $("bookMsg").textContent = "✅ Booking सफल! ID: " + bookingRef.id + " | अनुमानित किराया ₹" + fare;
-
-    $("pickup").value = "";
-    $("destination").value = "";
-    $("alternatePhone").value = "";
-
-    routeDistanceKm = null;
-    routeFare = null;
-    $("fareText").textContent = "₹0";
-
-    if (typeof watchBookings === "function") {
-      watchBookings();
-    }
-  } catch (e) {
-    console.error("Booking Error:", e);
-    $("bookMsg").textContent = "Booking Error: " + (e.code || "unknown") + " - " + e.message;
-  } finally {
-    btn.disabled = false;
-  }
+let routeLayer = null, markers = [], currentDistance = 0, currentDuration = 0;
+const pricingConfig = {
+  "bike": { base: 20, perKm: 7, perMin: 1, name: "BIKE (मोटरबाइक)" },
+  "e-rickshaw": { base: 25, perKm: 9, perMin: 1.2, name: "E-RICKSHAW (ई-रिक्शा)" },
+  "auto": { base: 35, perKm: 11, perMin: 1.5, name: "AUTO (ऑटो)" },
+  "car": { base: 50, perKm: 14, perMin: 2, name: "CAR (कार)" }
 };
 
-// पेज लोड होने पर मैप को शुरू करें
-window.onload = () => {
-  initMap();
-  // "दूरी और किराया देखें" बटन को फंक्शन से जोड़ें
-  if ($("calcBtn")) {
-    $("calcBtn").onclick = calculateDistanceAndFare;
-  }
-};
+function updateFareAutomatically() { if (currentDistance > 0) displayResultHTML(); }
+
+function getCalculatedFare(vehicle) {
+  const config = pricingConfig[vehicle] || pricingConfig["bike"];
+  return Math.ceil(config.base + (currentDistance * config.perKm) + (currentDuration * config.perMin));
+}
+
+function displayResultHTML() {
+  const pickup = document.getElementById("pickup").value.trim();
+  const drop = document.getElementById("drop").value.trim();
+  const vehicle = document.getElementById("vehicleType").value;
+  const result = document.getElementById("result");
+  const finalFare = getCalculatedFare(vehicle);
+  
+  result.innerHTML = `<div><strong>शुरुआत:</strong> ${pickup}</div>
+                      <div><strong>मंजिल:</strong> ${drop}</div>
+                      <div><strong>दूरी:</strong> ${currentDistance.toFixed(1)} km</div>
+                      <div><strong>समय:</strong> ${Math.round(currentDuration)} मिनट</div>
+                      <div><strong>किराया:</strong> <span style="color:#059669;font-weight:bold;">₹${finalFare}</span></div>`;
+}
+
+async function getLocation(place) {
+  let q = place.toLowerCase().includes("bhilwara") ? place : place + ", Bhilwara, Rajasthan";
+  const response = await fetch("https://openstreetmap.org" + encodeURIComponent(q), {
+    headers: { "User-Agent": "MyValueRideBhilwaraApp/1.0" }
+  });
+  const data = await response.json();
+  if (!data.length) throw new Error("जगह नहीं मिली: " + place);
+  return { lat: Number(data[0].lat), lon: Number(data[0].lon) };
+}
+
+async function calculateRide() {
+  const pickup = document.getElementById("pickup").value.trim();
+  const drop = document.getElementById("drop").value.trim();
+  const btn = document.getElementById("searchBtn");
+  if (!pickup || !drop) return alert("दोनों जगह भरें।");
+  
+  btn.disabled = true; btn.textContent = "रूट खोज रहे हैं...";
+  try {
+    const start = await getLocation(pickup); const end = await getLocation(drop);
+    const res = await fetch(`https://project-osrm.org{start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson`);
+    const data = await res.json();
+    if (data.code !== "Ok") throw new Error("रास्ता नहीं मिला।");
+    
