@@ -1,1 +1,178 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Ride - Rapido Style Super Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { display: flex; background-color: #f7f9fc; color: #2d3748; min-height: 100vh; }
+        
+        /* Rapido Dark Sidebar */
+        .sidebar { width: 280px; height: 100vh; background: #0f172a; color: #f8fafc; padding: 25px 20px; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .sidebar .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; padding: 0 10px; }
+        .sidebar .brand-logo { width: 35px; height: 35px; background: #facc15; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0f172a; font-size: 20px; }
+        .sidebar h2 { color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+        .sidebar ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .sidebar ul li { padding: 14px 18px; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; color: #94a3b8; display: flex; align-items: center; gap: 12px; }
+        .sidebar ul li:hover, .sidebar ul li.active { background: #1e293b; color: #facc15; }
+
+        /* Main Content Layout */
+        .main-content { margin-left: 280px; width: calc(100% - 280px); padding: 40px; background: #f8fafc; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; background: #ffffff; padding: 20px 30px; border-radius: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .header h1 { font-size: 26px; font-weight: 700; color: #1e293b; }
+        #current-date { font-size: 14px; color: #64748b; background: #f1f5f9; padding: 8px 16px; border-radius: 20px; font-weight: 500; }
+        
+        /* Modern Rapido Grid Cards */
+        .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 40px; }
+        .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); border-top: 5px solid #64748b; transition: transform 0.2s; }
+        .card h3 { font-size: 13px; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .card p { font-size: 30px; font-weight: 700; margin-top: 12px; color: #0f172a; }
+
+        .panel-grid { display: grid; grid-template-columns: 1fr; gap: 30px; }
+        @media(min-width: 1024px) { .panel-grid { grid-template-columns: 1fr 1fr; } }
+        
+        .panel { background: #ffffff; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .panel h2 { margin-bottom: 25px; font-size: 18px; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; color: #475569; }
+        .form-group input { width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 16px; outline: none; transition: all 0.2s; background: #f8fafc; }
+        .form-group input:focus { border-color: #facc15; background: #ffffff; box-shadow: 0 0 0 3px rgba(250,204,21,0.2); }
+        
+        .btn-yellow { background: #facc15; color: #0f172a; border: none; padding: 14px 24px; font-size: 16px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; font-weight: 600; width: 100%; box-shadow: 0 4px 6px -1px rgba(250,204,21,0.3); }
+        .btn-yellow:hover { background: #eab308; }
+
+        .btn-action { padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; margin-right: 4px; }
+        .btn-approve { background: #22c55e; color: #fff; }
+        .btn-block { background: #ef4444; color: #fff; }
+
+        /* Tables styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table th, table td { text-align: left; padding: 14px 16px; font-size: 14px; }
+        table th { background-color: #f8fafc; color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; border-bottom: 2px solid #e2e8f0; }
+        table td { border-bottom: 1px solid #f1f5f9; color: #334155; }
+        
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .status-online { background: #dcfce7; color: #166534; }
+        .status-offline { background: #fee2e2; color: #991b1b; }
+        .status-completed { background: #dcfce7; color: #166534; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">R</div>
+            <h2>My Ride Console</h2>
+        </div>
+        <ul>
+            <li class="active">📊 Overview Dashboard</li>
+            <li>🚗 Driver Management</li>
+            <li>🕒 Ride History</li>
+            <li>⚙️ Fare Settings</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Super Control Dashboard</h1>
+            <div id="current-date">⏳ Loading Date...</div>
+        </div>
+
+        <div class="stats-container">
+            <div class="card" style="border-top-color: #3b82f6;">
+                <h3>Total Drivers</h3>
+                <p id="total-drivers">3</p>
+            </div>
+            <div class="card" style="border-top-color: #22c55e;">
+                <h3>Active Rides</h3>
+                <p id="active-rides">1</p>
+            </div>
+            <div class="card" style="border-top-color: #eab308;">
+                <h3>Total Earnings</h3>
+                <p id="total-earnings">₹4,850.00</p>
+            </div>
+            <div class="card" style="border-top-color: #0f172a;">
+                <h3>Current Rate (Per KM)</h3>
+                <p id="current-rate-display">₹12.00</p>
+            </div>
+        </div>
+
+        <div class="panel-grid">
+            <div class="panel">
+                <h2>⚙️ Change Rate Per KM (Admin Control)</h2>
+                <div class="form-group">
+                    <label for="new-rate">नया रेट (₹ प्रति किलोमीटर) दर्ज करें:</label>
+                    <input type="number" id="new-rate" placeholder="जैसे: 15" min="1" value="12">
+                </div>
+                <button class="btn-yellow" onclick="updateRate()">Update Rate Now</button>
+            </div>
+
+            <div class="panel">
+                <h2>🚗 Driver Status & Verification Panel</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Driver</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Admin Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>राम सिंह</strong><br><small style="color:#64748b">Bike</small></td>
+                            <td>9876543210</td>
+                            <td><span class="status-badge status-online">Online</span></td>
+                            <td>
+                                <button class="btn-action btn-approve" onclick="alert('Driver Approved!')">Approve</button>
+                                <button class="btn-action btn-block" onclick="alert('Driver Blocked!')">Block</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel" style="grid-column: 1 / -1;">
+                <h2>🕒 Live Booking History</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Pickup Location</th>
+                            <th>Drop Location</th>
+                            <th>Est. Fare</th>
+                            <th>Ride Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>अमित कुमार</strong></td>
+                            <td>रेलवे स्टेशन</td>
+                            <td>शास्त्री नगर</td>
+                            <td>₹150.00</td>
+                            <td><span class="status-badge status-completed">Completed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('hi-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        function updateRate() {
+            const newRateValue = document.getElementById('new-rate').value;
+            if (!newRateValue || newRateValue <= 0) {
+                alert("कृपया एक वैध रेट दर्ज करें!");
+                return;
+            }
+            document.getElementById('current-rate-display').innerText = "₹" + parseFloat(newRateValue).toFixed(2);
+            alert("सफलतापूर्वक रेट बदलकर ₹" + newRateValue + "/km कर दिया गया है!");
+        }
+    </script>
+</body>
+</html>
 
