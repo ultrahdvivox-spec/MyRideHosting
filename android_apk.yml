@@ -1,1 +1,18 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+      - name: Build Pure APK
+        run: |
+          zip -r WhereIsMyRide_AdFree.apk www/*
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhereIsMyRide_APK
+          path: WhereIsMyRide_AdFree.apk
 
