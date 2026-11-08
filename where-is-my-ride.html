@@ -1,1 +1,223 @@
 
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111111">
+<title>Where Is My Ride</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101010;color:#fff;font-family:Arial,sans-serif}
+header{padding:22px 16px;background:#171717;border-bottom:2px solid #ffcc00}
+.logo{color:#ffcc00;font-size:25px;font-weight:900}
+.tag{color:#bbb;font-size:13px;margin-top:7px}
+main{max-width:850px;margin:auto;padding:16px}
+.card{background:#1c1c1c;border:1px solid #333;border-radius:16px;padding:18px;margin:14px 0}
+h2,h3{margin-top:0}
+h2{color:#ffcc00}
+input{width:100%;padding:14px;margin:7px 0;background:#292929;color:white;border:1px solid #555;border-radius:9px;font-size:15px}
+button{width:100%;padding:14px;margin:7px 0;border:0;border-radius:9px;background:#ffcc00;color:#111;font-weight:bold;font-size:15px}
+button.dark{background:#383838;color:white}
+button:disabled{opacity:.5}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.service{background:#252525;border:1px solid #444;border-radius:13px;padding:17px;min-height:110px}
+.service strong{display:block;color:#ffcc00;font-size:16px;margin-bottom:8px}
+.service span{font-size:13px;color:#ccc;line-height:1.5}
+.hidden{display:none!important}
+.muted{color:#aaa;font-size:13px;line-height:1.6}
+#message{color:#ffcc00;white-space:pre-wrap;line-height:1.5}
+.pill{display:inline-block;padding:7px 11px;background:#383838;border-radius:20px;color:#ffcc00;font-size:12px}
+footer{text-align:center;color:#888;font-size:12px;padding:25px}
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">WHERE IS MY RIDE</div>
+  <div class="tag">Your Ride • Your Delivery • Your Safety</div>
+</header>
+
+<main>
+  <section class="card" id="authBox">
+    <h2>Welcome 👋</h2>
+    <p class="muted">Login करें या नया Customer Account बनाएँ।</p>
+    <input id="email" type="email" placeholder="Email Address">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">LOGIN</button>
+    <button id="signupBtn" class="dark">CUSTOMER SIGN UP</button>
+    <p id="message"></p>
+    <p class="muted">Driver, Shopkeeper और Medical Store के Accounts Admin Approval के बाद चलेंगे।</p>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="card">
+      <span class="pill" id="roleLabel">CUSTOMER</span>
+      <h2 id="welcome">Welcome</h2>
+      <p class="muted" id="userEmail"></p>
+      <button id="logoutBtn" class="dark">LOGOUT</button>
+    </div>
+
+    <div class="card" id="customerServices">
+      <h2>Choose Your Service</h2>
+      <div class="grid">
+        <div class="service">
+          <strong>🚕 Ride Booking</strong>
+          <span>Bike, Auto, Car और E-Rickshaw</span>
+        </div>
+        <div class="service">
+          <strong>📦 Parcel Delivery</strong>
+          <span>घर से घर और दुकान से घर</span>
+        </div>
+        <div class="service">
+          <strong>🏪 Shop Delivery</strong>
+          <span>छोटी और बड़ी दुकानों के Orders</span>
+        </div>
+        <div class="service">
+          <strong>💊 Medical Delivery</strong>
+          <span>Registered Pharmacy से Delivery</span>
+        </div>
+      </div>
+      <p class="muted">ये Services Dashboard का शुरुआती Design हैं। Booking और Delivery सुविधाएँ अगले चरण में जोड़ी जाएँगी।</p>
+    </div>
+
+    <div class="card hidden" id="rolePanel">
+      <h2 id="panelTitle">Dashboard</h2>
+      <p id="panelText" class="muted"></p>
+    </div>
+  </section>
+</main>
+
+<footer>WHERE IS MY RIDE • BHILWARA • RAJASTHAN</footer>
+
+<script type="module">
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+ getAuth,signInWithEmailAndPassword,
+ createUserWithEmailAndPassword,
+ onAuthStateChanged,signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+ getFirestore,doc,getDoc
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig={
+ apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+ authDomain:"myridebhilwara-45652.firebaseapp.com",
+ projectId:"myridebhilwara-45652",
+ storageBucket:"myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId:"819961031572",
+ appId:"1:819961031572:web:b7e1f401c90d7335203d81",
+ measurementId:"G-WTYS5RWL4V"
+};
+
+const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const $=id=>document.getElementById(id);
+
+function showMessage(text){
+ $("message").textContent=text;
+}
+
+async function detectRole(user){
+ if(user.uid===ADMIN_UID)return "admin";
+
+ const driver=await getDoc(doc(db,"Drivers",user.uid));
+ if(driver.exists())return "driver";
+
+ const medical=await getDoc(doc(db,"MedicalStores",user.uid));
+ if(medical.exists())return "medical";
+
+ const shop=await getDoc(doc(db,"Businesses",user.uid));
+ if(shop.exists())return "shop";
+
+ return "customer";
+}
+
+function showRole(role,user){
+ $("authBox").classList.add("hidden");
+ $("dashboard").classList.remove("hidden");
+ $("userEmail").textContent=user.email||"";
+ $("customerServices").classList.toggle("hidden",role!=="customer");
+ $("rolePanel").classList.toggle("hidden",role==="customer");
+
+ const names={
+  admin:["ADMIN","Admin Control Dashboard","यहाँ से Drivers, Bookings, Shops और Medical Stores का प्रबंधन होगा।"],
+  driver:["DRIVER PARTNER","Driver Dashboard","यहाँ Driver Verification, Online Status, Ride और Parcel Orders होंगे।"],
+  shop:["SHOPKEEPER","Business Dashboard","यहाँ Shop Profile, Orders और Delivery Management होगा।"],
+  medical:["MEDICAL STORE","Medical Dashboard","यहाँ Pharmacy Orders और सुरक्षित Delivery Management होगा।"],
+  customer:["CUSTOMER","Customer Dashboard","Ride और Delivery सेवाएँ चुनें।"]
+ };
+
+ const info=names[role]||names.customer;
+ $("roleLabel").textContent=info[0];
+ $("welcome").textContent=info[1];
+ $("panelTitle").textContent=info[1];
+ $("panelText").textContent=info[2];
+}
+
+$("loginBtn").onclick=async()=>{
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||!password){showMessage("Email और Password भरें।");return}
+ $("loginBtn").disabled=true;
+ showMessage("Login हो रहा है...");
+ try{
+  await signInWithEmailAndPassword(auth,email,password);
+  showMessage("");
+ }catch(e){
+  showMessage("Login Error: "+e.message);
+ }finally{
+  $("loginBtn").disabled=false;
+ }
+};
+
+$("signupBtn").onclick=async()=>{
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||!password){showMessage("Email और Password भरें।");return}
+ if(password.length<6){showMessage("Password कम से कम 6 अक्षर का होना चाहिए।");return}
+ $("signupBtn").disabled=true;
+ showMessage("Customer Account बनाया जा रहा है...");
+ try{
+  await createUserWithEmailAndPassword(auth,email,password);
+  showMessage("");
+ }catch(e){
+  showMessage("Signup Error: "+e.message);
+ }finally{
+  $("signupBtn").disabled=false;
+ }
+};
+
+$("logoutBtn").onclick=async()=>{
+ await signOut(auth);
+};
+
+onAuthStateChanged(auth,async user=>{
+ if(!user){
+  $("authBox").classList.remove("hidden");
+  $("dashboard").classList.add("hidden");
+  return;
+ }
+ $("authBox").classList.add("hidden");
+ $("dashboard").classList.remove("hidden");
+ $("welcome").textContent="Account जाँचा जा रहा है...";
+ try{
+  const role=await detectRole(user);
+  showRole(role,user);
+ }catch(e){
+  $("welcome").textContent="Account Verification Error";
+  $("panelText").textContent=e.message;
+  $("rolePanel").classList.remove("hidden");
+ }
+});
+</script>
+</body>
+</html>
