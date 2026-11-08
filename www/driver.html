@@ -21,6 +21,7 @@ h2{color:#1d4ed8}
   border-radius:13px;margin:12px 0;
   box-shadow:0 2px 9px #00000012
 }
+label{display:block;font-weight:bold;margin:12px 0 3px;color:#292524}
 input,button{
   width:100%;padding:13px;margin:6px 0;
   border:1px solid #ccc;border-radius:8px;
@@ -73,12 +74,16 @@ button:disabled{opacity:.55;cursor:not-allowed}
 <div class="card">
 <h3>👤 Driver Profile</h3>
 
-<input id="name" placeholder="Driver Name">
-<input id="phone" type="tel" inputmode="numeric"
-maxlength="10" placeholder="10 Digit Mobile Number">
+<label for="name">पूरा नाम (Driver Name)</label>
+<input id="name" placeholder="पूरा नाम भरें">
+<label for="phone">मोबाइल नंबर</label>
+<input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर">
+<label for="vehicleNumber">वाहन नंबर</label>
 <input id="vehicleNumber" placeholder="Vehicle Number">
+<label for="vehicleModel">वाहन मॉडल</label>
 <input id="vehicleModel" placeholder="Vehicle Model">
-<input id="licenseNumber" placeholder="Driving License Number">
+<label for="licenseNumber">Driving Licence Number</label>
+<input id="licenseNumber" placeholder="Driving Licence Number">
 
 <button id="saveProfile">Profile Save करें</button>
 <p id="profileMsg" class="msg"></p>
