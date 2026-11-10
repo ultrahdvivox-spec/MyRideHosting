@@ -448,7 +448,6 @@ function makeRideCard(id,d,type){
   " | Fare: ₹"+(d.fare??0)+
   " | City: "+(d.city||"—");
 
- // नया सुधार: हर Ride का असली Firestore Document ID दिखाएँ।
  const bookingIdBox=document.createElement("div");
  bookingIdBox.className="booking-id";
  bookingIdBox.textContent="Booking ID: "+id;
@@ -621,12 +620,19 @@ async function changeRideStatus(id,nextStatus){
  }
 }
 
+/* COMPLETE RIDE - CASH VALUE FIXED */
 async function completeRide(id){
  const method=prompt("Payment Method लिखें: Cash या UPI");
  if(!method)return;
 
- const paymentMethod=method.trim().toUpperCase();
- if(!["CASH","UPI"].includes(paymentMethod)){
+ const selectedMethod=method.trim().toLowerCase();
+
+ let paymentMethod="";
+ if(selectedMethod==="cash"){
+  paymentMethod="Cash";
+ }else if(selectedMethod==="upi"){
+  paymentMethod="UPI";
+ }else{
   alert("केवल Cash या UPI चुनें।");
   return;
  }
@@ -640,8 +646,12 @@ async function completeRide(id){
    if(!snap.exists())throw new Error("Booking नहीं मिली।");
 
    const d=snap.data();
-   if(d.driverUid!==currentUser.uid)throw new Error("यह Ride आपके खाते की नहीं है।");
-   if(d.status!=="Started")throw new Error("केवल Started Ride Complete कर सकते हैं।");
+
+   if(d.driverUid!==currentUser.uid)
+    throw new Error("यह Ride आपके खाते की नहीं है।");
+
+   if(d.status!=="Started")
+    throw new Error("केवल Started Ride Complete कर सकते हैं।");
 
    transaction.update(ref,{
     status:"Completed",
@@ -652,7 +662,7 @@ async function completeRide(id){
   });
 
   stopLocation();
-  alert("Ride Completed। अब भुगतान प्राप्त होने पर ही Paid मार्क करें।");
+  alert("✅ Ride Completed। Payment Status Pending है। भुगतान वास्तव में मिलने पर ही Paid मार्क करें।");
 
  }catch(e){
   alert("Complete Error: "+e.code+" - "+e.message);
@@ -674,6 +684,7 @@ async function markPaid(id){
 
   await updateDoc(ref,{paymentStatus:"Paid"});
   alert("Payment Status Paid अपडेट हो गया।");
+
  }catch(e){
   alert("Payment Update Error: "+e.code+" - "+e.message);
  }
@@ -739,6 +750,7 @@ async function startLocationTracking(id,button){
   });
 
   button.textContent="📍 Location चालू हो रही है";
+
  }catch(e){
   button.disabled=false;
   alert("Location Error: "+e.message);
