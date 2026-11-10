@@ -29,6 +29,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .status{padding:12px;background:#fff7d0;border-radius:10px;margin:10px 0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
 .item{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
 .tag{display:inline-block;background:#eee;padding:5px 9px;border-radius:20px;font-size:12px;font-weight:bold;margin:4px 0}
+.booking-id{background:#eef5ff;border:1px solid #b8d4f5;padding:10px;border-radius:8px;font-size:12px;overflow-wrap:anywhere;margin:10px 0}
 .nav{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 footer{text-align:center;color:#777;font-size:12px;padding:20px}
 hr{border:0;border-top:1px solid #ddd;margin:18px 0}
@@ -447,7 +448,12 @@ function makeRideCard(id,d,type){
   " | Fare: ₹"+(d.fare??0)+
   " | City: "+(d.city||"—");
 
- el.append(title,status,details);
+ // नया सुधार: हर Ride का असली Firestore Document ID दिखाएँ।
+ const bookingIdBox=document.createElement("div");
+ bookingIdBox.className="booking-id";
+ bookingIdBox.textContent="Booking ID: "+id;
+
+ el.append(title,status,details,bookingIdBox);
 
  if(type==="pending"){
   const accept=addButton(el,"✅ Accept Ride","");
