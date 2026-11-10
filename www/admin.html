@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffd400">
 <title>Where Is My Ride - Admin</title>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f2f3f5;color:#171717;font-family:Arial,sans-serif}
@@ -24,6 +25,7 @@ button:disabled{opacity:.5}
 .red{background:#b91c1c;color:white}
 .green{background:#15803d;color:white}
 .grey{background:#e5e5e5}
+.blue{background:#1d4ed8;color:white}
 .hidden{display:none!important}
 .small{font-size:12px;color:#666;line-height:1.5;overflow-wrap:anywhere}
 .msg{font-size:14px;font-weight:bold;line-height:1.5;overflow-wrap:anywhere}
@@ -34,15 +36,26 @@ button:disabled{opacity:.5}
 .item{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
 .status{background:#fff7d0;padding:12px;border-radius:10px;margin:10px 0;font-size:13px;line-height:1.5}
 .tag{display:inline-block;padding:5px 9px;background:#eee;border-radius:20px;font-size:12px;font-weight:bold;margin:4px 0}
-.nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
 .editBox{background:#fffbea;border:1px solid #e5c84c;border-radius:12px;padding:12px;margin-top:12px}
 .editBox label{display:block;font-size:12px;font-weight:bold;margin-top:7px}
 footer{text-align:center;color:#777;font-size:12px;padding:20px}
-@media(max-width:480px){.nav{grid-template-columns:1fr}}
+.hotelQr{display:flex;justify-content:center;align-items:center;background:white;padding:12px;margin:12px auto;border:1px dashed #aaa;border-radius:10px;min-height:180px}
+.hotelQr img{max-width:220px}
+.hotelForm{background:#fffbea;padding:12px;border:1px solid #e5c84c;border-radius:12px}
+.hotelForm label{display:block;font-size:12px;font-weight:bold;margin-top:8px}
+.hotelGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hotelGrid>div{min-width:0}
+@media(max-width:600px){
+ .nav{grid-template-columns:repeat(2,1fr)}
+ .hotelGrid{grid-template-columns:1fr}
+}
 </style>
-</head>
-<body>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
 <header>
  <div class="logo">WHERE IS <span>MY RIDE</span></div>
  <p>ADMIN CONTROL PANEL • BHILWARA</p>
@@ -68,6 +81,7 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
    <button onclick="showTab('overview')">📊 Overview</button>
    <button onclick="showTab('bookingsTab')">🚕 Bookings</button>
    <button onclick="showTab('driversTab')">🚘 Drivers</button>
+   <button onclick="showTab('hotelsTab')">🏨 Hotels</button>
   </div>
   <button id="refreshBtn" class="black">Refresh Dashboard</button>
   <button id="logoutBtn" class="red">Logout</button>
@@ -82,6 +96,8 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
    <div class="stat"><b id="completedBookings">0</b><span>Completed Rides</span></div>
    <div class="stat"><b id="totalDrivers">0</b><span>Driver Partners</span></div>
    <div class="stat"><b id="verifiedDrivers">0</b><span>Verified & Active</span></div>
+   <div class="stat"><b id="totalHotels">0</b><span>Hotel Partners</span></div>
+   <div class="stat"><b id="activeHotels">0</b><span>Active Hotels</span></div>
   </div>
   <p class="small">Admin Account को Driver Partner की गिनती से अलग रखा गया है।</p>
  </div>
@@ -97,6 +113,10 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
    <option value="Cancelled">Cancelled</option>
    <option value="Rejected">Rejected</option>
   </select>
+  <select id="bookingHotelFilter">
+   <option value="All">All Booking Sources</option>
+   <option value="Direct">Direct Bookings</option>
+  </select>
   <div id="bookingList">लोड हो रहा है...</div>
  </div>
 
@@ -106,10 +126,52 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
   <div id="driverList">लोड हो रहा है...</div>
  </div>
 
+ <div class="card hidden" id="hotelsTab">
+  <h3>🏨 Hotel Booking Partners</h3>
+  <p class="small">होटल जोड़ें, QR Code बनाएँ, होटल Active/Inactive करें और Hotel-wise Booking Reports देखें।</p>
+
+  <div class="hotelForm">
+   <h3 id="hotelFormTitle">➕ नया Hotel Partner जोड़ें</h3>
+
+   <label>Hotel Name</label>
+   <input id="hotelName" placeholder="होटल का नाम">
+
+   <label>Hotel Address</label>
+   <input id="hotelAddress" placeholder="पूरा पता, Highway / Village / City">
+
+   <label>Hotel Contact Number (Admin Private)</label>
+   <input id="hotelPhone" type="tel" placeholder="होटल का मोबाइल नंबर">
+
+   <div class="hotelGrid">
+    <div>
+     <label>Latitude</label>
+     <input id="hotelLat" type="number" step="any" placeholder="उदाहरण: 25.3407">
+    </div>
+    <div>
+     <label>Longitude</label>
+     <input id="hotelLng" type="number" step="any" placeholder="उदाहरण: 74.6313">
+    </div>
+   </div>
+
+   <p class="small">होटल के सही GPS Coordinates डालें। मोबाइल नंबर सार्वजनिक QR डेटा में नहीं जाएगा।</p>
+
+   <button id="saveHotelBtn">💾 Save New Hotel</button>
+   <button id="cancelHotelEdit" class="grey hidden">Cancel Edit</button>
+   <p id="hotelMsg" class="msg"></p>
+  </div>
+
+  <hr>
+  <h3>📋 Registered Hotel Partners</h3>
+  <div id="hotelList">लोड हो रहा है...</div>
+ </div>
+
 </div>
 </main>
 
-<footer>© <span id="year"></span> Where Is My Ride Admin • MADE IN INDIA</footer>
+<footer>
+ © <span id="year"></span> Where Is My Ride Admin • MADE IN INDIA
+ <br>Founder: RITESH SINGH RAJPUT
+</footer>
 
 <script type="module">
 
@@ -121,7 +183,7 @@ import {
 
 import {
  getFirestore,collection,doc,getDoc,updateDoc,onSnapshot,
- runTransaction,serverTimestamp
+ runTransaction,serverTimestamp,writeBatch
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -134,6 +196,7 @@ const firebaseConfig = {
 };
 
 const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+const CUSTOMER_URL="https://myridebhilwara-45652.web.app/customer.html";
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -142,17 +205,20 @@ const $=id=>document.getElementById(id);
 
 let stopBookings=null;
 let stopDrivers=null;
+let stopHotels=null;
 let allBookings=[];
 let allDrivers=[];
+let allHotels=[];
+let editingHotelId=null;
 
 $("year").textContent=new Date().getFullYear();
 
 window.showTab=function(id){
- ["overview","bookingsTab","driversTab"].forEach(x=>$(x).classList.add("hidden"));
+ ["overview","bookingsTab","driversTab","hotelsTab"].forEach(x=>$(x).classList.add("hidden"));
  $(id).classList.remove("hidden");
+ if(id==="hotelsTab")renderHotels();
 };
 
-// LOGIN
 $("loginBtn").onclick=async()=>{
  try{
   $("loginBtn").disabled=true;
@@ -167,7 +233,6 @@ $("loginBtn").onclick=async()=>{
 
 $("logoutBtn").onclick=()=>signOut(auth);
 
-// AUTH CHECK
 onAuthStateChanged(auth,user=>{
  stopListeners();
 
@@ -192,9 +257,9 @@ onAuthStateChanged(auth,user=>{
 function stopListeners(){
  if(stopBookings){stopBookings();stopBookings=null}
  if(stopDrivers){stopDrivers();stopDrivers=null}
+ if(stopHotels){stopHotels();stopHotels=null}
 }
 
-// LIVE DATA
 function startDashboard(){
  stopListeners();
 
@@ -202,6 +267,8 @@ function startDashboard(){
   allBookings=snapshot.docs.map(s=>({id:s.id,...s.data()}));
   renderBookings();
   renderStats();
+  renderHotels();
+  renderBookingHotelFilter();
  },error=>{
   $("bookingList").textContent="Booking Error: "+error.code+" - "+error.message;
  });
@@ -213,9 +280,20 @@ function startDashboard(){
  },error=>{
   $("driverList").textContent="Driver Error: "+error.code+" - "+error.message;
  });
+
+ stopHotels=onSnapshot(collection(db,"Businesses"),snapshot=>{
+  allHotels=snapshot.docs
+   .map(s=>({id:s.id,...s.data()}))
+   .filter(h=>h.type==="Hotel");
+
+  renderHotels();
+  renderStats();
+  renderBookingHotelFilter();
+ },error=>{
+  $("hotelList").textContent="Hotel Error: "+error.code+" - "+error.message;
+ });
 }
 
-// ONLY REAL DRIVER PARTNERS
 function getDriverPartners(){
  return allDrivers.filter(d=>d.id!==ADMIN_UID);
 }
@@ -234,7 +312,6 @@ function getEligibleDrivers(){
  );
 }
 
-// STATS
 function renderStats(){
  const count=status=>allBookings.filter(b=>b.status===status).length;
  const partners=getDriverPartners();
@@ -245,17 +322,55 @@ function renderStats(){
  $("completedBookings").textContent=count("Completed");
  $("totalDrivers").textContent=partners.length;
  $("verifiedDrivers").textContent=partners.filter(d=>d.verified===true&&d.active===true).length;
+ $("totalHotels").textContent=allHotels.length;
+ $("activeHotels").textContent=allHotels.filter(h=>h.active===true).length;
 }
 
-// BOOKINGS
+// BOOKING HOTEL FILTER
+function renderBookingHotelFilter(){
+ const select=$("bookingHotelFilter");
+ const previous=select.value;
+ select.replaceChildren();
+
+ const all=document.createElement("option");
+ all.value="All";
+ all.textContent="All Booking Sources";
+ select.append(all);
+
+ const direct=document.createElement("option");
+ direct.value="Direct";
+ direct.textContent="Direct Bookings";
+ select.append(direct);
+
+ allHotels.forEach(h=>{
+  const option=document.createElement("option");
+  option.value=h.id;
+  option.textContent=h.name||h.partnerId||h.id;
+  select.append(option);
+ });
+
+ if([...select.options].some(o=>o.value===previous))select.value=previous;
+}
+
 $("bookingFilter").onchange=renderBookings;
+$("bookingHotelFilter").onchange=renderBookings;
 
 function renderBookings(){
  const host=$("bookingList");
  host.replaceChildren();
 
  const filter=$("bookingFilter").value;
- const list=allBookings.filter(b=>filter==="All"||b.status===filter);
+ const hotelFilter=$("bookingHotelFilter").value;
+
+ let list=allBookings.filter(b=>{
+  const statusMatch=filter==="All"||b.status===filter;
+  const sourceMatch=hotelFilter==="All"
+   ?true
+   :hotelFilter==="Direct"
+    ?!b.hotelId
+    :b.hotelId===hotelFilter;
+  return statusMatch&&sourceMatch;
+ });
 
  if(!list.length){
   host.textContent="कोई Booking नहीं मिली।";
@@ -283,9 +398,14 @@ function renderBookings(){
   driverInfo.className="small";
   driverInfo.textContent="Driver: "+(b.driverName||"Not Assigned")+" | Driver UID: "+(b.driverUid||"—");
 
-  el.append(title,status,details,driverInfo);
+  const source=document.createElement("p");
+  source.className="small";
+  source.textContent=b.hotelId
+   ?"🏨 Hotel Partner: "+(b.hotelName||b.hotelId)+" | Partner ID: "+b.hotelId
+   :"Booking Source: Direct";
 
-  // LEGACY / WRONG ASSIGNMENT WARNING
+  el.append(title,status,details,driverInfo,source);
+
   if(b.status==="Accepted" && (!b.driverUid || b.driverUid===ADMIN_UID)){
    const warning=document.createElement("div");
    warning.className="status";
@@ -349,7 +469,6 @@ function renderBookings(){
  });
 }
 
-// REJECT
 async function rejectBooking(id){
  if(!confirm("क्या आप यह Booking Reject करना चाहते हैं?"))return;
  try{
@@ -369,9 +488,7 @@ async function rejectBooking(id){
  }
 }
 
-// SAFE ASSIGNMENT
 async function assignBooking(bookingId,driverId){
-
  if(!driverId || driverId===ADMIN_UID){
   alert("⛔ Admin Account को Driver के रूप में Assign नहीं किया जा सकता।");
   return;
@@ -435,7 +552,7 @@ async function assignBooking(bookingId,driverId){
  }
 }
 
-// DRIVER LIST
+// DRIVER MANAGEMENT
 function renderDrivers(){
  const host=$("driverList");
  host.replaceChildren();
@@ -470,7 +587,6 @@ function renderDrivers(){
 
   el.append(title,details,status);
 
-  // PROFILE EDIT
   const editButton=document.createElement("button");
   editButton.className="black";
   editButton.textContent="✏️ Edit Driver Profile";
@@ -535,7 +651,6 @@ function renderDrivers(){
  });
 }
 
-// SAVE DRIVER PROFILE
 async function saveDriverProfile(id,inputs,button){
  if(id===ADMIN_UID){
   alert("Admin Profile को Driver Profile की तरह Edit नहीं किया जा सकता।");
@@ -596,7 +711,6 @@ async function saveDriverProfile(id,inputs,button){
  }
 }
 
-// CHANGE DRIVER STATUS
 async function changeDriver(id,changes){
  if(id===ADMIN_UID){
   alert("Admin Account का Driver Status नहीं बदला जा सकता।");
@@ -616,7 +730,6 @@ async function changeDriver(id,changes){
  }
 }
 
-// PRIVATE DETAILS
 async function showPrivateDetails(bookingId,button){
  button.disabled=true;
  button.textContent="लोड हो रहा है...";
@@ -644,7 +757,313 @@ async function showPrivateDetails(bookingId,button){
  }
 }
 
-// REFRESH
+// HOTEL PARTNER SYSTEM
+function hotelBookingCount(hotelId){
+ return allBookings.filter(b=>b.hotelId===hotelId).length;
+}
+
+function resetHotelForm(){
+ editingHotelId=null;
+ $("hotelName").value="";
+ $("hotelAddress").value="";
+ $("hotelPhone").value="";
+ $("hotelLat").value="";
+ $("hotelLng").value="";
+ $("hotelFormTitle").textContent="➕ नया Hotel Partner जोड़ें";
+ $("saveHotelBtn").textContent="💾 Save New Hotel";
+ $("cancelHotelEdit").classList.add("hidden");
+ $("hotelMsg").textContent="";
+}
+
+$("cancelHotelEdit").onclick=resetHotelForm;
+
+$("saveHotelBtn").onclick=async()=>{
+ const name=$("hotelName").value.trim();
+ const address=$("hotelAddress").value.trim();
+ const phone=$("hotelPhone").value.trim();
+ const lat=Number($("hotelLat").value);
+ const lng=Number($("hotelLng").value);
+
+ if(!name||!address||!phone||$("hotelLat").value===""||$("hotelLng").value===""){
+  $("hotelMsg").textContent="कृपया सभी होटल जानकारी भरें।";
+  return;
+ }
+
+ if(!/^[0-9+\-\s]{7,18}$/.test(phone)){
+  $("hotelMsg").textContent="होटल का सही Contact Number डालें।";
+  return;
+ }
+
+ if(!Number.isFinite(lat)||lat < -90||lat > 90||
+    !Number.isFinite(lng)||lng < -180||lng > 180){
+  $("hotelMsg").textContent="Latitude या Longitude सही नहीं है।";
+  return;
+ }
+
+ const button=$("saveHotelBtn");
+ button.disabled=true;
+ $("hotelMsg").textContent="Hotel Save हो रहा है...";
+
+ try{
+  const batch=writeBatch(db);
+
+  if(editingHotelId){
+   const hotel=allHotels.find(h=>h.id===editingHotelId);
+   if(!hotel)throw new Error("Hotel Record नहीं मिला।");
+
+   const privateRef=doc(db,"Businesses",editingHotelId);
+   const publicRef=doc(db,"HotelPublic",editingHotelId);
+
+   batch.update(privateRef,{
+    name,address,phone,lat,lng,
+    updatedAt:serverTimestamp()
+   });
+
+   batch.update(publicRef,{
+    name,address,lat,lng,
+    updatedAt:serverTimestamp()
+   });
+
+   await batch.commit();
+   $("hotelMsg").textContent="✅ Hotel Partner Update हो गया।";
+   resetHotelForm();
+   alert("Hotel Partner Update हो गया।");
+  }else{
+   const privateRef=doc(collection(db,"Businesses"));
+   const hotelId=privateRef.id;
+   const partnerId="WHR-"+hotelId.slice(-6).toUpperCase();
+   const publicRef=doc(db,"HotelPublic",hotelId);
+
+   batch.set(privateRef,{
+    type:"Hotel",
+    partnerId,
+    name,
+    address,
+    phone,
+    lat,
+    lng,
+    active:true,
+    createdAt:serverTimestamp(),
+    updatedAt:serverTimestamp()
+   });
+
+   // Public QR lookup: no private phone number
+   batch.set(publicRef,{
+    name,
+    address,
+    lat,
+    lng,
+    active:true,
+    city:"Bhilwara",
+    partnerId,
+    createdAt:serverTimestamp(),
+    updatedAt:serverTimestamp()
+   });
+
+   await batch.commit();
+
+   resetHotelForm();
+   alert("✅ Hotel Partner बन गया!\nPartner ID: "+partnerId);
+  }
+ }catch(e){
+  $("hotelMsg").textContent="Hotel Save Error: "+(e.code||"")+" - "+e.message;
+ }finally{
+  button.disabled=false;
+  button.textContent=editingHotelId?"💾 Update Hotel":"💾 Save New Hotel";
+ }
+};
+
+function renderHotels(){
+ const host=$("hotelList");
+ if(!host)return;
+ host.replaceChildren();
+
+ if(!allHotels.length){
+  host.textContent="अभी कोई Hotel Partner Registered नहीं है।";
+  return;
+ }
+
+ allHotels.forEach(h=>{
+  const el=document.createElement("div");
+  el.className="item";
+
+  const title=document.createElement("h3");
+  title.textContent="🏨 "+(h.name||"Hotel");
+
+  const partner=document.createElement("div");
+  partner.className="tag";
+  partner.textContent="Partner ID: "+(h.partnerId||h.id);
+
+  const status=document.createElement("div");
+  status.className="status";
+  status.textContent="Status: "+(h.active===true?"ACTIVE":"INACTIVE");
+
+  const info=document.createElement("p");
+  info.className="small";
+  info.textContent=
+   "Address: "+(h.address||"—")+
+   "\nContact: "+(h.phone||"—")+
+   "\nGPS: "+h.lat+", "+h.lng+
+   "\nHotel ID: "+h.id+
+   "\nTotal Hotel Bookings: "+hotelBookingCount(h.id);
+
+  const history=document.createElement("div");
+  history.className="editBox";
+  const historyTitle=document.createElement("b");
+  historyTitle.textContent="📋 Hotel Booking History";
+  history.append(historyTitle);
+
+  const bookings=allBookings.filter(b=>b.hotelId===h.id)
+   .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+  if(!bookings.length){
+   const none=document.createElement("p");
+   none.className="small";
+   none.textContent="अभी इस होटल से कोई Booking नहीं आई।";
+   history.append(none);
+  }else{
+   bookings.forEach(b=>{
+    const line=document.createElement("p");
+    line.className="small";
+    line.textContent=
+     (b.pickup||"Pickup")+" → "+(b.destination||"Destination")+
+     " | "+(b.status||"Unknown")+
+     " | ₹"+(b.fare??0);
+    history.append(line);
+   });
+  }
+
+  const qrButton=document.createElement("button");
+  qrButton.textContent="📱 Show Hotel QR Code";
+  qrButton.onclick=()=>showHotelQR(h);
+
+  const editButton=document.createElement("button");
+  editButton.className="black";
+  editButton.textContent="✏️ Edit Hotel Details";
+  editButton.onclick=()=>{
+   editingHotelId=h.id;
+   $("hotelName").value=h.name||"";
+   $("hotelAddress").value=h.address||"";
+   $("hotelPhone").value=h.phone||"";
+   $("hotelLat").value=h.lat??"";
+   $("hotelLng").value=h.lng??"";
+   $("hotelFormTitle").textContent="✏️ Edit Hotel Partner";
+   $("saveHotelBtn").textContent="💾 Update Hotel";
+   $("cancelHotelEdit").classList.remove("hidden");
+   $("hotelMsg").textContent="Hotel Details Edit Mode";
+   window.scrollTo({top:0,behavior:"smooth"});
+  };
+
+  const activeButton=document.createElement("button");
+  activeButton.className=h.active===true?"red":"green";
+  activeButton.textContent=h.active===true
+   ?"Deactivate Hotel QR"
+   :"✅ Activate Hotel QR";
+  activeButton.onclick=()=>changeHotelStatus(h.id,h.active!==true);
+
+  const reportButton=document.createElement("button");
+  reportButton.className="grey";
+  reportButton.textContent="📊 View This Hotel Bookings";
+  reportButton.onclick=()=>{
+   $("bookingHotelFilter").value=h.id;
+   $("bookingFilter").value="All";
+   showTab("bookingsTab");
+   renderBookings();
+  };
+
+  el.append(title,partner,status,info,history,qrButton,editButton,activeButton,reportButton);
+  host.append(el);
+ });
+}
+
+async function changeHotelStatus(hotelId,newStatus){
+ const hotel=allHotels.find(h=>h.id===hotelId);
+ if(!hotel)return;
+
+ const action=newStatus?"Activate":"Deactivate";
+ if(!confirm("क्या आप "+hotel.name+" को "+action+" करना चाहते हैं?"))return;
+
+ try{
+  const batch=writeBatch(db);
+  const privateRef=doc(db,"Businesses",hotelId);
+  const publicRef=doc(db,"HotelPublic",hotelId);
+
+  batch.update(privateRef,{
+   active:newStatus,
+   updatedAt:serverTimestamp()
+  });
+
+  batch.update(publicRef,{
+   active:newStatus,
+   updatedAt:serverTimestamp()
+  });
+
+  await batch.commit();
+  alert("Hotel Status Update हो गया।");
+ }catch(e){
+  alert("Hotel Status Error: "+(e.code||"")+" - "+e.message);
+ }
+}
+
+function showHotelQR(h){
+ const url=CUSTOMER_URL+"?hotel="+encodeURIComponent(h.id);
+
+ const win=window.open("","_blank");
+ if(!win){
+  alert("Popup Block हुआ। Customer QR URL:\n"+url);
+  return;
+ }
+
+ win.document.write(`
+ <!DOCTYPE html>
+ <html lang="hi">
+ <head>
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>Hotel QR - Where Is My Ride</title>
+ <style>
+ body{font-family:Arial;text-align:center;padding:20px;color:#171717}
+ h2{background:#ffd400;padding:15px}
+ #qr{display:flex;justify-content:center;margin:25px}
+ p{overflow-wrap:anywhere;font-size:13px}
+ button{padding:12px;background:#ffd400;border:0;border-radius:8px;font-weight:bold}
+ </style>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+ </head>
+ <body>
+ <h2>WHERE IS MY RIDE</h2>
+ <h3>${escapeHTML(h.name||"Hotel")}</h3>
+ <p>Hotel Partner ID: ${escapeHTML(h.partnerId||h.id)}</p>
+ <div id="qr"></div>
+ <p>QR Code Scan करके यहाँ से Ride Book करें।</p>
+ <p id="url"></p>
+ <button onclick="window.print()">Print QR Code</button>
+ <script>
+ document.getElementById("url").textContent=${JSON.stringify(url)};
+ if(window.QRCode){
+  new QRCode(document.getElementById("qr"),{
+   text:${JSON.stringify(url)},
+   width:220,height:220
+  });
+ }else{
+  document.getElementById("qr").textContent="QR library load नहीं हुई। नीचे दिया URL इस्तेमाल करें।";
+ }
+ <\/script>
+ </body>
+ </html>
+ `);
+ win.document.close();
+}
+
+function escapeHTML(value){
+ return String(value).replace(/[&<>"']/g,ch=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ }[ch]));
+}
+
 $("refreshBtn").onclick=()=>startDashboard();
 
 </script>
