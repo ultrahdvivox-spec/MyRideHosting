@@ -3,674 +3,505 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#ffd400">
-<title>Where Is My Ride - Customer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WHERE IS MY RIDE - Customer</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;background:#f4f4f4;color:#171717;
- font-family:Arial,sans-serif;padding-bottom:30px
-}
-.wrap{max-width:700px;margin:auto;padding:12px}
-header{
- background:#ffd400;padding:20px 16px;
- border-radius:0 0 18px 18px;border-bottom:4px solid #171717
-}
-.logo{font-size:23px;font-weight:900}
-.logo span{background:#171717;color:#ffd400;padding:3px 6px}
-header p{margin:7px 0 0;font-size:13px;font-weight:bold}
-.card{
- background:white;border:1px solid #e5e5e5;
- border-radius:16px;padding:16px;margin:14px 0;
- box-shadow:0 3px 12px #0000000b
-}
-h2{font-size:21px;margin:5px 0 14px}
-h3{margin:4px 0 14px;font-size:18px}
-input,select{
- width:100%;padding:14px;margin:7px 0;
- border:1px solid #ccc;border-radius:10px;
- font-size:15px;background:white;color:#171717
-}
-button{
- width:100%;padding:14px;margin:6px 0;
- border:0;border-radius:10px;background:#ffd400;
- color:#171717;font-size:15px;font-weight:900;cursor:pointer
-}
-button:disabled{opacity:.55}
-.black{background:#171717;color:white}
-.grey{background:#e5e5e5;color:#171717}
-.red{background:#b91c1c;color:white}
+body{margin:0;background:#f3f4f6;color:#171717;font-family:Arial,sans-serif}
+header{background:#111;color:white;padding:17px;border-bottom:4px solid #ffd400}
+header h2{margin:0;font-size:21px}
+header p{margin:5px 0 0;color:#ffd400;font-size:12px}
+.container{max-width:650px;margin:auto;padding:12px}
+.card{background:white;padding:15px;margin-bottom:13px;border-radius:13px;box-shadow:0 2px 9px #00000012}
+h3{margin:0 0 13px;font-size:17px}
+label{display:block;font-size:13px;font-weight:bold;margin:12px 0 6px}
+input,select{width:100%;padding:13px;border:1px solid #ccc;border-radius:8px;font-size:15px;background:white}
+button{border:0;border-radius:9px;padding:13px;font-size:14px;font-weight:bold;cursor:pointer}
+.yellow{background:#ffd400;color:#111}
+.dark{background:#171717;color:white}
+.outline{background:white;border:1px solid #bbb;color:#222}
+button:disabled{opacity:.5;cursor:not-allowed}
+.full{width:100%;margin-top:10px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{min-width:0}
+#map{height:340px;width:100%;border-radius:12px;background:#e5e5e5}
 .small{font-size:12px;color:#666;line-height:1.5}
+.status{padding:10px;border-radius:8px;background:#fff8d6;font-size:13px}
+.fare{background:#111;color:white;padding:15px;border-radius:10px;margin-top:12px}
+.fare strong{color:#ffd400;font-size:25px}
+.vehicle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.vehicle{padding:13px;border:1px solid #ccc;border-radius:9px;text-align:center;cursor:pointer;font-weight:bold}
+.vehicle.selected{border:2px solid #e0b900;background:#fff9d8}
+.booking{padding:12px;border:1px solid #eee;border-radius:9px;margin:9px 0;font-size:13px;line-height:1.6}
 .hidden{display:none!important}
-.message{font-size:14px;font-weight:bold;line-height:1.5;overflow-wrap:anywhere}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.place{
- background:#fff9d9;border:1px solid #f0d65c;
- padding:13px 8px;border-radius:12px;
- font-size:13px;font-weight:bold;text-align:center;cursor:pointer
-}
-.place span{display:block;font-size:22px;margin-bottom:6px}
-.vehicle{
- border:2px solid #ddd;border-radius:12px;
- padding:13px 6px;text-align:center;cursor:pointer;
- font-weight:bold;background:white
-}
-.vehicle span{display:block;font-size:26px;margin-bottom:7px}
-.vehicle.selected{border:2px solid #171717;background:#fff3a8}
-.status{
- background:#fff8d6;padding:12px;border-radius:10px;
- margin:9px 0;font-size:13px
-}
-.item{
- border:1px solid #ddd;border-radius:12px;
- padding:13px;margin:12px 0;overflow-wrap:anywhere
-}
-.nav{
- display:grid;grid-template-columns:repeat(3,1fr);
- gap:8px;margin:14px 0
-}
-.nav button{
- background:#171717;color:white;padding:12px 4px;
- font-size:12px
-}
-.nav span{display:block;font-size:20px;margin-bottom:5px}
-a{color:#174ea6}
-footer{text-align:center;color:#777;font-size:12px;padding:20px}
+.error{color:#b00020;font-size:13px;margin-top:8px}
+.success{color:#087a35;font-size:13px;margin-top:8px}
+.quick{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.quick button{padding:9px;font-size:12px}
+footer{text-align:center;color:#777;font-size:11px;padding:18px}
 </style>
 </head>
-
 <body>
 
 <header>
- <div class="logo">WHERE IS <span>MY RIDE</span></div>
- <p>BHILWARA • RAJASTHAN</p>
+<h2>🚕 WHERE IS MY RIDE</h2>
+<p>MADE IN INDIA • BHILWARA</p>
 </header>
 
-<main class="wrap">
+<div class="container">
 
-<div class="nav">
- <button onclick="showSection('rideSection')">
-  🚕<br>Ride
- </button>
- <button onclick="showSection('servicesSection')">
-  🛍️<br>Services
- </button>
- <button onclick="showSection('profileSection')">
-  👤<br>Profile
- </button>
-</div>
+<section id="loginSection" class="card">
+<h3>👤 Customer Login</h3>
+<label>Email</label>
+<input id="email" type="email" placeholder="अपना Email लिखें">
+<label>Password</label>
+<input id="password" type="password" placeholder="Password">
+<button class="yellow full" id="loginBtn">Login करें</button>
+<button class="outline full" id="registerBtn">नया Account बनाएँ</button>
+<p id="authMessage" class="error"></p>
+</section>
 
-<!-- LOGIN -->
-<div class="card" id="authCard">
- <h2>Customer Login</h2>
- <p class="small">Login करें या नया Account बनाएँ।</p>
-
- <input id="email" type="email"
- placeholder="Email Address">
-
- <input id="password" type="password"
- placeholder="Password">
-
- <button id="loginBtn">Login करें</button>
- <button id="signupBtn" class="black">
-  नया Account बनाएँ
- </button>
-
- <p id="authMsg" class="message"></p>
-</div>
-
-<div id="app" class="hidden">
-
-<!-- PROFILE -->
-<div class="card hidden" id="profileSection">
- <h3>👤 आपका Profile</h3>
- <p id="userLabel" class="small"></p>
- <button id="logoutBtn" class="black">Logout</button>
-</div>
-
-<!-- RIDE -->
-<div id="rideSection">
+<main id="appSection" class="hidden">
 
 <div class="card">
-
- <h2>🚕 अपनी Ride Book करें</h2>
-
- <label><b>Pickup Location</b></label>
- <input id="pickup"
- placeholder="अपनी Pickup Location लिखें">
-
- <button id="gpsBtn" class="black">
-  📍 मेरी Current Location लें
- </button>
-
- <label><b>Destination / मंजिल</b></label>
- <input id="destination"
- placeholder="आप कहाँ जाना चाहते हैं?">
-
- <div class="status">
-  <b>📍 Quick Destinations - Bhilwara</b>
-
-  <p class="small">
-   किसी जगह पर टैप करके Destination चुनें।
-  </p>
-
-  <div class="grid">
-
-   <div class="place"
-    data-place="Railway Station, Bhilwara">
-    <span>🚉</span>Railway Station
-   </div>
-
-   <div class="place"
-    data-place="Roadways Bus Stand, Bhilwara">
-    <span>🚌</span>Roadways Bus Stand
-   </div>
-
-   <div class="place"
-    data-place="Ajmer Chouraha, Bhilwara">
-    <span>📍</span>Ajmer Chouraha
-   </div>
-
-   <div class="place"
-    data-place="Love Garden, Bhilwara">
-    <span>🌳</span>Love Garden
-   </div>
-
-   <div class="place"
-    data-place="Reliance Mall, Bhilwara">
-    <span>🏬</span>Reliance Mall
-   </div>
-
-   <div class="place"
-    data-place="Bhilwara Railway Station">
-    <span>🚆</span>Station
-   </div>
-
-  </div>
- </div>
-
- <label><b>अपना वाहन चुनें</b></label>
-
- <div class="grid" id="vehicleGrid">
-
-  <div class="vehicle selected" data-vehicle="bike">
-   <span>🏍️</span>Bike
-  </div>
-
-  <div class="vehicle" data-vehicle="car">
-   <span>🚗</span>Car
-  </div>
-
-  <div class="vehicle" data-vehicle="auto">
-   <span>🛺</span>Auto
-  </div>
-
-  <div class="vehicle" data-vehicle="e-rickshaw">
-   <span>🔋</span>E-Rickshaw
-  </div>
-
- </div>
-
- <div class="status">
-  <b>💵 किराया</b>
-  <p class="small">
-   प्रस्तावित शुरुआती दर ₹12/km है।
-   सही सड़क दूरी और किराया रूट की पुष्टि के बाद दिखाया जाएगा।
-  </p>
- </div>
-
- <div class="status">
-  <b>💳 Payment Method</b>
-  <select id="payment">
-   <option value="Cash">Cash (नकद)</option>
-  </select>
-  <p class="small">
-   अभी Cash विकल्प उपलब्ध है।
-  </p>
- </div>
-
- <h3>Customer Details</h3>
-
- <input id="customerName"
-  placeholder="आपका पूरा नाम">
-
- <input id="phone"
-  type="tel" maxlength="10"
-  placeholder="10 अंकों का मोबाइल नंबर">
-
- <button id="bookBtn">
-  🟡 अभी Ride Book करें
- </button>
-
- <p id="bookMsg" class="message"></p>
-
+<div class="row" style="justify-content:space-between">
+<div><b>नमस्ते! 👋</b><div class="small" id="userEmail"></div></div>
+<button class="dark" id="logoutBtn">Logout</button>
+</div>
 </div>
 
-<!-- BOOKINGS -->
 <div class="card">
- <h3>📋 मेरी Bookings</h3>
-
- <button id="refreshBtn" class="black">
-  Refresh Bookings
- </button>
-
- <div id="bookings">लोड हो रहा है...</div>
+<h3>📍 आपकी लोकेशन और लाइव मैप</h3>
+<div id="map"></div>
+<p class="small" id="gpsStatus">GPS लोकेशन प्राप्त की जा रही है...</p>
+<button class="yellow full" id="gpsBtn">📍 मेरी Current Location लें</button>
 </div>
 
+<div class="card">
+<h3>📌 Ride की जानकारी</h3>
+<label>Pickup Location</label>
+<input id="pickup" placeholder="आपकी Pickup Location" readonly>
+<label>Destination</label>
+<div class="row">
+<input id="destination" placeholder="कहाँ जाना है?">
+<button class="yellow" id="searchDestinationBtn">खोजें</button>
+</div>
+<div class="quick">
+<button class="outline" data-place="Bhilwara Railway Station">Railway Station</button>
+<button class="outline" data-place="Bhilwara Bus Stand">Bus Stand</button>
+<button class="outline" data-place="Harni Mahadev Temple, Bhilwara">Harni Mahadev</button>
+</div>
+<p class="small">Destination लिखकर खोजें या मैप पर किसी जगह को चुनें।</p>
 </div>
 
-<!-- SERVICES -->
-<div class="card hidden" id="servicesSection">
- <h3>🛍️ All Services</h3>
-
- <div class="grid">
-  <div class="place"><span>🚕</span>Ride</div>
-  <div class="place"><span>📦</span>Delivery</div>
-  <div class="place"><span>💊</span>Medical Store</div>
-  <div class="place"><span>🛒</span>Shops</div>
- </div>
-
- <p class="small">
-  अन्य सेवाएँ भविष्य में शुरू होंगी।
- </p>
+<div class="card">
+<h3>🚘 Vehicle चुनें</h3>
+<div class="vehicle-grid">
+<div class="vehicle selected" data-vehicle="Bike">🏍️ Bike</div>
+<div class="vehicle" data-vehicle="Car">🚗 Car</div>
+<div class="vehicle" data-vehicle="Auto">🛺 Auto</div>
+<div class="vehicle" data-vehicle="E-Rickshaw">🛺 E-Rickshaw</div>
+</div>
 </div>
 
+<div class="card">
+<h3>💰 दूरी और अनुमानित किराया</h3>
+<div class="status" id="routeStatus">Destination चुनने के बाद सड़क का रास्ता और किराया दिखाई देगा।</div>
+<div class="fare">
+<div class="small" style="color:#ddd">अनुमानित किराया</div>
+<strong id="fareAmount">₹0</strong>
+<div class="small" style="color:#ddd">
+<span id="distanceText">दूरी: —</span><br>दर: ₹12 प्रति किलोमीटर
+</div>
+</div>
+<p class="small">यह अनुमानित किराया है। वास्तविक किराया बुकिंग की पुष्टि पर निर्भर करेगा।</p>
+</div>
+
+<div class="card">
+<h3>👤 Customer Details</h3>
+<label>पूरा नाम</label>
+<input id="customerName" placeholder="अपना नाम लिखें">
+<label>मोबाइल नंबर</label>
+<input id="customerPhone" type="tel" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर">
+<button class="yellow full" id="bookBtn" disabled>🚕 अभी Ride Book करें</button>
+<p id="bookingMessage" class="error"></p>
+</div>
+
+<div class="card">
+<h3>📋 मेरी Bookings</h3>
+<div id="bookingsList">Bookings लोड हो रही हैं...</div>
 </div>
 </main>
 
-<footer>
- © <span id="year"></span> Where Is My Ride<br>
- Bhilwara, Rajasthan
-</footer>
+<footer>WHERE IS MY RIDE • MADE IN INDIA<br>Founder: RITESH SINGH RAJPUT</footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script type="module">
-
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import {
- initializeApp
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-
-import {
- getAuth,
- onAuthStateChanged,
- createUserWithEmailAndPassword,
- signInWithEmailAndPassword,
- signOut
+ getAuth,onAuthStateChanged,signInWithEmailAndPassword,
+ createUserWithEmailAndPassword,signOut
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-
 import {
- getFirestore,
- collection,
- doc,
- writeBatch,
- query,
- where,
- onSnapshot,
- updateDoc,
- serverTimestamp
+ getFirestore,collection,doc,writeBatch,query,where,
+ getDocs,serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const firebaseConfig = {
- apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
- authDomain: "myridebhilwara-45652.firebaseapp.com",
- projectId: "myridebhilwara-45652",
- storageBucket: "myridebhilwara-45652.firebasestorage.app",
- messagingSenderId: "819961031572",
- appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+const firebaseConfig={
+ apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+ authDomain:"myridebhilwara-45652.firebaseapp.com",
+ projectId:"myridebhilwara-45652",
+ storageBucket:"myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId:"819961031572",
+ appId:"1:819961031572:web:b7e1f401c90d7335203d81"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const $ = id => document.getElementById(id);
-
-let currentUser = null;
-let unsubscribe = null;
-let selectedVehicle = "bike";
-
-$("year").textContent = new Date().getFullYear();
-
-window.showSection = function(id) {
- ["rideSection","servicesSection","profileSection"]
- .forEach(x => $(x).classList.add("hidden"));
-
- $(id).classList.remove("hidden");
-};
-
-// VEHICLE SELECTION
-document.querySelectorAll(".vehicle").forEach(el => {
- el.onclick = () => {
-  document.querySelectorAll(".vehicle")
-   .forEach(v => v.classList.remove("selected"));
-
-  el.classList.add("selected");
-  selectedVehicle = el.dataset.vehicle;
- };
-});
-
-// QUICK DESTINATIONS
-document.querySelectorAll(".place[data-place]").forEach(el => {
- el.onclick = () => {
-  $("destination").value = el.dataset.place;
- };
-});
-
-// GPS
-$("gpsBtn").onclick = () => {
-
- if (!navigator.geolocation) {
-  alert("इस Browser में GPS उपलब्ध नहीं है।");
-  return;
- }
-
- $("gpsBtn").disabled = true;
-
- navigator.geolocation.getCurrentPosition(
-  position => {
-   const lat = position.coords.latitude;
-   const lng = position.coords.longitude;
-
-   $("pickup").value =
-    "GPS Location (" +
-    lat.toFixed(5) + ", " +
-    lng.toFixed(5) + ")";
-
-   $("gpsBtn").disabled = false;
-  },
-  error => {
-   alert("Location नहीं मिली: " + error.message);
-   $("gpsBtn").disabled = false;
-  },
-  {
-   enableHighAccuracy: true,
-   timeout: 15000
-  }
- );
-};
-
-// LOGIN
-$("loginBtn").onclick = async () => {
- try {
-  $("authMsg").textContent = "Login हो रहा है...";
-
-  await signInWithEmailAndPassword(
-   auth,
-   $("email").value.trim(),
-   $("password").value
-  );
-
-  $("authMsg").textContent = "";
-
- } catch(e) {
-  $("authMsg").textContent =
-   e.code + " - " + e.message;
- }
-};
-
-// SIGNUP
-$("signupBtn").onclick = async () => {
- try {
-  $("authMsg").textContent = "Account बन रहा है...";
-
-  await createUserWithEmailAndPassword(
-   auth,
-   $("email").value.trim(),
-   $("password").value
-  );
-
-  $("authMsg").textContent = "";
-
- } catch(e) {
-  $("authMsg").textContent =
-   e.code + " - " + e.message;
- }
-};
-
-// LOGOUT
-$("logoutBtn").onclick = async () => {
- await signOut(auth);
-};
-
-// AUTH STATE
-onAuthStateChanged(auth, user => {
-
- currentUser = user;
-
- $("authCard").classList.toggle("hidden", !!user);
- $("app").classList.toggle("hidden", !user);
-
- if (unsubscribe) {
-  unsubscribe();
-  unsubscribe = null;
- }
-
- if (user) {
-  $("userLabel").textContent =
-   "Customer: " + (user.email || user.uid);
-
-  watchBookings();
- }
-});
-
-// CREATE BOOKING
-$("bookBtn").onclick = async () => {
-
- if (!currentUser) {
-  $("bookMsg").textContent = "पहले Login करें।";
-  return;
- }
-
- const name = $("customerName").value.trim();
- const phone = $("phone").value.trim();
- const pickup = $("pickup").value.trim();
- const destination = $("destination").value.trim();
-
- if (
-  !name ||
-  !/^\d{10}$/.test(phone) ||
-  !pickup ||
-  !destination
- ) {
-  $("bookMsg").textContent =
-   "नाम, सही मोबाइल नंबर, Pickup और Destination भरें।";
-  return;
- }
-
- if (pickup.toLowerCase() === destination.toLowerCase()) {
-  $("bookMsg").textContent =
-   "Pickup और Destination अलग-अलग रखें।";
-  return;
- }
-
- const btn = $("bookBtn");
- btn.disabled = true;
- $("bookMsg").textContent = "Booking भेजी जा रही है...";
-
- try {
-
-  const bookingRef = doc(collection(db, "Booking"));
-
-  const privateRef = doc(
-   db,
-   "BookingPrivate",
-   bookingRef.id
-  );
-
-  const batch = writeBatch(db);
-
-  // PUBLIC BOOKING DATA
-  batch.set(bookingRef, {
-   customerUid: currentUser.uid,
-   customerName: name,
-   city: "Bhilwara",
-   pickup: pickup,
-   destination: destination,
-   vehicleType: selectedVehicle,
-   status: "Pending",
-   fare: 0,
-
-   driverUid: "",
-   driverEmail: "",
-   driverName: "",
-   driverPhone: "",
-   vehicleNumber: "",
-   vehicleModel: "",
-
-   driverLat: null,
-   driverLng: null,
-
-   privacyMigrated: true,
-   createdAt: serverTimestamp()
-  });
-
-  // PRIVATE CUSTOMER DATA
-  batch.set(privateRef, {
-   customerUid: currentUser.uid,
-   customerPhone: phone,
-   customerEmail: currentUser.email || "",
-   createdAt: serverTimestamp()
-  });
-
-  // BOTH RECORDS SAVE TOGETHER
-  await batch.commit();
-
-  $("bookMsg").textContent =
-   "✅ Booking सफलतापूर्वक भेज दी गई!";
-
-  $("pickup").value = "";
-  $("destination").value = "";
-
-  watchBookings();
-
- } catch(e) {
-
-  console.error("Booking Error:", e);
-
-  $("bookMsg").textContent =
-   "Booking Error: " + e.code + " - " + e.message;
-
- } finally {
-  btn.disabled = false;
- }
-};
-
-// REFRESH
-$("refreshBtn").onclick = () => watchBookings();
-
-// WATCH CUSTOMER BOOKINGS
-function watchBookings() {
-
- if (!currentUser) return;
-
- if (unsubscribe) {
-  unsubscribe();
-  unsubscribe = null;
- }
-
- const q = query(
-  collection(db, "Booking"),
-  where("customerUid", "==", currentUser.uid)
- );
-
- unsubscribe = onSnapshot(q, snapshot => {
-
-  const host = $("bookings");
-  host.replaceChildren();
-
-  if (snapshot.empty) {
-   host.textContent = "अभी कोई Booking नहीं है।";
-   return;
-  }
-
-  const rows = snapshot.docs.sort((a,b) =>
-   (b.data().createdAt?.seconds || 0) -
-   (a.data().createdAt?.seconds || 0)
-  );
-
-  rows.forEach(s => {
-
-   const d = s.data();
-
-   const el = document.createElement("div");
-   el.className = "item";
-
-   const title = document.createElement("b");
-   title.textContent =
-    (d.pickup || "Pickup") +
-    " → " +
-    (d.destination || "Destination");
-
-   const info = document.createElement("div");
-   info.className = "status";
-   info.textContent =
-    "Status: " + (d.status || "Unknown") +
-    " | Vehicle: " + (d.vehicleType || "—") +
-    " | Fare: ₹" + (d.fare ?? 0);
-
-   const driver = document.createElement("p");
-   driver.className = "small";
-
-   if (d.driverName) {
-    driver.textContent =
-     "Driver: " + d.driverName +
-     " | Mobile: " + (d.driverPhone || "—") +
-     " | Vehicle: " + (d.vehicleNumber || "—");
-   } else {
-    driver.textContent =
-     "Driver अभी assign नहीं हुआ।";
-   }
-
-   el.append(title, info, driver);
-
-   if (
-    ["Accepted","Started"].includes(d.status) &&
-    d.driverPhone
-   ) {
-    const call = document.createElement("a");
-    call.href = "tel:" + d.driverPhone;
-    call.textContent = "📞 Driver को Call करें";
-    el.append(call);
-   }
-
-   if (d.status === "Pending") {
-
-    const cancel = document.createElement("button");
-    cancel.className = "red";
-    cancel.textContent = "Booking Cancel करें";
-
-    cancel.onclick = async () => {
-
-     if (!confirm("क्या आप Booking Cancel करना चाहते हैं?")) {
-      return;
-     }
-
-     try {
-      await updateDoc(
-       doc(db, "Booking", s.id),
-       { status: "Cancelled" }
-      );
-     } catch(e) {
-      alert("Cancel Error: " + e.code + " - " + e.message);
-     }
-    };
-
-    el.append(cancel);
-   }
-
-   host.append(el);
-  });
-
- }, error => {
-
-  console.error("Booking Read Error:", error);
-
-  $("bookings").textContent =
-   "Read Error: " + error.code + " - " + error.message;
- });
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const $=id=>document.getElementById(id);
+
+let currentUser=null;
+let map=null;
+let currentMarker=null;
+let destinationMarker=null;
+let routeLine=null;
+let currentPosition=null;
+let destinationPosition=null;
+let routeDistanceKm=0;
+let routeFare=0;
+let selectedVehicle="Bike";
+let mapReady=false;
+let routeRequestNumber=0;
+
+function message(id,text,type="error"){
+ const el=$(id);
+ el.textContent=text;
+ el.className=type;
 }
 
+function initializeMap(){
+ if(mapReady)return;
+ map=L.map("map").setView([25.34052,74.61199],13);
+ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  maxZoom:19,
+  attribution:"© OpenStreetMap contributors"
+ }).addTo(map);
+ map.on("click",async e=>{
+  await setDestinationFromCoordinates(e.latlng.lat,e.latlng.lng);
+ });
+ mapReady=true;
+ setTimeout(()=>map.invalidateSize(),300);
+}
+
+async function reverseGeocode(lat,lng){
+ const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+
+ encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng);
+ const response=await fetch(url,{headers:{"Accept-Language":"hi,en"}});
+ if(!response.ok)throw new Error("Address service unavailable");
+ const data=await response.json();
+ return data.display_name||"Selected Location";
+}
+
+async function searchPlace(place){
+ const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+
+ encodeURIComponent(place+", Bhilwara, Rajasthan, India");
+ const response=await fetch(url,{headers:{"Accept-Language":"hi,en"}});
+ if(!response.ok)throw new Error("Place search unavailable");
+ const data=await response.json();
+ if(!data.length)throw new Error("जगह नहीं मिली। दूसरा नाम लिखें।");
+ return {lat:Number(data[0].lat),lng:Number(data[0].lon),name:data[0].display_name};
+}
+
+function updateBookingButton(){
+ const ready=currentUser&&currentPosition&&destinationPosition&&routeDistanceKm>0&&routeFare>0;
+ $("bookBtn").disabled=!ready;
+}
+
+async function getCurrentLocation(){
+ if(!navigator.geolocation){
+  $("gpsStatus").textContent="इस Browser में GPS उपलब्ध नहीं है।";
+  return;
+ }
+ $("gpsStatus").textContent="GPS से आपकी लोकेशन प्राप्त की जा रही है...";
+ navigator.geolocation.getCurrentPosition(async position=>{
+  const lat=position.coords.latitude;
+  const lng=position.coords.longitude;
+  currentPosition={lat,lng};
+  if(!mapReady)initializeMap();
+  map.setView([lat,lng],16);
+  if(currentMarker)map.removeLayer(currentMarker);
+  currentMarker=L.circleMarker([lat,lng],{
+   radius:9,color:"#fff",weight:3,fillColor:"#1677ff",fillOpacity:1
+  }).addTo(map).bindPopup("📍 आपकी Current Location");
+  currentMarker.openPopup();
+  $("gpsStatus").textContent="GPS मिला। आसपास का पता खोज रहे हैं...";
+  try{
+   $("pickup").value=await reverseGeocode(lat,lng);
+   $("gpsStatus").textContent="✅ आपकी Pickup Location मिल गई।";
+  }catch(error){
+   $("pickup").value="Current Location ("+lat.toFixed(5)+", "+lng.toFixed(5)+")";
+   $("gpsStatus").textContent="GPS मिला, लेकिन जगह का नाम नहीं मिल पाया।";
+  }
+  updateBookingButton();
+ },error=>{
+  let msg="GPS Location प्राप्त नहीं हुई।";
+  if(error.code===1)msg="Location Permission बंद है। Browser में Location अनुमति दें।";
+  if(error.code===2)msg="GPS Location उपलब्ध नहीं है।";
+  if(error.code===3)msg="GPS में समय लग रहा है। दोबारा प्रयास करें।";
+  $("gpsStatus").textContent=msg;
+ },{enableHighAccuracy:true,timeout:20000,maximumAge:30000});
+}
+
+async function setDestinationFromCoordinates(lat,lng){
+ try{
+  $("routeStatus").textContent="Destination की जानकारी प्राप्त हो रही है...";
+  const name=await reverseGeocode(lat,lng);
+  destinationPosition={lat,lng};
+  $("destination").value=name;
+  await drawRoute();
+ }catch(error){
+  message("bookingMessage",error.message);
+ }
+}
+
+async function findDestination(){
+ const place=$("destination").value.trim();
+ if(!place){
+  message("bookingMessage","कृपया Destination लिखें।");
+  return;
+ }
+ if(!currentPosition){
+  message("bookingMessage","पहले GPS Location प्राप्त करें।");
+  return;
+ }
+ $("routeStatus").textContent="Destination खोज रहे हैं...";
+ try{
+  const result=await searchPlace(place);
+  destinationPosition={lat:result.lat,lng:result.lng};
+  $("destination").value=result.name;
+  await drawRoute();
+ }catch(error){
+  $("routeStatus").textContent=error.message;
+ }
+}
+
+async function drawRoute(){
+ if(!currentPosition||!destinationPosition)return;
+ const requestId=++routeRequestNumber;
+ $("routeStatus").textContent="सड़क का रास्ता खोज रहे हैं...";
+ $("bookBtn").disabled=true;
+ const start=currentPosition;
+ const end=destinationPosition;
+ const url="https://router.project-osrm.org/route/v1/driving/"+
+ start.lng+","+start.lat+";"+end.lng+","+end.lat+
+ "?overview=full&geometries=geojson";
+ try{
+  const response=await fetch(url);
+  if(!response.ok)throw new Error("Route service उपलब्ध नहीं है।");
+  const data=await response.json();
+  if(requestId!==routeRequestNumber)return;
+  if(data.code!=="Ok"||!data.routes?.length)throw new Error("सड़क का रास्ता नहीं मिला।");
+  const route=data.routes[0];
+  routeDistanceKm=route.distance/1000;
+  routeFare=Math.ceil(routeDistanceKm*12);
+  const coordinates=route.geometry.coordinates.map(p=>[p[1],p[0]]);
+  if(routeLine)map.removeLayer(routeLine);
+  routeLine=L.polyline(coordinates,{color:"#f0b900",weight:6,opacity:.9}).addTo(map);
+  if(destinationMarker)map.removeLayer(destinationMarker);
+  destinationMarker=L.marker([end.lat,end.lng]).addTo(map).bindPopup("🏁 Destination");
+  map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35]});
+  $("distanceText").textContent="सड़क दूरी: "+routeDistanceKm.toFixed(2)+" KM";
+  $("fareAmount").textContent="₹"+routeFare;
+  $("routeStatus").textContent="✅ सड़क का रास्ता मिल गया।";
+  message("bookingMessage","");
+  updateBookingButton();
+ }catch(error){
+  routeDistanceKm=0;
+  routeFare=0;
+  $("fareAmount").textContent="₹0";
+  $("distanceText").textContent="दूरी: —";
+  $("routeStatus").textContent=error.message;
+  updateBookingButton();
+ }
+}
+
+$("loginBtn").addEventListener("click",async()=>{
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||!password){message("authMessage","Email और Password भरें।");return;}
+ try{
+  await signInWithEmailAndPassword(auth,email,password);
+  message("authMessage","");
+ }catch(error){message("authMessage","Login Error: "+error.message);}
+});
+
+$("registerBtn").addEventListener("click",async()=>{
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||password.length<6){
+  message("authMessage","सही Email और कम से कम 6 अक्षर का Password लिखें।");return;
+ }
+ try{
+  await createUserWithEmailAndPassword(auth,email,password);
+  message("authMessage","");
+ }catch(error){message("authMessage","Registration Error: "+error.message);}
+});
+
+$("logoutBtn").addEventListener("click",async()=>{await signOut(auth);});
+$("gpsBtn").addEventListener("click",getCurrentLocation);
+$("searchDestinationBtn").addEventListener("click",findDestination);
+$("destination").addEventListener("keydown",e=>{
+ if(e.key==="Enter"){e.preventDefault();findDestination();}
+});
+
+document.querySelectorAll("[data-place]").forEach(button=>{
+ button.addEventListener("click",()=>{
+  $("destination").value=button.dataset.place;
+  findDestination();
+ });
+});
+
+document.querySelectorAll("[data-vehicle]").forEach(button=>{
+ button.addEventListener("click",()=>{
+  document.querySelectorAll("[data-vehicle]").forEach(v=>v.classList.remove("selected"));
+  button.classList.add("selected");
+  selectedVehicle=button.dataset.vehicle;
+ });
+});
+
+onAuthStateChanged(auth,async user=>{
+ currentUser=user;
+ if(user){
+  $("loginSection").classList.add("hidden");
+  $("appSection").classList.remove("hidden");
+  $("userEmail").textContent=user.email||"Customer";
+  initializeMap();
+  setTimeout(()=>{map.invalidateSize();getCurrentLocation();},400);
+  loadBookings();
+ }else{
+  $("loginSection").classList.remove("hidden");
+  $("appSection").classList.add("hidden");
+  currentPosition=null;
+  destinationPosition=null;
+  routeDistanceKm=0;
+  routeFare=0;
+  updateBookingButton();
+ }
+});
+
+async function bookRide(){
+ if(!currentUser)return;
+ const name=$("customerName").value.trim();
+ const phone=$("customerPhone").value.trim();
+ if(!name){message("bookingMessage","कृपया अपना नाम लिखें।");return;}
+ if(!/^[0-9]{10}$/.test(phone)){
+  message("bookingMessage","कृपया 10 अंकों का मोबाइल नंबर लिखें।");return;
+ }
+ if(!currentPosition||!destinationPosition||!routeFare){
+  message("bookingMessage","पहले GPS और Destination Route पूरा करें।");return;
+ }
+ if(!confirm("अनुमानित किराया ₹"+routeFare+" है। क्या Ride Book करनी है?"))return;
+
+ $("bookBtn").disabled=true;
+ message("bookingMessage","Booking भेजी जा रही है...","success");
+
+ try{
+  const batch=writeBatch(db);
+  const bookingRef=doc(collection(db,"Booking"));
+  const privateRef=doc(db,"BookingPrivate",bookingRef.id);
+
+  const publicData={
+   customerUid:currentUser.uid,
+   customerName:name,
+   city:"Bhilwara",
+   pickup:$("pickup").value,
+   destination:$("destination").value,
+   vehicleType:selectedVehicle,
+   status:"Pending",
+   fare:routeFare,
+   driverUid:"",
+   driverEmail:"",
+   driverName:"",
+   driverPhone:"",
+   vehicleNumber:"",
+   vehicleModel:"",
+   driverLat:null,
+   driverLng:null,
+   privacyMigrated:true,
+   createdAt:serverTimestamp()
+  };
+
+  const privateData={
+   customerUid:currentUser.uid,
+   customerPhone:phone,
+   customerEmail:currentUser.email||"",
+   createdAt:serverTimestamp()
+  };
+
+  batch.set(bookingRef,publicData);
+  batch.set(privateRef,privateData);
+  await batch.commit();
+
+  message("bookingMessage","✅ आपकी Booking भेज दी गई है।","success");
+  $("destination").value="";
+  destinationPosition=null;
+  routeDistanceKm=0;
+  routeFare=0;
+  if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+  if(destinationMarker){map.removeLayer(destinationMarker);destinationMarker=null;}
+  $("fareAmount").textContent="₹0";
+  $("distanceText").textContent="दूरी: —";
+  $("routeStatus").textContent="नई Destination चुनें।";
+  updateBookingButton();
+  loadBookings();
+ }catch(error){
+  message("bookingMessage","Booking Error: "+error.message);
+  updateBookingButton();
+ }
+}
+
+$("bookBtn").addEventListener("click",bookRide);
+
+async function loadBookings(){
+ if(!currentUser)return;
+ $("bookingsList").textContent="Bookings लोड हो रही हैं...";
+ try{
+  const q=query(collection(db,"Booking"),where("customerUid","==",currentUser.uid));
+  const snapshot=await getDocs(q);
+  $("bookingsList").innerHTML="";
+  if(snapshot.empty){
+   $("bookingsList").textContent="अभी कोई Booking नहीं है।";
+   return;
+  }
+  const records=[];
+  snapshot.forEach(item=>records.push({id:item.id,...item.data()}));
+  records.sort((a,b)=>{
+   const ta=a.createdAt?.seconds||0;
+   const tb=b.createdAt?.seconds||0;
+   return tb-ta;
+  });
+  records.forEach(item=>{
+   const div=document.createElement("div");
+   div.className="booking";
+   const title=document.createElement("b");
+   title.textContent="🚕 "+(item.vehicleType||"Ride")+" • "+(item.status||"Pending");
+   const details=document.createElement("div");
+   details.textContent="Pickup: "+(item.pickup||"—")+
+    "\nDestination: "+(item.destination||"—")+
+    "\nFare: ₹"+(item.fare??0);
+   details.style.whiteSpace="pre-line";
+   div.append(title,details);
+   $("bookingsList").appendChild(div);
+  });
+ }catch(error){
+  $("bookingsList").textContent="Bookings Error: "+error.message;
+ }
+}
 </script>
 </body>
 </html>
