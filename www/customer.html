@@ -120,12 +120,19 @@ footer{text-align:center;color:#777;font-size:11px;padding:18px}
 </div>
 
 <div class="card">
-<h3>👤 Customer Details</h3>
+<h3>👤 Customer Profile</h3>
+<p class="small">आपकी जानकारी आपके Account में सुरक्षित रहेगी। अगली बार Login करने पर अपने आप आ जाएगी।</p>
+
 <label>पूरा नाम</label>
-<input id="customerName" placeholder="अपना नाम लिखें">
+<input id="customerName" placeholder="अपना नाम लिखें" maxlength="80">
+
 <label>मोबाइल नंबर</label>
-<input id="customerPhone" type="tel" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर">
-<button class="yellow full" id="bookBtn" disabled>🚕 अभी Ride Book करें</button>
+<input id="customerPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="10 अंकों का मोबाइल नंबर">
+
+<button class="yellow full" id="saveProfileBtn">💾 Profile सेव करें</button>
+<p id="profileMessage" class="error"></p>
+
+<button class="dark full" id="bookBtn" disabled>🚕 अभी Ride Book करें</button>
 <p id="bookingMessage" class="error"></p>
 </div>
 
@@ -133,6 +140,7 @@ footer{text-align:center;color:#777;font-size:11px;padding:18px}
 <h3>📋 मेरी Bookings</h3>
 <div id="bookingsList">Bookings लोड हो रही हैं...</div>
 </div>
+
 </main>
 
 <footer>WHERE IS MY RIDE • MADE IN INDIA<br>Founder: RITESH SINGH RAJPUT</footer>
@@ -142,13 +150,15 @@ footer{text-align:center;color:#777;font-size:11px;padding:18px}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
 import {
  getAuth,onAuthStateChanged,signInWithEmailAndPassword,
  createUserWithEmailAndPassword,signOut
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
 import {
  getFirestore,collection,doc,writeBatch,query,where,
- getDocs,serverTimestamp
+ getDocs,getDoc,setDoc,serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -178,22 +188,51 @@ let selectedVehicle="Bike";
 let mapReady=false;
 let routeRequestNumber=0;
 
+let profileLoaded=false;
+let profileSaving=false;
+let profileCreatedAt=null;
+
 function message(id,text,type="error"){
  const el=$(id);
  el.textContent=text;
  el.className=type;
 }
 
+function updateBookingButton(){
+ const name=$("customerName").value.trim();
+ const phone=$("customerPhone").value.trim();
+
+ const validProfile=
+  profileLoaded &&
+  name.length>0 &&
+  /^[0-9]{10}$/.test(phone);
+
+ const ready=
+  currentUser &&
+  validProfile &&
+  currentPosition &&
+  destinationPosition &&
+  routeDistanceKm>0 &&
+  routeFare>0 &&
+  !profileSaving;
+
+ $("bookBtn").disabled=!ready;
+}
+
 function initializeMap(){
  if(mapReady)return;
+
  map=L.map("map").setView([25.34052,74.61199],13);
+
  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
   maxZoom:19,
   attribution:"© OpenStreetMap contributors"
  }).addTo(map);
+
  map.on("click",async e=>{
   await setDestinationFromCoordinates(e.latlng.lat,e.latlng.lng);
  });
+
  mapReady=true;
  setTimeout(()=>map.invalidateSize(),300);
 }
@@ -201,8 +240,13 @@ function initializeMap(){
 async function reverseGeocode(lat,lng){
  const url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat="+
  encodeURIComponent(lat)+"&lon="+encodeURIComponent(lng);
- const response=await fetch(url,{headers:{"Accept-Language":"hi,en"}});
+
+ const response=await fetch(url,{
+  headers:{"Accept-Language":"hi,en"}
+ });
+
  if(!response.ok)throw new Error("Address service unavailable");
+
  const data=await response.json();
  return data.display_name||"Selected Location";
 }
@@ -210,16 +254,151 @@ async function reverseGeocode(lat,lng){
 async function searchPlace(place){
  const url="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q="+
  encodeURIComponent(place+", Bhilwara, Rajasthan, India");
- const response=await fetch(url,{headers:{"Accept-Language":"hi,en"}});
+
+ const response=await fetch(url,{
+  headers:{"Accept-Language":"hi,en"}
+ });
+
  if(!response.ok)throw new Error("Place search unavailable");
+
  const data=await response.json();
+
  if(!data.length)throw new Error("जगह नहीं मिली। दूसरा नाम लिखें।");
- return {lat:Number(data[0].lat),lng:Number(data[0].lon),name:data[0].display_name};
+
+ return {
+  lat:Number(data[0].lat),
+  lng:Number(data[0].lon),
+  name:data[0].display_name
+ };
 }
 
-function updateBookingButton(){
- const ready=currentUser&&currentPosition&&destinationPosition&&routeDistanceKm>0&&routeFare>0;
- $("bookBtn").disabled=!ready;
+// CUSTOMER PROFILE LOAD
+async function loadCustomerProfile(){
+ if(!currentUser)return;
+
+ profileLoaded=false;
+ profileCreatedAt=null;
+ $("customerName").value="";
+ $("customerPhone").value="";
+ $("profileMessage").textContent="Profile लोड हो रही है...";
+ updateBookingButton();
+
+ try{
+  const profileRef=doc(db,"CustomerProfiles",currentUser.uid);
+  const snapshot=await getDoc(profileRef);
+
+  if(snapshot.exists()){
+   const data=snapshot.data();
+
+   $("customerName").value=data.name||"";
+   $("customerPhone").value=data.phone||"";
+   profileCreatedAt=data.createdAt||null;
+
+   message(
+    "profileMessage",
+    "✅ आपकी पुरानी Profile लोड हो गई। जानकारी जाँच लें।",
+    "success"
+   );
+  }else{
+   message(
+    "profileMessage",
+    "पहली बार अपना नाम और मोबाइल नंबर भरकर Profile सेव करें।"
+   );
+  }
+
+  profileLoaded=true;
+  updateBookingButton();
+
+ }catch(error){
+  profileLoaded=false;
+  message(
+   "profileMessage",
+   "Profile Load Error: "+error.message
+  );
+  updateBookingButton();
+ }
+}
+
+// CUSTOMER PROFILE SAVE
+async function saveCustomerProfile(){
+ if(!currentUser){
+  message("profileMessage","पहले Login करें।");
+  return false;
+ }
+
+ if(!profileLoaded){
+  message(
+   "profileMessage",
+   "Profile अभी लोड नहीं हुई है। पेज Refresh करके दोबारा प्रयास करें।"
+  );
+  return false;
+ }
+
+ const name=$("customerName").value.trim();
+ const phone=$("customerPhone").value.trim();
+
+ if(!name){
+  message("profileMessage","कृपया अपना पूरा नाम लिखें।");
+  return false;
+ }
+
+ if(name.length>80){
+  message("profileMessage","नाम 80 अक्षरों से छोटा रखें।");
+  return false;
+ }
+
+ if(!/^[0-9]{10}$/.test(phone)){
+  message("profileMessage","कृपया 10 अंकों का मोबाइल नंबर लिखें।");
+  return false;
+ }
+
+ if(profileSaving)return false;
+
+ profileSaving=true;
+ $("saveProfileBtn").disabled=true;
+ updateBookingButton();
+
+ message("profileMessage","Profile सेव हो रही है...","success");
+
+ try{
+  const profileRef=doc(db,"CustomerProfiles",currentUser.uid);
+
+  const profileData={
+   name:name,
+   phone:phone,
+   email:currentUser.email||"",
+   createdAt:profileCreatedAt||serverTimestamp(),
+   updatedAt:serverTimestamp()
+  };
+
+  await setDoc(profileRef,profileData,{merge:true});
+
+  const savedSnapshot=await getDoc(profileRef);
+
+  if(savedSnapshot.exists()){
+   profileCreatedAt=savedSnapshot.data().createdAt||null;
+  }
+
+  message(
+   "profileMessage",
+   "✅ आपकी Profile सफलतापूर्वक सेव हो गई।",
+   "success"
+  );
+
+  return true;
+
+ }catch(error){
+  message(
+   "profileMessage",
+   "Profile Save Error: "+error.message
+  );
+  return false;
+
+ }finally{
+  profileSaving=false;
+  $("saveProfileBtn").disabled=false;
+  updateBookingButton();
+ }
 }
 
 async function getCurrentLocation(){
@@ -227,43 +406,71 @@ async function getCurrentLocation(){
   $("gpsStatus").textContent="इस Browser में GPS उपलब्ध नहीं है।";
   return;
  }
+
  $("gpsStatus").textContent="GPS से आपकी लोकेशन प्राप्त की जा रही है...";
+
  navigator.geolocation.getCurrentPosition(async position=>{
   const lat=position.coords.latitude;
   const lng=position.coords.longitude;
+
   currentPosition={lat,lng};
+
   if(!mapReady)initializeMap();
+
   map.setView([lat,lng],16);
+
   if(currentMarker)map.removeLayer(currentMarker);
+
   currentMarker=L.circleMarker([lat,lng],{
-   radius:9,color:"#fff",weight:3,fillColor:"#1677ff",fillOpacity:1
+   radius:9,
+   color:"#fff",
+   weight:3,
+   fillColor:"#1677ff",
+   fillOpacity:1
   }).addTo(map).bindPopup("📍 आपकी Current Location");
+
   currentMarker.openPopup();
+
   $("gpsStatus").textContent="GPS मिला। आसपास का पता खोज रहे हैं...";
+
   try{
    $("pickup").value=await reverseGeocode(lat,lng);
    $("gpsStatus").textContent="✅ आपकी Pickup Location मिल गई।";
   }catch(error){
-   $("pickup").value="Current Location ("+lat.toFixed(5)+", "+lng.toFixed(5)+")";
+   $("pickup").value="Current Location ("+
+    lat.toFixed(5)+", "+lng.toFixed(5)+")";
    $("gpsStatus").textContent="GPS मिला, लेकिन जगह का नाम नहीं मिल पाया।";
   }
+
   updateBookingButton();
+
  },error=>{
   let msg="GPS Location प्राप्त नहीं हुई।";
+
   if(error.code===1)msg="Location Permission बंद है। Browser में Location अनुमति दें।";
   if(error.code===2)msg="GPS Location उपलब्ध नहीं है।";
   if(error.code===3)msg="GPS में समय लग रहा है। दोबारा प्रयास करें।";
+
   $("gpsStatus").textContent=msg;
- },{enableHighAccuracy:true,timeout:20000,maximumAge:30000});
+
+ },{
+  enableHighAccuracy:true,
+  timeout:20000,
+  maximumAge:30000
+ });
 }
 
 async function setDestinationFromCoordinates(lat,lng){
  try{
   $("routeStatus").textContent="Destination की जानकारी प्राप्त हो रही है...";
+
   const name=await reverseGeocode(lat,lng);
+
   destinationPosition={lat,lng};
   $("destination").value=name;
+
   await drawRoute();
+
  }catch(error){
   message("bookingMessage",error.message);
  }
@@ -271,20 +478,31 @@ async function setDestinationFromCoordinates(lat,lng){
 
 async function findDestination(){
  const place=$("destination").value.trim();
+
  if(!place){
   message("bookingMessage","कृपया Destination लिखें।");
   return;
  }
+
  if(!currentPosition){
   message("bookingMessage","पहले GPS Location प्राप्त करें।");
   return;
  }
+
  $("routeStatus").textContent="Destination खोज रहे हैं...";
+
  try{
   const result=await searchPlace(place);
-  destinationPosition={lat:result.lat,lng:result.lng};
+
+  destinationPosition={
+   lat:result.lat,
+   lng:result.lng
+  };
+
   $("destination").value=result.name;
+
   await drawRoute();
+
  }catch(error){
   $("routeStatus").textContent=error.message;
  }
@@ -292,40 +510,78 @@ async function findDestination(){
 
 async function drawRoute(){
  if(!currentPosition||!destinationPosition)return;
+
  const requestId=++routeRequestNumber;
+
  $("routeStatus").textContent="सड़क का रास्ता खोज रहे हैं...";
  $("bookBtn").disabled=true;
+
  const start=currentPosition;
  const end=destinationPosition;
+
  const url="https://router.project-osrm.org/route/v1/driving/"+
  start.lng+","+start.lat+";"+end.lng+","+end.lat+
  "?overview=full&geometries=geojson";
+
  try{
   const response=await fetch(url);
+
   if(!response.ok)throw new Error("Route service उपलब्ध नहीं है।");
+
   const data=await response.json();
+
   if(requestId!==routeRequestNumber)return;
-  if(data.code!=="Ok"||!data.routes?.length)throw new Error("सड़क का रास्ता नहीं मिला।");
+
+  if(data.code!=="Ok"||!data.routes?.length){
+   throw new Error("सड़क का रास्ता नहीं मिला।");
+  }
+
   const route=data.routes[0];
+
   routeDistanceKm=route.distance/1000;
   routeFare=Math.ceil(routeDistanceKm*12);
+
   const coordinates=route.geometry.coordinates.map(p=>[p[1],p[0]]);
+
   if(routeLine)map.removeLayer(routeLine);
-  routeLine=L.polyline(coordinates,{color:"#f0b900",weight:6,opacity:.9}).addTo(map);
+
+  routeLine=L.polyline(coordinates,{
+   color:"#f0b900",
+   weight:6,
+   opacity:.9
+  }).addTo(map);
+
   if(destinationMarker)map.removeLayer(destinationMarker);
-  destinationMarker=L.marker([end.lat,end.lng]).addTo(map).bindPopup("🏁 Destination");
-  map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35]});
-  $("distanceText").textContent="सड़क दूरी: "+routeDistanceKm.toFixed(2)+" KM";
+
+  destinationMarker=L.marker([end.lat,end.lng])
+   .addTo(map)
+   .bindPopup("🏁 Destination");
+
+  map.fitBounds(L.latLngBounds(coordinates),{
+   padding:[35,35]
+  });
+
+  $("distanceText").textContent=
+   "सड़क दूरी: "+routeDistanceKm.toFixed(2)+" KM";
+
   $("fareAmount").textContent="₹"+routeFare;
+
   $("routeStatus").textContent="✅ सड़क का रास्ता मिल गया।";
+
   message("bookingMessage","");
+
   updateBookingButton();
+
  }catch(error){
+  if(requestId!==routeRequestNumber)return;
+
   routeDistanceKm=0;
   routeFare=0;
+
   $("fareAmount").textContent="₹0";
   $("distanceText").textContent="दूरी: —";
   $("routeStatus").textContent=error.message;
+
   updateBookingButton();
  }
 }
@@ -333,30 +589,50 @@ async function drawRoute(){
 $("loginBtn").addEventListener("click",async()=>{
  const email=$("email").value.trim();
  const password=$("password").value;
- if(!email||!password){message("authMessage","Email और Password भरें।");return;}
+
+ if(!email||!password){
+  message("authMessage","Email और Password भरें।");
+  return;
+ }
+
  try{
   await signInWithEmailAndPassword(auth,email,password);
   message("authMessage","");
- }catch(error){message("authMessage","Login Error: "+error.message);}
+ }catch(error){
+  message("authMessage","Login Error: "+error.message);
+ }
 });
 
 $("registerBtn").addEventListener("click",async()=>{
  const email=$("email").value.trim();
  const password=$("password").value;
+
  if(!email||password.length<6){
-  message("authMessage","सही Email और कम से कम 6 अक्षर का Password लिखें।");return;
+  message("authMessage","सही Email और कम से कम 6 अक्षर का Password लिखें।");
+  return;
  }
+
  try{
   await createUserWithEmailAndPassword(auth,email,password);
   message("authMessage","");
- }catch(error){message("authMessage","Registration Error: "+error.message);}
+ }catch(error){
+  message("authMessage","Registration Error: "+error.message);
+ }
 });
 
-$("logoutBtn").addEventListener("click",async()=>{await signOut(auth);});
+$("logoutBtn").addEventListener("click",async()=>{
+ await signOut(auth);
+});
+
 $("gpsBtn").addEventListener("click",getCurrentLocation);
+
 $("searchDestinationBtn").addEventListener("click",findDestination);
+
 $("destination").addEventListener("keydown",e=>{
- if(e.key==="Enter"){e.preventDefault();findDestination();}
+ if(e.key==="Enter"){
+  e.preventDefault();
+  findDestination();
+ }
 });
 
 document.querySelectorAll("[data-place]").forEach(button=>{
@@ -368,50 +644,111 @@ document.querySelectorAll("[data-place]").forEach(button=>{
 
 document.querySelectorAll("[data-vehicle]").forEach(button=>{
  button.addEventListener("click",()=>{
-  document.querySelectorAll("[data-vehicle]").forEach(v=>v.classList.remove("selected"));
+  document.querySelectorAll("[data-vehicle]").forEach(v=>{
+   v.classList.remove("selected");
+  });
+
   button.classList.add("selected");
   selectedVehicle=button.dataset.vehicle;
  });
 });
 
+// PROFILE INPUT CHANGE
+$("customerName").addEventListener("input",updateBookingButton);
+$("customerPhone").addEventListener("input",()=>{
+ $("customerPhone").value=$("customerPhone").value
+  .replace(/[^0-9]/g,"")
+  .slice(0,10);
+
+ updateBookingButton();
+});
+
+$("saveProfileBtn").addEventListener("click",saveCustomerProfile);
+
+// AUTH STATE
 onAuthStateChanged(auth,async user=>{
  currentUser=user;
+
  if(user){
   $("loginSection").classList.add("hidden");
   $("appSection").classList.remove("hidden");
+
   $("userEmail").textContent=user.email||"Customer";
+
   initializeMap();
-  setTimeout(()=>{map.invalidateSize();getCurrentLocation();},400);
+
+  await loadCustomerProfile();
+
   loadBookings();
+
+  setTimeout(()=>{
+   map.invalidateSize();
+   getCurrentLocation();
+  },400);
+
  }else{
   $("loginSection").classList.remove("hidden");
   $("appSection").classList.add("hidden");
+
   currentPosition=null;
   destinationPosition=null;
   routeDistanceKm=0;
   routeFare=0;
+
+  profileLoaded=false;
+  profileCreatedAt=null;
+
   updateBookingButton();
  }
 });
 
+// BOOK RIDE
 async function bookRide(){
  if(!currentUser)return;
+
+ if(!profileLoaded){
+  message("bookingMessage","Customer Profile लोड नहीं हुई।");
+  return;
+ }
+
  const name=$("customerName").value.trim();
  const phone=$("customerPhone").value.trim();
- if(!name){message("bookingMessage","कृपया अपना नाम लिखें।");return;}
+
+ if(!name){
+  message("bookingMessage","कृपया अपना नाम लिखें।");
+  return;
+ }
+
  if(!/^[0-9]{10}$/.test(phone)){
-  message("bookingMessage","कृपया 10 अंकों का मोबाइल नंबर लिखें।");return;
+  message("bookingMessage","कृपया 10 अंकों का मोबाइल नंबर लिखें।");
+  return;
  }
+
  if(!currentPosition||!destinationPosition||!routeFare){
-  message("bookingMessage","पहले GPS और Destination Route पूरा करें।");return;
+  message("bookingMessage","पहले GPS और Destination Route पूरा करें।");
+  return;
  }
- if(!confirm("अनुमानित किराया ₹"+routeFare+" है। क्या Ride Book करनी है?"))return;
+
+ if(!confirm("अनुमानित किराया ₹"+routeFare+" है। क्या Ride Book करनी है?")){
+  return;
+ }
 
  $("bookBtn").disabled=true;
- message("bookingMessage","Booking भेजी जा रही है...","success");
+
+ message("bookingMessage","Customer Profile सेव की जा रही है...","success");
 
  try{
+  // BOOKING SE PEHLE PROFILE SAVE
+  const profileSaved=await saveCustomerProfile();
+
+  if(!profileSaved){
+   throw new Error("Profile सेव नहीं हुई। Booking नहीं भेजी गई।");
+  }
+
+  message("bookingMessage","Booking भेजी जा रही है...","success");
+
   const batch=writeBatch(db);
+
   const bookingRef=doc(collection(db,"Booking"));
   const privateRef=doc(db,"BookingPrivate",bookingRef.id);
 
@@ -445,20 +782,37 @@ async function bookRide(){
 
   batch.set(bookingRef,publicData);
   batch.set(privateRef,privateData);
+
   await batch.commit();
 
-  message("bookingMessage","✅ आपकी Booking भेज दी गई है।","success");
+  message(
+   "bookingMessage",
+   "✅ आपकी Booking भेज दी गई है।",
+   "success"
+  );
+
   $("destination").value="";
   destinationPosition=null;
   routeDistanceKm=0;
   routeFare=0;
-  if(routeLine){map.removeLayer(routeLine);routeLine=null;}
-  if(destinationMarker){map.removeLayer(destinationMarker);destinationMarker=null;}
+
+  if(routeLine){
+   map.removeLayer(routeLine);
+   routeLine=null;
+  }
+
+  if(destinationMarker){
+   map.removeLayer(destinationMarker);
+   destinationMarker=null;
+  }
+
   $("fareAmount").textContent="₹0";
   $("distanceText").textContent="दूरी: —";
   $("routeStatus").textContent="नई Destination चुनें।";
+
   updateBookingButton();
   loadBookings();
+
  }catch(error){
   message("bookingMessage","Booking Error: "+error.message);
   updateBookingButton();
@@ -467,39 +821,69 @@ async function bookRide(){
 
 $("bookBtn").addEventListener("click",bookRide);
 
+// LOAD BOOKINGS
 async function loadBookings(){
  if(!currentUser)return;
+
  $("bookingsList").textContent="Bookings लोड हो रही हैं...";
+
  try{
-  const q=query(collection(db,"Booking"),where("customerUid","==",currentUser.uid));
+  const q=query(
+   collection(db,"Booking"),
+   where("customerUid","==",currentUser.uid)
+  );
+
   const snapshot=await getDocs(q);
+
   $("bookingsList").innerHTML="";
+
   if(snapshot.empty){
    $("bookingsList").textContent="अभी कोई Booking नहीं है।";
    return;
   }
+
   const records=[];
-  snapshot.forEach(item=>records.push({id:item.id,...item.data()}));
+
+  snapshot.forEach(item=>{
+   records.push({
+    id:item.id,
+    ...item.data()
+   });
+  });
+
   records.sort((a,b)=>{
    const ta=a.createdAt?.seconds||0;
    const tb=b.createdAt?.seconds||0;
    return tb-ta;
   });
+
   records.forEach(item=>{
    const div=document.createElement("div");
    div.className="booking";
+
    const title=document.createElement("b");
-   title.textContent="🚕 "+(item.vehicleType||"Ride")+" • "+(item.status||"Pending");
+
+   title.textContent="🚕 "+
+    (item.vehicleType||"Ride")+" • "+
+    (item.status||"Pending");
+
    const details=document.createElement("div");
-   details.textContent="Pickup: "+(item.pickup||"—")+
+
+   details.textContent=
+    "Pickup: "+(item.pickup||"—")+
     "\nDestination: "+(item.destination||"—")+
     "\nFare: ₹"+(item.fare??0);
+
    details.style.whiteSpace="pre-line";
+
    div.append(title,details);
+
    $("bookingsList").appendChild(div);
   });
+
  }catch(error){
-  $("bookingsList").textContent="Bookings Error: "+error.message;
+  $("bookingsList").textContent=
+   "Bookings Error: "+error.message;
  }
 }
 </script>
