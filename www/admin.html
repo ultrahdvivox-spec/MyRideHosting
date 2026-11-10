@@ -6,75 +6,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffd400">
 <title>Where Is My Ride - Admin</title>
-
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;background:#f2f3f5;color:#171717;
- font-family:Arial,sans-serif
-}
-header{
- background:#ffd400;padding:20px 16px;
- border-bottom:4px solid #171717
-}
+body{margin:0;background:#f2f3f5;color:#171717;font-family:Arial,sans-serif}
+header{background:#ffd400;padding:20px 16px;border-bottom:4px solid #171717}
 .logo{font-size:22px;font-weight:900}
 .logo span{background:#171717;color:#ffd400;padding:3px 6px}
 header p{font-size:12px;font-weight:bold;margin:7px 0 0}
 .wrap{max-width:1000px;margin:auto;padding:12px}
-.card{
- background:white;border:1px solid #e5e5e5;
- border-radius:15px;padding:16px;margin:14px 0;
- box-shadow:0 3px 12px #0000000b
-}
+.card{background:white;border:1px solid #e5e5e5;border-radius:15px;padding:16px;margin:14px 0;box-shadow:0 3px 12px #0000000b}
 h2{font-size:20px;margin:4px 0 14px}
 h3{font-size:17px;margin:4px 0 12px}
-input,select{
- width:100%;padding:13px;margin:7px 0;
- border:1px solid #ccc;border-radius:10px;
- font-size:14px;background:white
-}
-button{
- width:100%;padding:13px;margin:5px 0;
- border:0;border-radius:10px;
- background:#ffd400;color:#171717;
- font-size:14px;font-weight:900;cursor:pointer
-}
+input,select{width:100%;padding:13px;margin:7px 0;border:1px solid #ccc;border-radius:10px;font-size:14px;background:white}
+button{width:100%;padding:13px;margin:5px 0;border:0;border-radius:10px;background:#ffd400;color:#171717;font-size:14px;font-weight:900;cursor:pointer}
 button:disabled{opacity:.5}
 .black{background:#171717;color:white}
 .red{background:#b91c1c;color:white}
 .green{background:#15803d;color:white}
 .grey{background:#e5e5e5}
 .hidden{display:none!important}
-.small{font-size:12px;color:#666;line-height:1.5}
+.small{font-size:12px;color:#666;line-height:1.5;overflow-wrap:anywhere}
 .msg{font-size:14px;font-weight:bold;line-height:1.5;overflow-wrap:anywhere}
-.stats{
- display:grid;grid-template-columns:repeat(2,1fr);gap:10px
-}
-.stat{
- background:#171717;color:white;
- padding:15px;border-radius:12px
-}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#171717;color:white;padding:15px;border-radius:12px}
 .stat b{display:block;font-size:24px;color:#ffd400}
 .stat span{font-size:12px}
-.item{
- border:1px solid #ddd;border-radius:12px;
- padding:14px;margin:12px 0;overflow-wrap:anywhere
-}
-.status{
- background:#fff7d0;padding:12px;
- border-radius:10px;margin:10px 0;
- font-size:13px;line-height:1.5
-}
-.tag{
- display:inline-block;padding:5px 9px;
- background:#eee;border-radius:20px;
- font-size:12px;font-weight:bold;margin:4px 0
-}
+.item{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
+.status{background:#fff7d0;padding:12px;border-radius:10px;margin:10px 0;font-size:13px;line-height:1.5}
+.tag{display:inline-block;padding:5px 9px;background:#eee;border-radius:20px;font-size:12px;font-weight:bold;margin:4px 0}
 .nav{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.editBox{background:#fffbea;border:1px solid #e5c84c;border-radius:12px;padding:12px;margin-top:12px}
+.editBox label{display:block;font-size:12px;font-weight:bold;margin-top:7px}
 footer{text-align:center;color:#777;font-size:12px;padding:20px}
+@media(max-width:480px){.nav{grid-template-columns:1fr}}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -84,80 +50,43 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
 
 <main class="wrap">
 
-<!-- LOGIN -->
 <div class="card" id="loginCard">
  <h2>🔐 Admin Login</h2>
  <p class="small">केवल अधिकृत Admin Account से Login करें।</p>
-
  <input id="email" type="email" placeholder="Admin Email">
  <input id="password" type="password" placeholder="Password">
-
  <button id="loginBtn">Admin Login</button>
  <p id="loginMsg" class="msg"></p>
 </div>
 
-<!-- DASHBOARD -->
 <div id="dashboard" class="hidden">
 
  <div class="card">
   <h2>👑 Admin Dashboard</h2>
   <p id="adminLabel" class="small"></p>
-
   <div class="nav">
    <button onclick="showTab('overview')">📊 Overview</button>
    <button onclick="showTab('bookingsTab')">🚕 Bookings</button>
    <button onclick="showTab('driversTab')">🚘 Drivers</button>
   </div>
-
   <button id="refreshBtn" class="black">Refresh Dashboard</button>
   <button id="logoutBtn" class="red">Logout</button>
  </div>
 
- <!-- OVERVIEW -->
  <div class="card" id="overview">
   <h3>📊 Dashboard Statistics</h3>
-
   <div class="stats">
-   <div class="stat">
-    <b id="totalBookings">0</b>
-    <span>Total Bookings</span>
-   </div>
-
-   <div class="stat">
-    <b id="pendingBookings">0</b>
-    <span>Pending Rides</span>
-   </div>
-
-   <div class="stat">
-    <b id="acceptedBookings">0</b>
-    <span>Accepted Rides</span>
-   </div>
-
-   <div class="stat">
-    <b id="completedBookings">0</b>
-    <span>Completed Rides</span>
-   </div>
-
-   <div class="stat">
-    <b id="totalDrivers">0</b>
-    <span>Total Drivers</span>
-   </div>
-
-   <div class="stat">
-    <b id="verifiedDrivers">0</b>
-    <span>Verified Drivers</span>
-   </div>
+   <div class="stat"><b id="totalBookings">0</b><span>Total Bookings</span></div>
+   <div class="stat"><b id="pendingBookings">0</b><span>Pending Rides</span></div>
+   <div class="stat"><b id="acceptedBookings">0</b><span>Accepted Rides</span></div>
+   <div class="stat"><b id="completedBookings">0</b><span>Completed Rides</span></div>
+   <div class="stat"><b id="totalDrivers">0</b><span>Total Drivers</span></div>
+   <div class="stat"><b id="verifiedDrivers">0</b><span>Verified Drivers</span></div>
   </div>
-
-  <p class="small">
-   ये आँकड़े Firestore में उपलब्ध रिकॉर्ड के आधार पर हैं।
-  </p>
  </div>
 
- <!-- BOOKINGS -->
  <div class="card hidden" id="bookingsTab">
   <h3>🚕 All Bookings</h3>
-
   <select id="bookingFilter">
    <option value="All">All Bookings</option>
    <option value="Pending">Pending</option>
@@ -167,519 +96,465 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
    <option value="Cancelled">Cancelled</option>
    <option value="Rejected">Rejected</option>
   </select>
-
   <div id="bookingList">लोड हो रहा है...</div>
  </div>
 
- <!-- DRIVERS -->
  <div class="card hidden" id="driversTab">
   <h3>🚘 Driver Management</h3>
+  <p class="small">Driver की जानकारी बदलने के लिए Edit Profile दबाएँ।</p>
   <div id="driverList">लोड हो रहा है...</div>
  </div>
 
 </div>
 </main>
 
-<footer>
- © <span id="year"></span> Where Is My Ride Admin
-</footer>
+<footer>© <span id="year"></span> Where Is My Ride Admin</footer>
 
 <script type="module">
 
-import {
- initializeApp
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
- getAuth,
- onAuthStateChanged,
- signInWithEmailAndPassword,
- signOut
+ getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
- getFirestore,
- collection,
- doc,
- getDoc,
- updateDoc,
- onSnapshot,
- query,
- where,
- runTransaction,
- serverTimestamp
+ getFirestore,collection,doc,getDoc,updateDoc,onSnapshot,
+ runTransaction,serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig = {
- apiKey: "AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
- authDomain: "myridebhilwara-45652.firebaseapp.com",
- projectId: "myridebhilwara-45652",
- storageBucket: "myridebhilwara-45652.firebasestorage.app",
- messagingSenderId: "819961031572",
- appId: "1:819961031572:web:b7e1f401c90d7335203d81"
+ apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+ authDomain:"myridebhilwara-45652.firebaseapp.com",
+ projectId:"myridebhilwara-45652",
+ storageBucket:"myridebhilwara-45652.firebasestorage.app",
+ messagingSenderId:"819961031572",
+ appId:"1:819961031572:web:b7e1f401c90d7335203d81"
 };
 
-// ADMIN UID
-const ADMIN_UID = "cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const $=id=>document.getElementById(id);
 
-const $ = id => document.getElementById(id);
+let stopBookings=null;
+let stopDrivers=null;
+let allBookings=[];
+let allDrivers=[];
 
-let currentUser = null;
-let stopBookings = null;
-let stopDrivers = null;
-let allBookings = [];
-let allDrivers = [];
+$("year").textContent=new Date().getFullYear();
 
-$("year").textContent = new Date().getFullYear();
-
-window.showTab = function(id) {
- ["overview","bookingsTab","driversTab"].forEach(x =>
-  $(x).classList.add("hidden")
- );
+window.showTab=function(id){
+ ["overview","bookingsTab","driversTab"].forEach(x=>$(x).classList.add("hidden"));
  $(id).classList.remove("hidden");
 };
 
 // LOGIN
-$("loginBtn").onclick = async () => {
-
- try {
-  $("loginMsg").textContent = "Admin Login हो रहा है...";
-
-  await signInWithEmailAndPassword(
-   auth,
-   $("email").value.trim(),
-   $("password").value
-  );
-
- } catch(e) {
-  $("loginMsg").textContent =
-   e.code + " - " + e.message;
+$("loginBtn").onclick=async()=>{
+ try{
+  $("loginBtn").disabled=true;
+  $("loginMsg").textContent="Admin Login हो रहा है...";
+  await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
+ }catch(e){
+  $("loginMsg").textContent=e.code+" - "+e.message;
+ }finally{
+  $("loginBtn").disabled=false;
  }
 };
 
-// LOGOUT
-$("logoutBtn").onclick = async () => {
- await signOut(auth);
-};
+$("logoutBtn").onclick=()=>signOut(auth);
 
 // AUTH CHECK
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth,user=>{
+ if(stopBookings){stopBookings();stopBookings=null}
+ if(stopDrivers){stopDrivers();stopDrivers=null}
 
- currentUser = user;
-
- if (stopBookings) {
-  stopBookings();
-  stopBookings = null;
- }
-
- if (stopDrivers) {
-  stopDrivers();
-  stopDrivers = null;
- }
-
- if (!user) {
+ if(!user){
   $("loginCard").classList.remove("hidden");
   $("dashboard").classList.add("hidden");
   return;
  }
 
- if (user.uid !== ADMIN_UID) {
-
-  $("loginMsg").textContent =
-   "⛔ यह Account Admin नहीं है।";
-
+ if(user.uid!==ADMIN_UID){
+  $("loginMsg").textContent="⛔ यह Account Admin नहीं है।";
   signOut(auth);
   return;
  }
 
  $("loginCard").classList.add("hidden");
  $("dashboard").classList.remove("hidden");
-
- $("adminLabel").textContent =
-  "Admin UID: " + user.uid;
-
+ $("adminLabel").textContent="Admin UID: "+user.uid;
  startDashboard();
 });
 
 // LIVE DATA
-function startDashboard() {
+function startDashboard(){
+ if(stopBookings)stopBookings();
+ if(stopDrivers)stopDrivers();
 
- if (stopBookings) stopBookings();
- if (stopDrivers) stopDrivers();
+ stopBookings=onSnapshot(collection(db,"Booking"),snapshot=>{
+  allBookings=snapshot.docs.map(s=>({id:s.id,...s.data()}));
+  renderBookings();
+  renderStats();
+ },error=>{
+  $("bookingList").textContent="Booking Error: "+error.code+" - "+error.message;
+ });
 
- stopBookings = onSnapshot(
-  collection(db, "Booking"),
-  snapshot => {
-
-   allBookings = snapshot.docs.map(s => ({
-    id:s.id,
-    ...s.data()
-   }));
-
-   renderBookings();
-   renderStats();
-
-  },
-  error => {
-   $("bookingList").textContent =
-    "Booking Error: " + error.code + " - " + error.message;
-  }
- );
-
- stopDrivers = onSnapshot(
-  collection(db, "Drivers"),
-  snapshot => {
-
-   allDrivers = snapshot.docs.map(s => ({
-    id:s.id,
-    ...s.data()
-   }));
-
-   renderDrivers();
-   renderStats();
-
-  },
-  error => {
-   $("driverList").textContent =
-    "Driver Error: " + error.code + " - " + error.message;
-  }
- );
+ stopDrivers=onSnapshot(collection(db,"Drivers"),snapshot=>{
+  allDrivers=snapshot.docs.map(s=>({id:s.id,...s.data()}));
+  renderDrivers();
+  renderStats();
+ },error=>{
+  $("driverList").textContent="Driver Error: "+error.code+" - "+error.message;
+ });
 }
 
 // STATS
-function renderStats() {
-
- const count = status =>
-  allBookings.filter(b => b.status === status).length;
-
- $("totalBookings").textContent = allBookings.length;
- $("pendingBookings").textContent = count("Pending");
- $("acceptedBookings").textContent = count("Accepted");
- $("completedBookings").textContent = count("Completed");
- $("totalDrivers").textContent = allDrivers.length;
-
- $("verifiedDrivers").textContent =
-  allDrivers.filter(d =>
-   d.verified === true && d.active === true
-  ).length;
+function renderStats(){
+ const count=status=>allBookings.filter(b=>b.status===status).length;
+ $("totalBookings").textContent=allBookings.length;
+ $("pendingBookings").textContent=count("Pending");
+ $("acceptedBookings").textContent=count("Accepted");
+ $("completedBookings").textContent=count("Completed");
+ $("totalDrivers").textContent=allDrivers.length;
+ $("verifiedDrivers").textContent=allDrivers.filter(d=>d.verified===true&&d.active===true).length;
 }
 
-// BOOKING FILTER
-$("bookingFilter").onchange = renderBookings;
+// BOOKINGS
+$("bookingFilter").onchange=renderBookings;
 
-function renderBookings() {
-
- const host = $("bookingList");
+function renderBookings(){
+ const host=$("bookingList");
  host.replaceChildren();
 
- const filter = $("bookingFilter").value;
+ const filter=$("bookingFilter").value;
+ const list=allBookings.filter(b=>filter==="All"||b.status===filter);
 
- const list = allBookings.filter(b =>
-  filter === "All" || b.status === filter
- );
-
- if (!list.length) {
-  host.textContent = "कोई Booking नहीं मिली।";
+ if(!list.length){
+  host.textContent="कोई Booking नहीं मिली।";
   return;
  }
 
- list.sort((a,b) =>
-  (b.createdAt?.seconds || 0) -
-  (a.createdAt?.seconds || 0)
- );
+ list.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
 
- list.forEach(b => {
+ list.forEach(b=>{
+  const el=document.createElement("div");
+  el.className="item";
 
-  const el = document.createElement("div");
-  el.className = "item";
+  const title=document.createElement("h3");
+  title.textContent=(b.pickup||"Pickup")+" → "+(b.destination||"Destination");
 
-  const title = document.createElement("h3");
-  title.textContent =
-   (b.pickup || "Pickup") + " → " + (b.destination || "Destination");
+  const status=document.createElement("div");
+  status.className="tag";
+  status.textContent="Status: "+(b.status||"Unknown");
 
-  const status = document.createElement("div");
-  status.className = "tag";
-  status.textContent = "Status: " + (b.status || "Unknown");
+  const details=document.createElement("p");
+  details.className="small";
+  details.textContent="Customer: "+(b.customerName||"—")+" | Vehicle: "+(b.vehicleType||"—")+" | Fare: ₹"+(b.fare??0)+" | City: "+(b.city||"—");
 
-  const details = document.createElement("p");
-  details.className = "small";
-  details.textContent =
-   "Customer: " + (b.customerName || "—") +
-   " | Vehicle: " + (b.vehicleType || "—") +
-   " | Fare: ₹" + (b.fare ?? 0) +
-   " | City: " + (b.city || "—");
-
-  const driverInfo = document.createElement("p");
-  driverInfo.className = "small";
-  driverInfo.textContent =
-   "Driver: " + (b.driverName || "Not Assigned") +
-   " | Driver UID: " + (b.driverUid || "—");
+  const driverInfo=document.createElement("p");
+  driverInfo.className="small";
+  driverInfo.textContent="Driver: "+(b.driverName||"Not Assigned")+" | Driver UID: "+(b.driverUid||"—");
 
   el.append(title,status,details,driverInfo);
 
-  if (b.status === "Pending") {
-
-   const reject = document.createElement("button");
-   reject.className = "red";
-   reject.textContent = "Reject Booking";
-
-   reject.onclick = () => rejectBooking(b.id);
-
+  if(b.status==="Pending"){
+   const reject=document.createElement("button");
+   reject.className="red";
+   reject.textContent="Reject Booking";
+   reject.onclick=()=>rejectBooking(b.id);
    el.append(reject);
 
-   const assignLabel = document.createElement("p");
-   assignLabel.className = "small";
-   assignLabel.textContent = "या नीचे से Verified Driver चुनें:";
-   el.append(assignLabel);
+   const label=document.createElement("p");
+   label.className="small";
+   label.textContent="या नीचे से Verified Driver चुनें:";
+   el.append(label);
 
-   const select = document.createElement("select");
-
-   const empty = document.createElement("option");
-   empty.value = "";
-   empty.textContent = "Driver चुनें";
+   const select=document.createElement("select");
+   const empty=document.createElement("option");
+   empty.value="";
+   empty.textContent="Driver चुनें";
    select.append(empty);
 
-   allDrivers.filter(d =>
-    d.verified === true && d.active === true
-   ).forEach(d => {
-
-    const option = document.createElement("option");
-    option.value = d.id;
-    option.textContent =
-     (d.name || "Driver") + " - " + (d.vehicleNumber || "");
+   allDrivers.filter(d=>d.verified===true&&d.active===true&&d.id!==ADMIN_UID).forEach(d=>{
+    const option=document.createElement("option");
+    option.value=d.id;
+    option.textContent=(d.name||"Driver")+" - "+(d.vehicleNumber||"");
     select.append(option);
    });
 
-   const assign = document.createElement("button");
-   assign.textContent = "Assign & Accept Ride";
-
-   assign.onclick = async () => {
-    if (!select.value) {
-     alert("पहले Driver चुनें।");
-     return;
-    }
-    await assignBooking(b.id, select.value);
+   const assign=document.createElement("button");
+   assign.textContent="Assign & Accept Ride";
+   assign.onclick=()=>{
+    if(!select.value){alert("पहले Driver चुनें।");return}
+    assignBooking(b.id,select.value);
    };
-
    el.append(select,assign);
   }
 
-  // PRIVATE CUSTOMER DETAILS
-  const privateButton = document.createElement("button");
-  privateButton.className = "grey";
-  privateButton.textContent = "Customer Private Details देखें";
-  privateButton.onclick = () =>
-   showPrivateDetails(b.id, privateButton);
-
+  const privateButton=document.createElement("button");
+  privateButton.className="grey";
+  privateButton.textContent="Customer Private Details देखें";
+  privateButton.onclick=()=>showPrivateDetails(b.id,privateButton);
   el.append(privateButton);
 
   host.append(el);
  });
 }
 
-// REJECT BOOKING
-async function rejectBooking(id) {
-
- if (!confirm("क्या आप यह Booking Reject करना चाहते हैं?")) return;
-
- try {
-
-  const ref = doc(db, "Booking", id);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists() || snap.data().status !== "Pending") {
-   throw new Error("Booking अब Pending नहीं है।");
-  }
-
-  await updateDoc(ref, {
-   status: "Rejected",
-   rejectedAt: serverTimestamp()
-  });
-
+// REJECT
+async function rejectBooking(id){
+ if(!confirm("क्या आप यह Booking Reject करना चाहते हैं?"))return;
+ try{
+  const ref=doc(db,"Booking",id);
+  const snap=await getDoc(ref);
+  if(!snap.exists()||snap.data().status!=="Pending")throw new Error("Booking अब Pending नहीं है।");
+  await updateDoc(ref,{status:"Rejected",rejectedAt:serverTimestamp()});
   alert("Booking Reject हो गई।");
-
- } catch(e) {
-  alert("Reject Error: " + e.code + " - " + e.message);
+ }catch(e){
+  alert("Reject Error: "+e.code+" - "+e.message);
  }
 }
 
-// ASSIGN BOOKING
-async function assignBooking(bookingId, driverId) {
+// ASSIGN
+async function assignBooking(bookingId,driverId){
+ if(!confirm("क्या आप इस Driver को Ride Assign करना चाहते हैं?"))return;
+ try{
+  await runTransaction(db,async transaction=>{
+   const bookingRef=doc(db,"Booking",bookingId);
+   const driverRef=doc(db,"Drivers",driverId);
+   const bookingSnap=await transaction.get(bookingRef);
+   const driverSnap=await transaction.get(driverRef);
 
- if (!confirm("क्या आप इस Driver को Ride Assign करना चाहते हैं?")) return;
+   if(!bookingSnap.exists()||!driverSnap.exists())throw new Error("Booking या Driver नहीं मिला।");
 
- try {
+   const booking=bookingSnap.data();
+   const driver=driverSnap.data();
 
-  await runTransaction(db, async transaction => {
-
-   const bookingRef = doc(db, "Booking", bookingId);
-   const driverRef = doc(db, "Drivers", driverId);
-
-   const bookingSnap = await transaction.get(bookingRef);
-   const driverSnap = await transaction.get(driverRef);
-
-   if (!bookingSnap.exists() || !driverSnap.exists()) {
-    throw new Error("Booking या Driver नहीं मिला।");
-   }
-
-   const booking = bookingSnap.data();
-   const driver = driverSnap.data();
-
-   if (
-    booking.status !== "Pending" ||
-    booking.driverUid !== "" ||
-    booking.privacyMigrated !== true
-   ) {
+   if(booking.status!=="Pending"||booking.driverUid!==""||booking.privacyMigrated!==true)
     throw new Error("यह Booking अब उपलब्ध नहीं है।");
-   }
 
-   if (
-    driver.verified !== true ||
-    driver.active !== true
-   ) {
+   if(driver.verified!==true||driver.active!==true)
     throw new Error("Driver Verified और Active नहीं है।");
-   }
 
-   transaction.update(bookingRef, {
-    status: "Accepted",
-    driverUid: driverId,
-    driverEmail: driver.email || "",
-    driverName: driver.name || "",
-    driverPhone: driver.phone || "",
-    vehicleNumber: driver.vehicleNumber || "",
-    vehicleModel: driver.vehicleModel || "",
-    acceptedAt: serverTimestamp()
+   transaction.update(bookingRef,{
+    status:"Accepted",
+    driverUid:driverId,
+    driverEmail:driver.email||"",
+    driverName:driver.name||"",
+    driverPhone:driver.phone||"",
+    vehicleNumber:driver.vehicleNumber||"",
+    vehicleModel:driver.vehicleModel||"",
+    acceptedAt:serverTimestamp()
    });
   });
-
   alert("✅ Driver Assign हो गया और Booking Accept हो गई।");
-
- } catch(e) {
-  alert("Assign Error: " + e.message);
+ }catch(e){
+  alert("Assign Error: "+e.message);
  }
 }
 
-// DRIVER MANAGEMENT
-function renderDrivers() {
-
- const host = $("driverList");
+// DRIVER LIST
+function renderDrivers(){
+ const host=$("driverList");
  host.replaceChildren();
 
- if (!allDrivers.length) {
-  host.textContent = "अभी कोई Driver Registered नहीं है।";
+ if(!allDrivers.length){
+  host.textContent="अभी कोई Driver Registered नहीं है।";
   return;
  }
 
- allDrivers.forEach(d => {
+ allDrivers.forEach(d=>{
+  const el=document.createElement("div");
+  el.className="item";
 
-  const el = document.createElement("div");
-  el.className = "item";
+  const title=document.createElement("h3");
+  title.textContent=d.name||"Driver";
 
-  const title = document.createElement("h3");
-  title.textContent = d.name || "Driver";
+  const details=document.createElement("p");
+  details.className="small";
+  details.textContent=
+   "UID: "+d.id+
+   " | Email: "+(d.email||"—")+
+   " | Phone: "+(d.phone||"—")+
+   " | Vehicle: "+(d.vehicleNumber||"—")+
+   " | Model: "+(d.vehicleModel||"—")+
+   " | Licence: "+(d.licenseNumber||"—");
 
-  const details = document.createElement("p");
-  details.className = "small";
-  details.textContent =
-   "UID: " + d.id +
-   " | Email: " + (d.email || "—") +
-   " | Phone: " + (d.phone || "—") +
-   " | Vehicle: " + (d.vehicleNumber || "—") +
-   " | Model: " + (d.vehicleModel || "—") +
-   " | Licence: " + (d.licenseNumber || "—");
-
-  const status = document.createElement("div");
-  status.className = "status";
-  status.textContent =
-   "Verified: " + (d.verified ? "Yes" : "No") +
-   " | Active: " + (d.active ? "Yes" : "No");
+  const status=document.createElement("div");
+  status.className="status";
+  status.textContent="Verified: "+(d.verified?"Yes":"No")+" | Active: "+(d.active?"Yes":"No");
 
   el.append(title,details,status);
 
-  const verify = document.createElement("button");
-  verify.textContent = d.verified ?
-   "Verification हटाएँ" : "✅ Verify Driver";
+  // PROFILE EDIT BUTTON
+  if(d.id!==ADMIN_UID){
+   const editButton=document.createElement("button");
+   editButton.className="black";
+   editButton.textContent="✏️ Edit Driver Profile";
+   editButton.onclick=()=>{
+    const box=el.querySelector(".editBox");
+    if(box){
+     box.classList.toggle("hidden");
+    }
+   };
 
-  verify.onclick = () =>
-   changeDriver(d.id, {
-    verified: !d.verified
+   const editBox=document.createElement("div");
+   editBox.className="editBox hidden";
+
+   const heading=document.createElement("h3");
+   heading.textContent="Edit Driver Information";
+
+   const fields=[
+    ["name","Driver Name",d.name||""],
+    ["email","Email",d.email||""],
+    ["phone","Mobile Number",d.phone||""],
+    ["vehicleNumber","Vehicle Number",d.vehicleNumber||""],
+    ["vehicleModel","Vehicle Model",d.vehicleModel||""],
+    ["licenseNumber","Driving Licence Number",d.licenseNumber||""]
+   ];
+
+   const inputs={};
+
+   fields.forEach(([key,label,value])=>{
+    const fieldLabel=document.createElement("label");
+    fieldLabel.textContent=label;
+
+    const input=document.createElement("input");
+    input.type="text";
+    input.value=value;
+    input.placeholder=label;
+    input.autocomplete="off";
+
+    inputs[key]=input;
+    editBox.append(fieldLabel,input);
    });
 
-  const active = document.createElement("button");
-  active.className = "black";
-  active.textContent = d.active ?
-   "Deactivate Driver" : "Activate Driver";
+   const save=document.createElement("button");
+   save.className="green";
+   save.textContent="💾 Save Driver Profile";
+   save.onclick=()=>saveDriverProfile(d.id,inputs,save);
 
-  active.onclick = () =>
-   changeDriver(d.id, {
-    active: !d.active
-   });
+   const cancel=document.createElement("button");
+   cancel.className="grey";
+   cancel.textContent="Cancel";
+   cancel.onclick=()=>editBox.classList.add("hidden");
+
+   editBox.append(heading,save,cancel);
+   el.append(editButton,editBox);
+  }
+
+  const verify=document.createElement("button");
+  verify.textContent=d.verified?"Verification हटाएँ":"✅ Verify Driver";
+  verify.onclick=()=>changeDriver(d.id,{verified:!d.verified});
+
+  const active=document.createElement("button");
+  active.className="black";
+  active.textContent=d.active?"Deactivate Driver":"Activate Driver";
+  active.onclick=()=>changeDriver(d.id,{active:!d.active});
 
   el.append(verify,active);
   host.append(el);
  });
 }
 
-// CHANGE DRIVER STATUS
-async function changeDriver(id, changes) {
+// SAVE DRIVER PROFILE
+async function saveDriverProfile(id,inputs,button){
+ if(!confirm("क्या आप Driver की Profile जानकारी Save करना चाहते हैं?"))return;
 
- if (!confirm("क्या आप Driver Status बदलना चाहते हैं?")) return;
+ const data={};
+ for(const key of Object.keys(inputs)){
+  data[key]=inputs[key].value.trim();
+  if(!data[key]){
+   alert("कृपया सभी Profile Fields भरें।");
+   inputs[key].focus();
+   return;
+  }
+ }
 
- try {
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){
+  alert("सही Email Address डालें।");
+  inputs.email.focus();
+  return;
+ }
 
-  await updateDoc(
-   doc(db, "Drivers", id),
-   changes
-  );
+ if(!/^[0-9+\-\s]{7,18}$/.test(data.phone)){
+  alert("सही Mobile Number डालें।");
+  inputs.phone.focus();
+  return;
+ }
 
-  alert("Driver Status Update हो गया।");
+ button.disabled=true;
+ button.textContent="Saving...";
 
- } catch(e) {
+ try{
+  const ref=doc(db,"Drivers",id);
+  const snap=await getDoc(ref);
 
-  alert("Driver Update Error: " + e.code + " - " + e.message);
+  if(!snap.exists())throw new Error("Driver document नहीं मिला।");
+
+  await updateDoc(ref,{
+   uid:id,
+   name:data.name,
+   email:data.email,
+   phone:data.phone,
+   vehicleNumber:data.vehicleNumber,
+   vehicleModel:data.vehicleModel,
+   licenseNumber:data.licenseNumber,
+   updatedAt:serverTimestamp()
+  });
+
+  alert("✅ Driver Profile सफलतापूर्वक Update हो गई।");
+ }catch(e){
+  alert("Profile Save Error: "+(e.code||"")+" - "+e.message);
+ }finally{
+  button.disabled=false;
+  button.textContent="💾 Save Driver Profile";
  }
 }
 
-// PRIVATE CUSTOMER DETAILS
-async function showPrivateDetails(bookingId, button) {
+// CHANGE STATUS
+async function changeDriver(id,changes){
+ if(!confirm("क्या आप Driver Status बदलना चाहते हैं?"))return;
+ try{
+  await updateDoc(doc(db,"Drivers",id),{
+   ...changes,
+   updatedAt:serverTimestamp()
+  });
+  alert("Driver Status Update हो गया।");
+ }catch(e){
+  alert("Driver Update Error: "+e.code+" - "+e.message);
+ }
+}
 
- button.disabled = true;
- button.textContent = "लोड हो रहा है...";
-
- try {
-
-  const ref = doc(db, "BookingPrivate", bookingId);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
+// PRIVATE DETAILS
+async function showPrivateDetails(bookingId,button){
+ button.disabled=true;
+ button.textContent="लोड हो रहा है...";
+ try{
+  const snap=await getDoc(doc(db,"BookingPrivate",bookingId));
+  if(!snap.exists()){
    alert("Private Customer Details उपलब्ध नहीं हैं।");
    return;
   }
-
-  const d = snap.data();
-
+  const d=snap.data();
   alert(
-   "Customer Phone: " + (d.customerPhone || "—") +
-   "\nCustomer Email: " + (d.customerEmail || "—") +
-   "\nEmergency Phone: " + (d.emergencyPhone || "—")
+   "Customer Phone: "+(d.customerPhone||"—")+
+   "\nCustomer Email: "+(d.customerEmail||"—")+
+   "\nEmergency Phone: "+(d.emergencyPhone||"—")
   );
-
- } catch(e) {
-
-  alert("Private Details Error: " + e.code + " - " + e.message);
-
- } finally {
-  button.disabled = false;
-  button.textContent = "Customer Private Details देखें";
+ }catch(e){
+  alert("Private Details Error: "+e.code+" - "+e.message);
+ }finally{
+  button.disabled=false;
+  button.textContent="Customer Private Details देखें";
  }
 }
 
 // REFRESH
-$("refreshBtn").onclick = () => startDashboard();
+$("refreshBtn").onclick=()=>startDashboard();
 
 </script>
 </body>
