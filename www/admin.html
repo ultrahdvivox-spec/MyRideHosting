@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffd400">
 <title>WHERE IS MY RIDE - Admin</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:12px;background:#f1f5f9;color:#172033;font-family:Arial,sans-serif}
@@ -37,8 +40,43 @@ a{color:#174ea6}
 footer{text-align:center;color:#777;padding:20px;font-size:12px}
 #qrBox{background:white;padding:15px;text-align:center;border:1px solid #ddd;border-radius:10px;margin-top:12px}
 #qrImage{max-width:220px;margin:auto}
+
+#hotelMap{
+ height:300px;
+ width:100%;
+ border-radius:12px;
+ margin:12px 0;
+ border:1px solid #ddd;
+ z-index:1;
+}
+#hotelSearchResults{
+ margin:8px 0;
+}
+.hotel-result{
+ display:block;
+ width:100%;
+ text-align:left;
+ white-space:normal;
+ background:#f8fafc;
+ color:#172033;
+ border:1px solid #cbd5e1;
+ margin:7px 0;
+ line-height:1.5;
+}
+.hotel-result:active{background:#fff2a8}
+.map-link{
+ display:block;
+ margin:10px 0;
+ font-weight:bold;
+}
+@media(max-width:480px){
+ body{padding:8px}
+ .card{padding:12px}
+ #hotelMap{height:260px}
+}
 </style>
 </head>
+
 <body>
 <div class="container">
 
@@ -117,15 +155,54 @@ footer{text-align:center;color:#777;padding:20px;font-size:12px}
 
 <div class="card">
 <h3>🏨 Hotel Partner Registration</h3>
-<input id="hotelName" maxlength="100" placeholder="Hotel का नाम">
+
+<label>Hotel Name</label>
+<input id="hotelName" maxlength="100" placeholder="Hotel का नाम लिखें">
+
+<p class="small">
+होटल का नाम कम से कम 3 अक्षर लिखें। उपलब्ध होटल और जगहों के सुझाव नीचे आएँगे।
+</p>
+
+<div id="hotelSearchMsg" class="small"></div>
+<div id="hotelSearchResults"></div>
+
+<label>Hotel Address</label>
 <input id="hotelAddress" maxlength="250" placeholder="Hotel का पूरा पता">
-<input id="hotelPhone" maxlength="15" placeholder="Hotel का निजी मोबाइल नंबर">
+
+<label>Hotel का निजी मोबाइल नंबर</label>
+<input id="hotelPhone" maxlength="15" inputmode="tel" placeholder="Hotel का निजी मोबाइल नंबर">
+
+<label>City</label>
 <input id="hotelCity" value="Bhilwara" placeholder="City">
-<input id="hotelLat" type="number" step="any" placeholder="Latitude (वैकल्पिक)">
-<input id="hotelLng" type="number" step="any" placeholder="Longitude (वैकल्पिक)">
+
+<label>Latitude</label>
+<input id="hotelLat" type="number" step="any" placeholder="Latitude">
+
+<label>Longitude</label>
+<input id="hotelLng" type="number" step="any" placeholder="Longitude">
+
+<h4>📍 Hotel Location Map</h4>
+<div id="hotelMap"></div>
+
+<p id="hotelMapMsg" class="small">
+Hotel खोजने के बाद Map पर उसकी Location दिखाई देगी।
+</p>
+
+<a id="hotelGoogleMapsLink" class="map-link hidden"
+target="_blank" rel="noopener">
+Google Maps में होटल देखें
+</a>
+
+<button id="clearHotelLocation" class="gray">
+Location Clear करें
+</button>
+
 <button id="saveHotelBtn">नया Hotel Partner Register करें</button>
 <p id="hotelMsg"></p>
-<p class="small">Hotel का Phone Number Public QR जानकारी में नहीं दिखेगा।</p>
+<p class="small">
+Hotel का Phone Number Public QR जानकारी में नहीं दिखेगा।
+होटल का सही सुझाव चुनकर Address और Map Location जाँच लें।
+</p>
 </div>
 
 <div class="card">
@@ -148,6 +225,9 @@ WHERE IS MY RIDE • MADE IN INDIA<br>
 Founder: RITESH SINGH RAJPUT
 </footer>
 </div>
+
+<!-- Leaflet Map Library -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script type="module">
 import {initializeApp}
@@ -210,7 +290,10 @@ function makeButton(label,cls,fn){
 $("loginBtn").onclick=async()=>{
  const email=$("email").value.trim();
  const password=$("password").value;
- if(!email||!password){say("loginMsg","Email और Password भरें।");return;}
+ if(!email||!password){
+  say("loginMsg","Email और Password भरें।");
+  return;
+ }
  $("loginBtn").disabled=true;
  say("loginMsg","Login हो रहा है...");
  try{
@@ -222,7 +305,9 @@ $("loginBtn").onclick=async()=>{
   say("loginMsg","");
  }catch(e){
   say("loginMsg","Login Error: "+e.message);
- }finally{$("loginBtn").disabled=false;}
+ }finally{
+  $("loginBtn").disabled=false;
+ }
 };
 
 onAuthStateChanged(auth,async user=>{
@@ -250,6 +335,15 @@ document.querySelectorAll("[data-tab]").forEach(btn=>{
   document.querySelectorAll(".tabPage").forEach(x=>x.classList.add("hidden"));
   btn.classList.add("active");
   $(btn.dataset.tab).classList.remove("hidden");
+
+  // Leaflet map को tab खुलने पर सही आकार में दिखाएँ
+  if(btn.dataset.tab==="hotels"){
+   setTimeout(()=>{
+    if(hotelMap){
+     hotelMap.invalidateSize();
+    }
+   },250);
+  }
  };
 });
 
@@ -262,6 +356,7 @@ async function refreshAll(){
    getDocs(collection(db,"Drivers")),
    getDocs(collection(db,"Businesses"))
   ]);
+
   bookings=results[0].docs.map(s=>({id:s.id,data:s.data()}));
   drivers=results[1].docs.map(s=>({id:s.id,data:s.data()}));
   hotels=results[2].docs.map(s=>({id:s.id,data:s.data()}))
@@ -286,13 +381,20 @@ function renderOverview(){
 
  const host=$("recentBookings");
  host.replaceChildren();
+
  const recent=[...bookings].sort((a,b)=>
   (b.data.createdAt?.seconds||0)-(a.data.createdAt?.seconds||0)
  ).slice(0,5);
- if(!recent.length){host.textContent="अभी Booking नहीं है।";return;}
+
+ if(!recent.length){
+  host.textContent="अभी Booking नहीं है।";
+  return;
+ }
+
  recent.forEach(x=>{
   const d=x.data;
-  const item=document.createElement("div");item.className="item";
+  const item=document.createElement("div");
+  item.className="item";
   addText(item,(d.pickup||"—")+" → "+(d.destination||"—"),"b");
   addText(item,"Status: "+(d.status||"—")+" | "+(d.vehicleType||"—"));
   host.append(item);
@@ -305,14 +407,23 @@ $("bookingFilter").onchange=renderBookings;
 function renderBookings(){
  const host=$("bookingList");
  host.replaceChildren();
- const filter=$("bookingFilter").value;
- const list=[...bookings].filter(x=>filter==="All"||x.data.status===filter)
-  .sort((a,b)=>(b.data.createdAt?.seconds||0)-(a.data.createdAt?.seconds||0));
 
- if(!list.length){host.textContent="इस Filter में Booking नहीं है।";return;}
+ const filter=$("bookingFilter").value;
+ const list=[...bookings]
+  .filter(x=>filter==="All"||x.data.status===filter)
+  .sort((a,b)=>
+   (b.data.createdAt?.seconds||0)-(a.data.createdAt?.seconds||0)
+  );
+
+ if(!list.length){
+  host.textContent="इस Filter में Booking नहीं है।";
+  return;
+ }
 
  list.forEach(({id,data:d})=>{
-  const item=document.createElement("div");item.className="item";
+  const item=document.createElement("div");
+  item.className="item";
+
   addText(item,"Booking ID: "+id,"b");
   addText(item,"Pickup: "+(d.pickup||"—"));
   addText(item,"Destination: "+(d.destination||"—"));
@@ -329,47 +440,77 @@ function renderBookings(){
   if(d.hotelId){
    addText(item,"Hotel Partner: "+(d.hotelName||d.hotelId));
    addText(item,"Booking Source: Hotel QR");
-  }else addText(item,"Booking Source: Direct");
+  }else{
+   addText(item,"Booking Source: Direct");
+  }
 
   if(d.driverUid){
    addText(item,"Driver: "+(d.driverName||d.driverUid));
    addText(item,"Driver Mobile: "+(d.driverPhone||"—"));
    addText(item,"Vehicle Number: "+(d.vehicleNumber||"—"));
-  }else addText(item,"Driver अभी Assign नहीं हुआ।");
+  }else{
+   addText(item,"Driver अभी Assign नहीं हुआ।");
+  }
 
-  const privateBtn=makeButton("Private Customer Details देखें","black",()=>showPrivate(id,item));
+  const privateBtn=makeButton(
+   "Private Customer Details देखें","black",
+   ()=>showPrivate(id,item)
+  );
   item.append(privateBtn);
 
   if(d.status==="Pending"&&!d.driverUid){
    const eligible=drivers.filter(x=>
-    x.data.verified===true&&x.data.active===true&&
-    x.data.name&&x.data.phone&&x.data.vehicleNumber&&x.data.vehicleModel
+    x.data.verified===true&&
+    x.data.active===true&&
+    x.data.name&&x.data.phone&&
+    x.data.vehicleNumber&&x.data.vehicleModel
    );
+
    const select=document.createElement("select");
    const first=document.createElement("option");
-   first.value="";first.textContent="Driver चुनें";select.append(first);
+   first.value="";
+   first.textContent="Driver चुनें";
+   select.append(first);
+
    eligible.forEach(x=>{
     const o=document.createElement("option");
-    o.value=x.id;o.textContent=x.data.name+" | "+x.data.vehicleNumber;
+    o.value=x.id;
+    o.textContent=x.data.name+" | "+x.data.vehicleNumber;
     select.append(o);
    });
-   const assign=makeButton("Assign & Accept Booking","green",async()=>{
-    if(!select.value){alert("Driver चुनें।");return;}
-    assign.disabled=true;
-    try{await assignBooking(id,select.value);}
-    finally{assign.disabled=false;}
-   });
+
+   const assign=makeButton(
+    "Assign & Accept Booking","green",
+    async()=>{
+     if(!select.value){
+      alert("Driver चुनें।");
+      return;
+     }
+     assign.disabled=true;
+     try{
+      await assignBooking(id,select.value);
+     }finally{
+      assign.disabled=false;
+     }
+    }
+   );
+
    item.append(select,assign);
+
    item.append(makeButton("Reject Booking","red",async()=>{
     if(!confirm("क्या इस Booking को Reject करना है?"))return;
     try{
      await updateDoc(doc(db,"Booking",id),{
-      status:"Rejected",rejectedAt:serverTimestamp()
+      status:"Rejected",
+      rejectedAt:serverTimestamp()
      });
      await refreshAll();
-    }catch(e){alert("Reject Error: "+e.message);}
+    }catch(e){
+     alert("Reject Error: "+e.message);
+    }
    }));
   }
+
   host.append(item);
  });
 }
@@ -377,64 +518,118 @@ function renderBookings(){
 async function showPrivate(id,container){
  try{
   const snap=await getDoc(doc(db,"BookingPrivate",id));
-  if(!snap.exists()){alert("Private Customer Record नहीं मिला।");return;}
+  if(!snap.exists()){
+   alert("Private Customer Record नहीं मिला।");
+   return;
+  }
+
   const d=snap.data();
-  const box=document.createElement("div");box.className="status";
+  const box=document.createElement("div");
+  box.className="status";
   addText(box,"Customer Mobile: "+(d.customerPhone||"—"));
   addText(box,"Customer Email: "+(d.customerEmail||"—"));
   container.append(box);
- }catch(e){alert("Private Details Error: "+e.code+" - "+e.message);}
+ }catch(e){
+  alert("Private Details Error: "+e.code+" - "+e.message);
+ }
 }
 
 async function assignBooking(bookingId,driverUid){
  if(!admin)return;
+
  try{
   await runTransaction(db,async tx=>{
    const br=doc(db,"Booking",bookingId);
    const dr=doc(db,"Drivers",driverUid);
+
    const bs=await tx.get(br);
    const ds=await tx.get(dr);
-   if(!bs.exists()||!ds.exists())throw new Error("Booking या Driver नहीं मिला।");
-   const b=bs.data(),d=ds.data();
-   if(b.status!=="Pending"||b.driverUid)throw new Error("Booking अब उपलब्ध नहीं है।");
-   if(d.verified!==true||d.active!==true)throw new Error("Driver Verified और Active नहीं है।");
-   if(!d.name||!d.phone||!d.vehicleNumber||!d.vehicleModel)throw new Error("Driver Profile अधूरी है।");
+
+   if(!bs.exists()||!ds.exists()){
+    throw new Error("Booking या Driver नहीं मिला।");
+   }
+
+   const b=bs.data();
+   const d=ds.data();
+
+   if(b.status!=="Pending"||b.driverUid){
+    throw new Error("Booking अब उपलब्ध नहीं है।");
+   }
+
+   if(d.verified!==true||d.active!==true){
+    throw new Error("Driver Verified और Active नहीं है।");
+   }
+
+   if(!d.name||!d.phone||!d.vehicleNumber||!d.vehicleModel){
+    throw new Error("Driver Profile अधूरी है।");
+   }
+
    tx.update(br,{
-    status:"Accepted",driverUid,driverEmail:d.email||"",
-    driverName:d.name,driverPhone:d.phone,
-    vehicleNumber:d.vehicleNumber,vehicleModel:d.vehicleModel,
+    status:"Accepted",
+    driverUid,
+    driverEmail:d.email||"",
+    driverName:d.name,
+    driverPhone:d.phone,
+    vehicleNumber:d.vehicleNumber,
+    vehicleModel:d.vehicleModel,
     acceptedAt:serverTimestamp()
    });
   });
+
   await refreshAll();
- }catch(e){alert("Assign Error: "+e.code+" - "+e.message);}
+ }catch(e){
+  alert("Assign Error: "+e.code+" - "+e.message);
+ }
 }
 
 // DRIVER MANAGEMENT
 function renderDrivers(){
- const host=$("driverList");host.replaceChildren();
- if(!drivers.length){host.textContent="अभी Driver Profile नहीं है।";return;}
+ const host=$("driverList");
+ host.replaceChildren();
+
+ if(!drivers.length){
+  host.textContent="अभी Driver Profile नहीं है।";
+  return;
+ }
+
  drivers.forEach(({id,data:d})=>{
-  const item=document.createElement("div");item.className="item";
+  const item=document.createElement("div");
+  item.className="item";
+
   addText(item,"Driver: "+(d.name||"नाम नहीं दिया"),"b");
   addText(item,"UID: "+id);
   addText(item,"Email: "+(d.email||"—"));
   addText(item,"Mobile: "+(d.phone||"—"));
   addText(item,"Vehicle: "+(d.vehicleNumber||"—")+" | "+(d.vehicleModel||"—"));
   addText(item,"Driving Licence: "+(d.licenseNumber||"—"));
-  const st=document.createElement("div");st.className="status";
+
+  const st=document.createElement("div");
+  st.className="status";
   st.textContent="Verified: "+(d.verified?"Yes":"No")+
    "\nActive: "+(d.active?"Yes":"No");
   item.append(st);
 
-  item.append(makeButton(d.verified?"Verification हटाएँ":"Verify Driver",
-   "blue",()=>setDriverStatus(id,{verified:!d.verified,active:!d.verified?false:d.active})));
+  item.append(makeButton(
+   d.verified?"Verification हटाएँ":"Verify Driver",
+   "blue",
+   ()=>setDriverStatus(id,{
+    verified:!d.verified,
+    active:!d.verified?false:d.active
+   })
+  ));
 
-  item.append(makeButton(d.active?"Deactivate Driver":"Activate Driver",
-   d.active?"red":"green",()=>{
-    if(!d.verified){alert("पहले Driver Verify करें।");return;}
+  item.append(makeButton(
+   d.active?"Deactivate Driver":"Activate Driver",
+   d.active?"red":"green",
+   ()=>{
+    if(!d.verified){
+     alert("पहले Driver Verify करें।");
+     return;
+    }
     setDriverStatus(id,{active:!d.active});
-   }));
+   }
+  ));
+
   host.append(item);
  });
 }
@@ -442,17 +637,246 @@ function renderDrivers(){
 async function setDriverStatus(uid,changes){
  try{
   await updateDoc(doc(db,"Drivers",uid),{
-   ...changes,updatedAt:serverTimestamp()
+   ...changes,
+   updatedAt:serverTimestamp()
   });
   await refreshAll();
- }catch(e){alert("Driver Update Error: "+e.code+" - "+e.message);}
+ }catch(e){
+  alert("Driver Update Error: "+e.code+" - "+e.message);
+ }
 }
+
+// ======================================
+// HOTEL MAP + PHOTON SEARCH
+// ======================================
+
+let hotelMap=null;
+let hotelMarker=null;
+let hotelSearchTimer=null;
+let hotelSearchController=null;
+let selectedHotelLocation=false;
+
+function initHotelMap(){
+ if(hotelMap)return;
+
+ if(typeof L==="undefined"){
+  say("hotelMapMsg","Map Library लोड नहीं हुई। Internet जाँचें।");
+  return;
+ }
+
+ hotelMap=L.map("hotelMap").setView([25.34,74.63],12);
+
+ L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+   maxZoom:19,
+   attribution:"© OpenStreetMap contributors"
+  }
+ ).addTo(hotelMap);
+}
+
+function showHotelOnMap(lat,lng){
+ initHotelMap();
+ if(!hotelMap)return;
+
+ if(hotelMarker){
+  hotelMap.removeLayer(hotelMarker);
+ }
+
+ hotelMarker=L.marker([lat,lng]).addTo(hotelMap);
+ hotelMarker.bindPopup("Selected Hotel Location").openPopup();
+
+ hotelMap.setView([lat,lng],17);
+
+ setTimeout(()=>{
+  hotelMap.invalidateSize();
+ },250);
+}
+
+function makeHotelAddress(p){
+ return [
+  p.name,
+  p.housenumber,
+  p.street,
+  p.locality,
+  p.district,
+  p.city,
+  p.state,
+  p.postcode,
+  p.country
+ ].filter((v,i,a)=>v&&a.indexOf(v)===i).join(", ");
+}
+
+function clearHotelLocation(){
+ $("hotelAddress").value="";
+ $("hotelLat").value="";
+ $("hotelLng").value="";
+ $("hotelGoogleMapsLink").classList.add("hidden");
+ $("hotelGoogleMapsLink").removeAttribute("href");
+
+ if(hotelMarker&&hotelMap){
+  hotelMap.removeLayer(hotelMarker);
+  hotelMarker=null;
+ }
+
+ selectedHotelLocation=false;
+ say("hotelMapMsg","Location Clear हो गई।");
+}
+
+function selectHotelResult(feature){
+ const p=feature.properties||{};
+ const coords=feature.geometry?.coordinates;
+
+ if(!coords||coords.length<2){
+  say("hotelSearchMsg","इस परिणाम की Map Location उपलब्ध नहीं है।");
+  return;
+ }
+
+ const lng=Number(coords[0]);
+ const lat=Number(coords[1]);
+
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)){
+  say("hotelSearchMsg","इस परिणाम के GPS Coordinates सही नहीं हैं।");
+  return;
+ }
+
+ const name=p.name||$("hotelName").value.trim();
+ const address=makeHotelAddress(p);
+
+ $("hotelName").value=name;
+ $("hotelAddress").value=address||name;
+ $("hotelLat").value=lat;
+ $("hotelLng").value=lng;
+
+ if(p.city){
+  $("hotelCity").value=p.city;
+ }else if(p.district){
+  $("hotelCity").value=p.district;
+ }
+
+ selectedHotelLocation=true;
+
+ showHotelOnMap(lat,lng);
+
+ const mapsUrl=
+  "https://www.google.com/maps/search/?api=1&query="+
+  encodeURIComponent(lat+","+lng);
+
+ $("hotelGoogleMapsLink").href=mapsUrl;
+ $("hotelGoogleMapsLink").classList.remove("hidden");
+
+ say(
+  "hotelMapMsg",
+  "✅ Hotel Location चुनी गई। Latitude: "+lat+" | Longitude: "+lng
+ );
+
+ say("hotelSearchMsg","Hotel Location चुन ली गई है।");
+ $("hotelSearchResults").replaceChildren();
+}
+
+function searchHotels(){
+ const query=$("hotelName").value.trim();
+
+ clearTimeout(hotelSearchTimer);
+
+ if(hotelSearchController){
+  hotelSearchController.abort();
+ }
+
+ if(query.length<3){
+  $("hotelSearchResults").replaceChildren();
+  say("hotelSearchMsg","होटल खोजने के लिए कम से कम 3 अक्षर लिखें।");
+  return;
+ }
+
+ hotelSearchTimer=setTimeout(async()=>{
+  const host=$("hotelSearchResults");
+  host.replaceChildren();
+  say("hotelSearchMsg","होटल खोजे जा रहे हैं...");
+
+  hotelSearchController=new AbortController();
+
+  try{
+   const city=$("hotelCity").value.trim()||"Bhilwara";
+
+   const searchText=
+    query+", "+city+", Rajasthan, India";
+
+   const url=
+    "https://photon.komoot.io/api/?q="+
+    encodeURIComponent(searchText)+
+    "&limit=8&lang=en&lat=25.34&lon=74.63&zoom=10";
+
+   const response=await fetch(url,{
+    signal:hotelSearchController.signal
+   });
+
+   if(!response.ok){
+    throw new Error("Search Service उपलब्ध नहीं है।");
+   }
+
+   const result=await response.json();
+   const features=result.features||[];
+
+   host.replaceChildren();
+
+   if(!features.length){
+    say("hotelSearchMsg","कोई परिणाम नहीं मिला। दूसरा नाम या पता लिखें।");
+    return;
+   }
+
+   let count=0;
+
+   features.forEach(feature=>{
+    const p=feature.properties||{};
+    const coords=feature.geometry?.coordinates;
+
+    if(!coords||coords.length<2)return;
+
+    const address=makeHotelAddress(p);
+    const title=p.name||"Unnamed Place";
+
+    const button=document.createElement("button");
+    button.className="hotel-result";
+
+    button.textContent=title+"\n"+(address||"Address उपलब्ध नहीं");
+
+    button.onclick=()=>selectHotelResult(feature);
+
+    host.appendChild(button);
+    count++;
+   });
+
+   if(!count){
+    say("hotelSearchMsg","इस खोज के लिए सही Location नहीं मिली।");
+   }else{
+    say("hotelSearchMsg",count+" सुझाव मिले। सही होटल चुनें।");
+   }
+
+  }catch(e){
+   if(e.name==="AbortError")return;
+
+   host.replaceChildren();
+   say("hotelSearchMsg","Search Error: "+e.message);
+  }
+
+ },900);
+}
+
+$("hotelName").addEventListener("input",()=>{
+ selectedHotelLocation=false;
+ $("hotelGoogleMapsLink").classList.add("hidden");
+ searchHotels();
+});
+
+$("clearHotelLocation").onclick=clearHotelLocation;
 
 // HOTEL PARTNERS
 $("saveHotelBtn").onclick=createHotel;
 
 async function createHotel(){
  if(!admin)return;
+
  const name=$("hotelName").value.trim();
  const address=$("hotelAddress").value.trim();
  const phone=$("hotelPhone").value.trim();
@@ -461,161 +885,326 @@ async function createHotel(){
  const lng=$("hotelLng").value.trim();
 
  if(!name||!address||!phone){
-  say("hotelMsg","Hotel Name, Address और Private Phone भरें।");return;
+  say("hotelMsg","Hotel Name, Address और Private Phone भरें।");
+  return;
  }
+
  if((lat&&!lng)||(!lat&&lng)){
-  say("hotelMsg","Latitude और Longitude दोनों भरें या दोनों खाली छोड़ें।");return;
+  say("hotelMsg","Latitude और Longitude दोनों भरें या दोनों खाली छोड़ें।");
+  return;
  }
+
  if(lat&&(!Number.isFinite(Number(lat))||Math.abs(Number(lat))>90)){
-  say("hotelMsg","Latitude सही नहीं है।");return;
+  say("hotelMsg","Latitude सही नहीं है।");
+  return;
  }
+
  if(lng&&(!Number.isFinite(Number(lng))||Math.abs(Number(lng))>180)){
-  say("hotelMsg","Longitude सही नहीं है।");return;
+  say("hotelMsg","Longitude सही नहीं है।");
+  return;
+ }
+
+ if(!lat||!lng){
+  if(!confirm("Hotel की GPS Location नहीं चुनी गई है। क्या बिना Map Location के Register करना है?")){
+   return;
+  }
  }
 
  $("saveHotelBtn").disabled=true;
  say("hotelMsg","Hotel Partner बनाया जा रहा है...");
+
  try{
   const hotelRef=doc(collection(db,"Businesses"));
   const partnerId="WHR-"+hotelRef.id.slice(-6).toUpperCase();
+
   const latitude=lat?Number(lat):null;
   const longitude=lng?Number(lng):null;
+
   const batch=writeBatch(db);
 
   batch.set(hotelRef,{
-   type:"Hotel",partnerId,name,address,phone,
-   lat:latitude,lng:longitude,active:true,
-   city,createdAt:serverTimestamp(),updatedAt:serverTimestamp()
+   type:"Hotel",
+   partnerId,
+   name,
+   address,
+   phone,
+   lat:latitude,
+   lng:longitude,
+   active:true,
+   city,
+   createdAt:serverTimestamp(),
+   updatedAt:serverTimestamp()
   });
 
   batch.set(doc(db,"HotelPublic",hotelRef.id),{
-   name,address,lat:latitude,lng:longitude,
-   active:true,city,partnerId,
-   createdAt:serverTimestamp(),updatedAt:serverTimestamp()
+   name,
+   address,
+   lat:latitude,
+   lng:longitude,
+   active:true,
+   city,
+   partnerId,
+   createdAt:serverTimestamp(),
+   updatedAt:serverTimestamp()
   });
 
   await batch.commit();
+
   $("hotelName").value="";
   $("hotelAddress").value="";
   $("hotelPhone").value="";
   $("hotelLat").value="";
   $("hotelLng").value="";
+
+  $("hotelSearchResults").replaceChildren();
+  $("hotelGoogleMapsLink").classList.add("hidden");
+
+  selectedHotelLocation=false;
+
+  if(hotelMarker&&hotelMap){
+   hotelMap.removeLayer(hotelMarker);
+   hotelMarker=null;
+  }
+
+  say("hotelMapMsg","अगले Hotel की Location चुनें।");
+  say("hotelSearchMsg","");
   say("hotelMsg","Hotel Partner Register हो गया।");
+
   await refreshAll();
+
  }catch(e){
   say("hotelMsg","Hotel Error: "+e.code+" - "+e.message);
- }finally{$("saveHotelBtn").disabled=false;}
+ }finally{
+  $("saveHotelBtn").disabled=false;
+ }
 }
 
 function renderHotels(){
- const host=$("hotelList");host.replaceChildren();
- if(!hotels.length){host.textContent="अभी Hotel Partner नहीं है।";return;}
+ const host=$("hotelList");
+ host.replaceChildren();
+
+ if(!hotels.length){
+  host.textContent="अभी Hotel Partner नहीं है।";
+  return;
+ }
+
  hotels.forEach(({id,data:d})=>{
-  const item=document.createElement("div");item.className="item";
+  const item=document.createElement("div");
+  item.className="item";
+
   addText(item,d.name||"Hotel","b");
   addText(item,"Partner ID: "+(d.partnerId||"—"));
   addText(item,"Address: "+(d.address||"—"));
   addText(item,"Private Phone: "+(d.phone||"—"));
   addText(item,"Status: "+(d.active?"Active":"Inactive"));
+
+  if(d.lat!=null&&d.lng!=null){
+   addText(item,"Location: "+d.lat+", "+d.lng);
+   const mapLink=document.createElement("a");
+   mapLink.href=
+    "https://www.google.com/maps/search/?api=1&query="+
+    encodeURIComponent(d.lat+","+d.lng);
+   mapLink.target="_blank";
+   mapLink.rel="noopener";
+   mapLink.textContent="Google Maps में Location देखें";
+   item.append(mapLink);
+  }else{
+   addText(item,"GPS Location: उपलब्ध नहीं");
+  }
+
   const count=bookings.filter(x=>x.data.hotelId===id).length;
   addText(item,"Total QR Bookings: "+count);
 
   item.append(makeButton("QR Code देखें","black",()=>showQR(id,d)));
   item.append(makeButton("Hotel Booking Report","blue",()=>showHotelReport(id,d)));
-  item.append(makeButton(d.active?"Hotel Inactive करें":"Hotel Active करें",
-   d.active?"red":"green",()=>toggleHotel(id,d)));
-  item.append(makeButton("Hotel Details Edit करें","gray",()=>editHotel(id,d)));
+
+  item.append(makeButton(
+   d.active?"Hotel Inactive करें":"Hotel Active करें",
+   d.active?"red":"green",
+   ()=>toggleHotel(id,d)
+  ));
+
+  item.append(makeButton(
+   "Hotel Details Edit करें","gray",
+   ()=>editHotel(id,d)
+  ));
+
   host.append(item);
  });
 }
 
 async function toggleHotel(id,d){
  const next=!d.active;
- if(!confirm(next?"Hotel को Active करना है?":"Hotel को Inactive करना है?"))return;
+
+ if(!confirm(next?"Hotel को Active करना है?":"Hotel को Inactive करना है?")){
+  return;
+ }
+
  try{
   const batch=writeBatch(db);
-  batch.update(doc(db,"Businesses",id),{active:next,updatedAt:serverTimestamp()});
-  batch.update(doc(db,"HotelPublic",id),{active:next,updatedAt:serverTimestamp()});
+
+  batch.update(doc(db,"Businesses",id),{
+   active:next,
+   updatedAt:serverTimestamp()
+  });
+
+  batch.update(doc(db,"HotelPublic",id),{
+   active:next,
+   updatedAt:serverTimestamp()
+  });
+
   await batch.commit();
   await refreshAll();
- }catch(e){alert("Hotel Status Error: "+e.code+" - "+e.message);}
+
+ }catch(e){
+  alert("Hotel Status Error: "+e.code+" - "+e.message);
+ }
 }
 
 async function editHotel(id,d){
  const name=prompt("Hotel Name",d.name||"");
  if(name===null)return;
+
  const address=prompt("Hotel Address",d.address||"");
  if(address===null)return;
+
  const phone=prompt("Private Phone",d.phone||"");
  if(phone===null)return;
+
  const city=prompt("City",d.city||"Bhilwara");
  if(city===null)return;
+
  if(!name.trim()||!address.trim()||!phone.trim()){
-  alert("Name, Address और Phone खाली नहीं हो सकते।");return;
+  alert("Name, Address और Phone खाली नहीं हो सकते।");
+  return;
  }
+
  try{
   const batch=writeBatch(db);
+
   batch.update(doc(db,"Businesses",id),{
-   name:name.trim(),address:address.trim(),phone:phone.trim(),
-   city:city.trim(),updatedAt:serverTimestamp()
+   name:name.trim(),
+   address:address.trim(),
+   phone:phone.trim(),
+   city:city.trim(),
+   updatedAt:serverTimestamp()
   });
+
   batch.update(doc(db,"HotelPublic",id),{
-   name:name.trim(),address:address.trim(),
-   city:city.trim(),updatedAt:serverTimestamp()
+   name:name.trim(),
+   address:address.trim(),
+   city:city.trim(),
+   updatedAt:serverTimestamp()
   });
+
   await batch.commit();
   await refreshAll();
- }catch(e){alert("Hotel Edit Error: "+e.code+" - "+e.message);}
+
+ }catch(e){
+  alert("Hotel Edit Error: "+e.code+" - "+e.message);
+ }
 }
 
 function showQR(id,d){
- const url="https://myridebhilwara-45652.web.app/customer.html?hotel="+encodeURIComponent(id);
+ const url=
+  "https://myridebhilwara-45652.web.app/customer.html?hotel="+
+  encodeURIComponent(id);
+
  const win=window.open("","_blank");
- if(!win){alert("QR Window Browser ने Block कर दी।");return;}
- win.document.write(`<!DOCTYPE html><html><head><title>Hotel QR</title>
+
+ if(!win){
+  alert("QR Window Browser ने Block कर दी।");
+  return;
+ }
+
+ win.document.write(`<!DOCTYPE html>
+ <html>
+ <head>
+ <title>Hotel QR</title>
  <meta name="viewport" content="width=device-width,initial-scale=1">
- <style>body{font-family:Arial;text-align:center;padding:20px}#q{margin:20px auto;display:flex;justify-content:center}button{padding:12px;background:#ffd400;border:0;font-weight:bold}p{overflow-wrap:anywhere}</style></head>
- <body><h2>WHERE IS MY RIDE</h2><h3>${escapeHTML(d.name||"Hotel")}</h3>
+ <style>
+ body{font-family:Arial;text-align:center;padding:20px}
+ #q{margin:20px auto;display:flex;justify-content:center}
+ button{padding:12px;background:#ffd400;border:0;font-weight:bold}
+ p{overflow-wrap:anywhere}
+ </style>
+ </head>
+ <body>
+ <h2>WHERE IS MY RIDE</h2>
+ <h3>${escapeHTML(d.name||"Hotel")}</h3>
  <p>Partner ID: ${escapeHTML(d.partnerId||"")}</p>
- <div id="q"></div><p>QR Scan करके Ride Book करें</p>
- <p>${url}</p><button onclick="window.print()">Print QR</button>
+ <div id="q"></div>
+ <p>QR Scan करके Ride Book करें</p>
+ <p>${url}</p>
+ <button onclick="window.print()">Print QR</button>
  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
- <script>new QRCode(document.getElementById("q"),{text:${JSON.stringify(url)},width:220,height:220});<\/script>
- </body></html>`);
+ <script>
+ new QRCode(document.getElementById("q"),{
+  text:${JSON.stringify(url)},
+  width:220,
+  height:220
+ });
+ <\/script>
+ </body>
+ </html>`);
+
  win.document.close();
 }
 
 function escapeHTML(s){
  return String(s).replace(/[&<>"']/g,c=>({
- "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
  })[c]);
 }
 
 function showHotelReport(id,d){
  const rows=bookings.filter(x=>x.data.hotelId===id);
- $("hotelReport").classList.remove("hidden");
- $("reportTitle").textContent=(d.name||"Hotel")+" - Booking Report";
- $("reportSummary").textContent=
- "Partner ID: "+(d.partnerId||"—")+
- " | Total QR Bookings: "+rows.length+
- " | Completed: "+rows.filter(x=>x.data.status==="Completed").length+
- " | Pending: "+rows.filter(x=>x.data.status==="Pending").length;
 
- const host=$("reportBookings");host.replaceChildren();
- if(!rows.length){host.textContent="इस Hotel से अभी Booking नहीं आई है।";return;}
+ $("hotelReport").classList.remove("hidden");
+
+ $("reportTitle").textContent=
+  (d.name||"Hotel")+" - Booking Report";
+
+ $("reportSummary").textContent=
+  "Partner ID: "+(d.partnerId||"—")+
+  " | Total QR Bookings: "+rows.length+
+  " | Completed: "+rows.filter(x=>x.data.status==="Completed").length+
+  " | Pending: "+rows.filter(x=>x.data.status==="Pending").length;
+
+ const host=$("reportBookings");
+ host.replaceChildren();
+
+ if(!rows.length){
+  host.textContent="इस Hotel से अभी Booking नहीं आई है।";
+  $("hotelReport").scrollIntoView({behavior:"smooth"});
+  return;
+ }
+
  rows.forEach(x=>{
-  const item=document.createElement("div");item.className="item";
+  const item=document.createElement("div");
+  item.className="item";
+
   addText(item,(x.data.pickup||"—")+" → "+(x.data.destination||"—"),"b");
   addText(item,"Status: "+(x.data.status||"—"));
   addText(item,"Customer: "+(x.data.customerName||"—"));
   addText(item,"Vehicle: "+(x.data.vehicleType||"—"));
   addText(item,"Date: "+safeDate(x.data.createdAt));
+
   host.append(item);
  });
+
  $("hotelReport").scrollIntoView({behavior:"smooth"});
 }
 
-$("closeReport").onclick=()=>$("hotelReport").classList.add("hidden");
+$("closeReport").onclick=()=>
+ $("hotelReport").classList.add("hidden");
+
+// Map initialize
+initHotelMap();
 
 </script>
 </body>
