@@ -3,1068 +3,619 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#ffd400">
-<title>Where Is My Ride - Admin</title>
-
+<title>WHERE IS MY RIDE - Admin</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f2f3f5;color:#171717;font-family:Arial,sans-serif}
-header{background:#ffd400;padding:20px 16px;border-bottom:4px solid #171717}
-.logo{font-size:22px;font-weight:900}
-.logo span{background:#171717;color:#ffd400;padding:3px 6px}
-header p{font-size:12px;font-weight:bold;margin:7px 0 0}
-.wrap{max-width:1000px;margin:auto;padding:12px}
-.card{background:white;border:1px solid #e5e5e5;border-radius:15px;padding:16px;margin:14px 0;box-shadow:0 3px 12px #0000000b}
-h2{font-size:20px;margin:4px 0 14px}
-h3{font-size:17px;margin:4px 0 12px}
-input,select{width:100%;padding:13px;margin:7px 0;border:1px solid #ccc;border-radius:10px;font-size:14px;background:white}
-button{width:100%;padding:13px;margin:5px 0;border:0;border-radius:10px;background:#ffd400;color:#171717;font-size:14px;font-weight:900;cursor:pointer}
+body{margin:0;padding:12px;background:#f1f5f9;color:#172033;font-family:Arial,sans-serif}
+.container{max-width:850px;margin:auto}
+header{background:#ffd400;padding:20px;border-radius:14px;border-bottom:4px solid #171717}
+header h1{margin:0;font-size:23px}
+.card{background:white;padding:16px;border-radius:14px;margin:13px 0;box-shadow:0 2px 9px #00000012}
+input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:9px;font-size:15px}
+input,select{border:1px solid #cbd5e1;background:white}
+button{border:0;background:#ffd400;color:#171717;font-weight:bold;cursor:pointer}
 button:disabled{opacity:.5}
 .black{background:#171717;color:white}
-.red{background:#b91c1c;color:white}
 .green{background:#15803d;color:white}
-.grey{background:#e5e5e5}
+.red{background:#dc2626;color:white}
 .blue{background:#1d4ed8;color:white}
+.gray{background:#475569;color:white}
+.item{border:1px solid #ddd;border-radius:11px;padding:13px;margin:11px 0;line-height:1.6;overflow-wrap:anywhere}
+.status{background:#fff8d6;padding:10px;border-radius:8px;margin:8px 0;white-space:pre-wrap}
+.small{font-size:12px;color:#64748b;line-height:1.5}
+.tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0}
+.tabs button{background:#171717;color:white}
+.tabs button.active{background:#ffd400;color:#171717}
 .hidden{display:none!important}
-.small{font-size:12px;color:#666;line-height:1.5;overflow-wrap:anywhere}
-.msg{font-size:14px;font-weight:bold;line-height:1.5;overflow-wrap:anywhere}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.stat{background:#171717;color:white;padding:15px;border-radius:12px}
-.stat b{display:block;font-size:24px;color:#ffd400}
-.stat span{font-size:12px}
-.item{border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
-.status{background:#fff7d0;padding:12px;border-radius:10px;margin:10px 0;font-size:13px;line-height:1.5}
-.tag{display:inline-block;padding:5px 9px;background:#eee;border-radius:20px;font-size:12px;font-weight:bold;margin:4px 0}
-.nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-.editBox{background:#fffbea;border:1px solid #e5c84c;border-radius:12px;padding:12px;margin-top:12px}
-.editBox label{display:block;font-size:12px;font-weight:bold;margin-top:7px}
-footer{text-align:center;color:#777;font-size:12px;padding:20px}
-.hotelQr{display:flex;justify-content:center;align-items:center;background:white;padding:12px;margin:12px auto;border:1px dashed #aaa;border-radius:10px;min-height:180px}
-.hotelQr img{max-width:220px}
-.hotelForm{background:#fffbea;padding:12px;border:1px solid #e5c84c;border-radius:12px}
-.hotelForm label{display:block;font-size:12px;font-weight:bold;margin-top:8px}
-.hotelGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.hotelGrid>div{min-width:0}
-@media(max-width:600px){
- .nav{grid-template-columns:repeat(2,1fr)}
- .hotelGrid{grid-template-columns:1fr}
-}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.stat{background:#f8fafc;border:1px solid #ddd;padding:13px;border-radius:10px}
+.stat b{font-size:22px;display:block}
+label{font-weight:bold;display:block;margin-top:9px}
+a{color:#174ea6}
+footer{text-align:center;color:#777;padding:20px;font-size:12px}
+#qrBox{background:white;padding:15px;text-align:center;border:1px solid #ddd;border-radius:10px;margin-top:12px}
+#qrImage{max-width:220px;margin:auto}
 </style>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-
 <body>
+<div class="container">
+
 <header>
- <div class="logo">WHERE IS <span>MY RIDE</span></div>
- <p>ADMIN CONTROL PANEL • BHILWARA</p>
+<h1>WHERE IS MY RIDE</h1>
+<p><b>ADMIN CONTROL PANEL • BHILWARA, RAJASTHAN</b></p>
+<p class="small">MADE IN INDIA</p>
 </header>
 
-<main class="wrap">
-
-<div class="card" id="loginCard">
- <h2>🔐 Admin Login</h2>
- <p class="small">केवल अधिकृत Admin Account से Login करें।</p>
- <input id="email" type="email" placeholder="Admin Email">
- <input id="password" type="password" placeholder="Password">
- <button id="loginBtn">Admin Login</button>
- <p id="loginMsg" class="msg"></p>
+<div class="card" id="loginBox">
+<h3>Admin Login</h3>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn">Login करें</button>
+<p id="loginMsg"></p>
 </div>
 
-<div id="dashboard" class="hidden">
+<div id="panel" class="hidden">
 
- <div class="card">
-  <h2>👑 Admin Dashboard</h2>
-  <p id="adminLabel" class="small"></p>
-  <div class="nav">
-   <button onclick="showTab('overview')">📊 Overview</button>
-   <button onclick="showTab('bookingsTab')">🚕 Bookings</button>
-   <button onclick="showTab('driversTab')">🚘 Drivers</button>
-   <button onclick="showTab('hotelsTab')">🏨 Hotels</button>
-  </div>
-  <button id="refreshBtn" class="black">Refresh Dashboard</button>
-  <button id="logoutBtn" class="red">Logout</button>
- </div>
-
- <div class="card" id="overview">
-  <h3>📊 Dashboard Statistics</h3>
-  <div class="stats">
-   <div class="stat"><b id="totalBookings">0</b><span>Total Bookings</span></div>
-   <div class="stat"><b id="pendingBookings">0</b><span>Pending Rides</span></div>
-   <div class="stat"><b id="acceptedBookings">0</b><span>Accepted Rides</span></div>
-   <div class="stat"><b id="completedBookings">0</b><span>Completed Rides</span></div>
-   <div class="stat"><b id="totalDrivers">0</b><span>Driver Partners</span></div>
-   <div class="stat"><b id="verifiedDrivers">0</b><span>Verified & Active</span></div>
-   <div class="stat"><b id="totalHotels">0</b><span>Hotel Partners</span></div>
-   <div class="stat"><b id="activeHotels">0</b><span>Active Hotels</span></div>
-  </div>
-  <p class="small">Admin Account को Driver Partner की गिनती से अलग रखा गया है।</p>
- </div>
-
- <div class="card hidden" id="bookingsTab">
-  <h3>🚕 All Bookings</h3>
-  <select id="bookingFilter">
-   <option value="All">All Bookings</option>
-   <option value="Pending">Pending</option>
-   <option value="Accepted">Accepted</option>
-   <option value="Started">Started</option>
-   <option value="Completed">Completed</option>
-   <option value="Cancelled">Cancelled</option>
-   <option value="Rejected">Rejected</option>
-  </select>
-  <select id="bookingHotelFilter">
-   <option value="All">All Booking Sources</option>
-   <option value="Direct">Direct Bookings</option>
-  </select>
-  <div id="bookingList">लोड हो रहा है...</div>
- </div>
-
- <div class="card hidden" id="driversTab">
-  <h3>🚘 Driver Partner Management</h3>
-  <p class="small">यहाँ केवल Driver Partner दिखाई देंगे। Admin Account इस सूची में शामिल नहीं है।</p>
-  <div id="driverList">लोड हो रहा है...</div>
- </div>
-
- <div class="card hidden" id="hotelsTab">
-  <h3>🏨 Hotel Booking Partners</h3>
-  <p class="small">होटल जोड़ें, QR Code बनाएँ, होटल Active/Inactive करें और Hotel-wise Booking Reports देखें।</p>
-
-  <div class="hotelForm">
-   <h3 id="hotelFormTitle">➕ नया Hotel Partner जोड़ें</h3>
-
-   <label>Hotel Name</label>
-   <input id="hotelName" placeholder="होटल का नाम">
-
-   <label>Hotel Address</label>
-   <input id="hotelAddress" placeholder="पूरा पता, Highway / Village / City">
-
-   <label>Hotel Contact Number (Admin Private)</label>
-   <input id="hotelPhone" type="tel" placeholder="होटल का मोबाइल नंबर">
-
-   <div class="hotelGrid">
-    <div>
-     <label>Latitude</label>
-     <input id="hotelLat" type="number" step="any" placeholder="उदाहरण: 25.3407">
-    </div>
-    <div>
-     <label>Longitude</label>
-     <input id="hotelLng" type="number" step="any" placeholder="उदाहरण: 74.6313">
-    </div>
-   </div>
-
-   <p class="small">होटल के सही GPS Coordinates डालें। मोबाइल नंबर सार्वजनिक QR डेटा में नहीं जाएगा।</p>
-
-   <button id="saveHotelBtn">💾 Save New Hotel</button>
-   <button id="cancelHotelEdit" class="grey hidden">Cancel Edit</button>
-   <p id="hotelMsg" class="msg"></p>
-  </div>
-
-  <hr>
-  <h3>📋 Registered Hotel Partners</h3>
-  <div id="hotelList">लोड हो रहा है...</div>
- </div>
-
+<div class="card">
+<b id="adminLabel">Admin</b>
+<p class="small" id="adminUid"></p>
+<button class="black" id="refreshBtn">सभी डेटा Refresh करें</button>
+<button class="red" id="logoutBtn">Logout</button>
+<p id="mainMsg"></p>
 </div>
-</main>
+
+<div class="tabs">
+<button class="active" data-tab="overview">Overview</button>
+<button data-tab="bookings">Bookings</button>
+<button data-tab="drivers">Drivers</button>
+<button data-tab="hotels">Hotel Partners</button>
+</div>
+
+<section id="overview" class="tabPage">
+<div class="card">
+<h3>Dashboard Overview</h3>
+<div class="stats">
+<div class="stat">Total Bookings<b id="totalBookings">0</b></div>
+<div class="stat">Pending Bookings<b id="pendingBookings">0</b></div>
+<div class="stat">Drivers<b id="totalDrivers">0</b></div>
+<div class="stat">Hotel Partners<b id="totalHotels">0</b></div>
+</div>
+</div>
+<div class="card">
+<h3>Recent Bookings</h3>
+<div id="recentBookings">लोड हो रहा है...</div>
+</div>
+</section>
+
+<section id="bookings" class="tabPage hidden">
+<div class="card">
+<h3>सभी Customer Bookings</h3>
+<select id="bookingFilter">
+<option value="All">सभी Bookings</option>
+<option value="Pending">Pending</option>
+<option value="Accepted">Accepted</option>
+<option value="Started">Started</option>
+<option value="Completed">Completed</option>
+<option value="Cancelled">Cancelled</option>
+<option value="Rejected">Rejected</option>
+</select>
+<div id="bookingList">लोड हो रहा है...</div>
+</div>
+</section>
+
+<section id="drivers" class="tabPage hidden">
+<div class="card">
+<h3>Driver Verification & Activation</h3>
+<p class="small">Driver की जानकारी जाँचने के बाद ही Verify और Activate करें।</p>
+<div id="driverList">लोड हो रहा है...</div>
+</div>
+</section>
+
+<section id="hotels" class="tabPage hidden">
+
+<div class="card">
+<h3>🏨 Hotel Partner Registration</h3>
+<input id="hotelName" maxlength="100" placeholder="Hotel का नाम">
+<input id="hotelAddress" maxlength="250" placeholder="Hotel का पूरा पता">
+<input id="hotelPhone" maxlength="15" placeholder="Hotel का निजी मोबाइल नंबर">
+<input id="hotelCity" value="Bhilwara" placeholder="City">
+<input id="hotelLat" type="number" step="any" placeholder="Latitude (वैकल्पिक)">
+<input id="hotelLng" type="number" step="any" placeholder="Longitude (वैकल्पिक)">
+<button id="saveHotelBtn">नया Hotel Partner Register करें</button>
+<p id="hotelMsg"></p>
+<p class="small">Hotel का Phone Number Public QR जानकारी में नहीं दिखेगा।</p>
+</div>
+
+<div class="card">
+<h3>Hotel Partner List</h3>
+<div id="hotelList">Hotels लोड हो रहे हैं...</div>
+</div>
+
+<div class="card hidden" id="hotelReport">
+<h3 id="reportTitle">Hotel Booking Report</h3>
+<div id="reportSummary"></div>
+<div id="reportBookings"></div>
+<button class="black" id="closeReport">Report बंद करें</button>
+</div>
+
+</section>
+</div>
 
 <footer>
- © <span id="year"></span> Where Is My Ride Admin • MADE IN INDIA
- <br>Founder: RITESH SINGH RAJPUT
+WHERE IS MY RIDE • MADE IN INDIA<br>
+Founder: RITESH SINGH RAJPUT
 </footer>
+</div>
 
 <script type="module">
-
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
- getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut
+ getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
- getFirestore,collection,doc,getDoc,updateDoc,onSnapshot,
- runTransaction,serverTimestamp,writeBatch
+ getFirestore,collection,doc,getDoc,getDocs,updateDoc,
+ setDoc,writeBatch,runTransaction,serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const firebaseConfig = {
+const firebaseConfig={
  apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
  authDomain:"myridebhilwara-45652.firebaseapp.com",
  projectId:"myridebhilwara-45652",
  storageBucket:"myridebhilwara-45652.firebasestorage.app",
  messagingSenderId:"819961031572",
- appId:"1:819961031572:web:b7e1f401c90d7335203d81"
+ appId:"1:819961031572:web:b7e1f401c90d7335203d81",
+ measurementId:"G-WTYS5RWL4V"
 };
 
 const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
-const CUSTOMER_URL="https://myridebhilwara-45652.web.app/customer.html";
-
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 const $=id=>document.getElementById(id);
 
-let stopBookings=null;
-let stopDrivers=null;
-let stopHotels=null;
-let allBookings=[];
-let allDrivers=[];
-let allHotels=[];
-let editingHotelId=null;
+let admin=null;
+let bookings=[];
+let drivers=[];
+let hotels=[];
 
-$("year").textContent=new Date().getFullYear();
+const say=(id,msg)=>$(id).textContent=msg;
 
-window.showTab=function(id){
- ["overview","bookingsTab","driversTab","hotelsTab"].forEach(x=>$(x).classList.add("hidden"));
- $(id).classList.remove("hidden");
- if(id==="hotelsTab")renderHotels();
-};
+function addText(parent,value,tag="p"){
+ const el=document.createElement(tag);
+ el.textContent=value??"";
+ parent.appendChild(el);
+ return el;
+}
 
+function safeDate(value){
+ if(!value)return "—";
+ try{return value.toDate().toLocaleString("en-IN");}
+ catch{return "—";}
+}
+
+function makeButton(label,cls,fn){
+ const b=document.createElement("button");
+ b.textContent=label;
+ if(cls)b.className=cls;
+ b.onclick=fn;
+ return b;
+}
+
+// LOGIN
 $("loginBtn").onclick=async()=>{
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!email||!password){say("loginMsg","Email और Password भरें।");return;}
+ $("loginBtn").disabled=true;
+ say("loginMsg","Login हो रहा है...");
  try{
-  $("loginBtn").disabled=true;
-  $("loginMsg").textContent="Admin Login हो रहा है...";
-  await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
+  const result=await signInWithEmailAndPassword(auth,email,password);
+  if(result.user.uid!==ADMIN_UID){
+   await signOut(auth);
+   throw new Error("यह Account Admin नहीं है।");
+  }
+  say("loginMsg","");
  }catch(e){
-  $("loginMsg").textContent=e.code+" - "+e.message;
- }finally{
-  $("loginBtn").disabled=false;
- }
+  say("loginMsg","Login Error: "+e.message);
+ }finally{$("loginBtn").disabled=false;}
 };
 
-$("logoutBtn").onclick=()=>signOut(auth);
-
-onAuthStateChanged(auth,user=>{
- stopListeners();
-
- if(!user){
-  $("loginCard").classList.remove("hidden");
-  $("dashboard").classList.add("hidden");
-  return;
+onAuthStateChanged(auth,async user=>{
+ if(user&&user.uid===ADMIN_UID){
+  admin=user;
+  $("loginBox").classList.add("hidden");
+  $("panel").classList.remove("hidden");
+  $("adminLabel").textContent="Admin: "+(user.email||"");
+  $("adminUid").textContent="UID: "+user.uid;
+  await refreshAll();
+ }else{
+  admin=null;
+  $("loginBox").classList.remove("hidden");
+  $("panel").classList.add("hidden");
  }
-
- if(user.uid!==ADMIN_UID){
-  $("loginMsg").textContent="⛔ यह Account Admin नहीं है।";
-  signOut(auth);
-  return;
- }
-
- $("loginCard").classList.add("hidden");
- $("dashboard").classList.remove("hidden");
- $("adminLabel").textContent="Admin UID: "+user.uid;
- startDashboard();
 });
 
-function stopListeners(){
- if(stopBookings){stopBookings();stopBookings=null}
- if(stopDrivers){stopDrivers();stopDrivers=null}
- if(stopHotels){stopHotels();stopHotels=null}
-}
+$("logoutBtn").onclick=()=>signOut(auth);
+$("refreshBtn").onclick=refreshAll;
 
-function startDashboard(){
- stopListeners();
+// TABS
+document.querySelectorAll("[data-tab]").forEach(btn=>{
+ btn.onclick=()=>{
+  document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".tabPage").forEach(x=>x.classList.add("hidden"));
+  btn.classList.add("active");
+  $(btn.dataset.tab).classList.remove("hidden");
+ };
+});
 
- stopBookings=onSnapshot(collection(db,"Booking"),snapshot=>{
-  allBookings=snapshot.docs.map(s=>({id:s.id,...s.data()}));
+async function refreshAll(){
+ if(!admin)return;
+ say("mainMsg","डेटा लोड हो रहा है...");
+ try{
+  const results=await Promise.all([
+   getDocs(collection(db,"Booking")),
+   getDocs(collection(db,"Drivers")),
+   getDocs(collection(db,"Businesses"))
+  ]);
+  bookings=results[0].docs.map(s=>({id:s.id,data:s.data()}));
+  drivers=results[1].docs.map(s=>({id:s.id,data:s.data()}));
+  hotels=results[2].docs.map(s=>({id:s.id,data:s.data()}))
+   .filter(x=>x.data.type==="Hotel");
+
   renderBookings();
-  renderStats();
-  renderHotels();
-  renderBookingHotelFilter();
- },error=>{
-  $("bookingList").textContent="Booking Error: "+error.code+" - "+error.message;
- });
-
- stopDrivers=onSnapshot(collection(db,"Drivers"),snapshot=>{
-  allDrivers=snapshot.docs.map(s=>({id:s.id,...s.data()}));
   renderDrivers();
-  renderStats();
- },error=>{
-  $("driverList").textContent="Driver Error: "+error.code+" - "+error.message;
- });
-
- stopHotels=onSnapshot(collection(db,"Businesses"),snapshot=>{
-  allHotels=snapshot.docs
-   .map(s=>({id:s.id,...s.data()}))
-   .filter(h=>h.type==="Hotel");
-
   renderHotels();
-  renderStats();
-  renderBookingHotelFilter();
- },error=>{
-  $("hotelList").textContent="Hotel Error: "+error.code+" - "+error.message;
+  renderOverview();
+  say("mainMsg","डेटा Refresh हो गया।");
+ }catch(e){
+  say("mainMsg","Data Error: "+e.code+" - "+e.message);
+ }
+}
+
+// OVERVIEW
+function renderOverview(){
+ $("totalBookings").textContent=bookings.length;
+ $("pendingBookings").textContent=bookings.filter(x=>x.data.status==="Pending").length;
+ $("totalDrivers").textContent=drivers.length;
+ $("totalHotels").textContent=hotels.length;
+
+ const host=$("recentBookings");
+ host.replaceChildren();
+ const recent=[...bookings].sort((a,b)=>
+  (b.data.createdAt?.seconds||0)-(a.data.createdAt?.seconds||0)
+ ).slice(0,5);
+ if(!recent.length){host.textContent="अभी Booking नहीं है।";return;}
+ recent.forEach(x=>{
+  const d=x.data;
+  const item=document.createElement("div");item.className="item";
+  addText(item,(d.pickup||"—")+" → "+(d.destination||"—"),"b");
+  addText(item,"Status: "+(d.status||"—")+" | "+(d.vehicleType||"—"));
+  host.append(item);
  });
 }
 
-function getDriverPartners(){
- return allDrivers.filter(d=>d.id!==ADMIN_UID);
-}
-
-function getEligibleDrivers(){
- return getDriverPartners().filter(d=>
-  d.verified===true &&
-  d.active===true &&
-  d.uid===d.id &&
-  typeof d.name==="string" && d.name.trim()!=="" &&
-  typeof d.email==="string" && d.email.trim()!=="" &&
-  typeof d.phone==="string" && d.phone.trim()!=="" &&
-  typeof d.vehicleNumber==="string" && d.vehicleNumber.trim()!=="" &&
-  typeof d.vehicleModel==="string" && d.vehicleModel.trim()!=="" &&
-  typeof d.licenseNumber==="string" && d.licenseNumber.trim()!==""
- );
-}
-
-function renderStats(){
- const count=status=>allBookings.filter(b=>b.status===status).length;
- const partners=getDriverPartners();
-
- $("totalBookings").textContent=allBookings.length;
- $("pendingBookings").textContent=count("Pending");
- $("acceptedBookings").textContent=count("Accepted");
- $("completedBookings").textContent=count("Completed");
- $("totalDrivers").textContent=partners.length;
- $("verifiedDrivers").textContent=partners.filter(d=>d.verified===true&&d.active===true).length;
- $("totalHotels").textContent=allHotels.length;
- $("activeHotels").textContent=allHotels.filter(h=>h.active===true).length;
-}
-
-// BOOKING HOTEL FILTER
-function renderBookingHotelFilter(){
- const select=$("bookingHotelFilter");
- const previous=select.value;
- select.replaceChildren();
-
- const all=document.createElement("option");
- all.value="All";
- all.textContent="All Booking Sources";
- select.append(all);
-
- const direct=document.createElement("option");
- direct.value="Direct";
- direct.textContent="Direct Bookings";
- select.append(direct);
-
- allHotels.forEach(h=>{
-  const option=document.createElement("option");
-  option.value=h.id;
-  option.textContent=h.name||h.partnerId||h.id;
-  select.append(option);
- });
-
- if([...select.options].some(o=>o.value===previous))select.value=previous;
-}
-
+// BOOKINGS
 $("bookingFilter").onchange=renderBookings;
-$("bookingHotelFilter").onchange=renderBookings;
 
 function renderBookings(){
  const host=$("bookingList");
  host.replaceChildren();
-
  const filter=$("bookingFilter").value;
- const hotelFilter=$("bookingHotelFilter").value;
+ const list=[...bookings].filter(x=>filter==="All"||x.data.status===filter)
+  .sort((a,b)=>(b.data.createdAt?.seconds||0)-(a.data.createdAt?.seconds||0));
 
- let list=allBookings.filter(b=>{
-  const statusMatch=filter==="All"||b.status===filter;
-  const sourceMatch=hotelFilter==="All"
-   ?true
-   :hotelFilter==="Direct"
-    ?!b.hotelId
-    :b.hotelId===hotelFilter;
-  return statusMatch&&sourceMatch;
- });
+ if(!list.length){host.textContent="इस Filter में Booking नहीं है।";return;}
 
- if(!list.length){
-  host.textContent="कोई Booking नहीं मिली।";
-  return;
- }
-
- list.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-
- list.forEach(b=>{
-  const el=document.createElement("div");
-  el.className="item";
-
-  const title=document.createElement("h3");
-  title.textContent=(b.pickup||"Pickup")+" → "+(b.destination||"Destination");
+ list.forEach(({id,data:d})=>{
+  const item=document.createElement("div");item.className="item";
+  addText(item,"Booking ID: "+id,"b");
+  addText(item,"Pickup: "+(d.pickup||"—"));
+  addText(item,"Destination: "+(d.destination||"—"));
+  addText(item,"Customer: "+(d.customerName||"—"));
+  addText(item,"Vehicle: "+(d.vehicleType||"—"));
+  addText(item,"Fare: ₹"+(d.fare??"—"));
+  addText(item,"Created: "+safeDate(d.createdAt));
 
   const status=document.createElement("div");
-  status.className="tag";
-  status.textContent="Status: "+(b.status||"Unknown");
+  status.className="status";
+  status.textContent="Status: "+(d.status||"—");
+  item.append(status);
 
-  const details=document.createElement("p");
-  details.className="small";
-  details.textContent="Customer: "+(b.customerName||"—")+" | Vehicle: "+(b.vehicleType||"—")+" | Fare: ₹"+(b.fare??0)+" | City: "+(b.city||"—");
+  if(d.hotelId){
+   addText(item,"Hotel Partner: "+(d.hotelName||d.hotelId));
+   addText(item,"Booking Source: Hotel QR");
+  }else addText(item,"Booking Source: Direct");
 
-  const driverInfo=document.createElement("p");
-  driverInfo.className="small";
-  driverInfo.textContent="Driver: "+(b.driverName||"Not Assigned")+" | Driver UID: "+(b.driverUid||"—");
+  if(d.driverUid){
+   addText(item,"Driver: "+(d.driverName||d.driverUid));
+   addText(item,"Driver Mobile: "+(d.driverPhone||"—"));
+   addText(item,"Vehicle Number: "+(d.vehicleNumber||"—"));
+  }else addText(item,"Driver अभी Assign नहीं हुआ।");
 
-  const source=document.createElement("p");
-  source.className="small";
-  source.textContent=b.hotelId
-   ?"🏨 Hotel Partner: "+(b.hotelName||b.hotelId)+" | Partner ID: "+b.hotelId
-   :"Booking Source: Direct";
+  const privateBtn=makeButton("Private Customer Details देखें","black",()=>showPrivate(id,item));
+  item.append(privateBtn);
 
-  el.append(title,status,details,driverInfo,source);
-
-  if(b.status==="Accepted" && (!b.driverUid || b.driverUid===ADMIN_UID)){
-   const warning=document.createElement("div");
-   warning.className="status";
-   warning.textContent=b.driverUid===ADMIN_UID
-    ?"⚠️ यह Ride Admin UID पर Assign है। इसे अभी अपने-आप नहीं बदला गया है।"
-    :"⚠️ Accepted Booking में Driver UID मौजूद नहीं है। इसे जाँचने की आवश्यकता है।";
-   el.append(warning);
-  }
-
-  if(b.status==="Pending"){
-   const reject=document.createElement("button");
-   reject.className="red";
-   reject.textContent="Reject Booking";
-   reject.onclick=()=>rejectBooking(b.id);
-   el.append(reject);
-
-   const label=document.createElement("p");
-   label.className="small";
-   label.textContent="केवल Verified और Active Driver Partner चुनें:";
-   el.append(label);
-
+  if(d.status==="Pending"&&!d.driverUid){
+   const eligible=drivers.filter(x=>
+    x.data.verified===true&&x.data.active===true&&
+    x.data.name&&x.data.phone&&x.data.vehicleNumber&&x.data.vehicleModel
+   );
    const select=document.createElement("select");
-   const empty=document.createElement("option");
-   empty.value="";
-   empty.textContent="Driver चुनें";
-   select.append(empty);
-
-   const eligible=getEligibleDrivers();
-
-   eligible.forEach(d=>{
-    const option=document.createElement("option");
-    option.value=d.id;
-    option.textContent=d.name+" - "+d.vehicleNumber;
-    select.append(option);
+   const first=document.createElement("option");
+   first.value="";first.textContent="Driver चुनें";select.append(first);
+   eligible.forEach(x=>{
+    const o=document.createElement("option");
+    o.value=x.id;o.textContent=x.data.name+" | "+x.data.vehicleNumber;
+    select.append(o);
    });
-
-   if(!eligible.length){
-    const note=document.createElement("p");
-    note.className="small";
-    note.textContent="अभी कोई पूरा Verified और Active Driver Profile उपलब्ध नहीं है।";
-    el.append(note);
-   }
-
-   const assign=document.createElement("button");
-   assign.textContent="Assign & Accept Ride";
-   assign.disabled=eligible.length===0;
-   assign.onclick=()=>{
-    if(!select.value){alert("पहले Driver चुनें।");return}
-    assignBooking(b.id,select.value);
-   };
-   el.append(select,assign);
+   const assign=makeButton("Assign & Accept Booking","green",async()=>{
+    if(!select.value){alert("Driver चुनें।");return;}
+    assign.disabled=true;
+    try{await assignBooking(id,select.value);}
+    finally{assign.disabled=false;}
+   });
+   item.append(select,assign);
+   item.append(makeButton("Reject Booking","red",async()=>{
+    if(!confirm("क्या इस Booking को Reject करना है?"))return;
+    try{
+     await updateDoc(doc(db,"Booking",id),{
+      status:"Rejected",rejectedAt:serverTimestamp()
+     });
+     await refreshAll();
+    }catch(e){alert("Reject Error: "+e.message);}
+   }));
   }
-
-  const privateButton=document.createElement("button");
-  privateButton.className="grey";
-  privateButton.textContent="Customer Private Details देखें";
-  privateButton.onclick=()=>showPrivateDetails(b.id,privateButton);
-  el.append(privateButton);
-
-  host.append(el);
+  host.append(item);
  });
 }
 
-async function rejectBooking(id){
- if(!confirm("क्या आप यह Booking Reject करना चाहते हैं?"))return;
+async function showPrivate(id,container){
  try{
-  const ref=doc(db,"Booking",id);
-  const snap=await getDoc(ref);
-  if(!snap.exists()||snap.data().status!=="Pending")
-   throw new Error("Booking अब Pending नहीं है।");
-
-  await updateDoc(ref,{
-   status:"Rejected",
-   rejectedAt:serverTimestamp()
-  });
-
-  alert("Booking Reject हो गई।");
- }catch(e){
-  alert("Reject Error: "+e.code+" - "+e.message);
- }
+  const snap=await getDoc(doc(db,"BookingPrivate",id));
+  if(!snap.exists()){alert("Private Customer Record नहीं मिला।");return;}
+  const d=snap.data();
+  const box=document.createElement("div");box.className="status";
+  addText(box,"Customer Mobile: "+(d.customerPhone||"—"));
+  addText(box,"Customer Email: "+(d.customerEmail||"—"));
+  container.append(box);
+ }catch(e){alert("Private Details Error: "+e.code+" - "+e.message);}
 }
 
-async function assignBooking(bookingId,driverId){
- if(!driverId || driverId===ADMIN_UID){
-  alert("⛔ Admin Account को Driver के रूप में Assign नहीं किया जा सकता।");
-  return;
- }
-
- if(!confirm("क्या आप चुने हुए Verified Driver Partner को Ride Assign करना चाहते हैं?"))return;
-
+async function assignBooking(bookingId,driverUid){
+ if(!admin)return;
  try{
-  await runTransaction(db,async transaction=>{
-   const bookingRef=doc(db,"Booking",bookingId);
-   const driverRef=doc(db,"Drivers",driverId);
-
-   const bookingSnap=await transaction.get(bookingRef);
-   const driverSnap=await transaction.get(driverRef);
-
-   if(!bookingSnap.exists()||!driverSnap.exists())
-    throw new Error("Booking या Driver नहीं मिला।");
-
-   const booking=bookingSnap.data();
-   const driver=driverSnap.data();
-
-   if(booking.status!=="Pending")
-    throw new Error("यह Booking अब Pending नहीं है।");
-
-   if(booking.driverUid && booking.driverUid!=="")
-    throw new Error("इस Booking पर पहले से Driver UID मौजूद है।");
-
-   if(booking.privacyMigrated!==true)
-    throw new Error("इस Booking का Privacy Migration पूरा नहीं है।");
-
-   if(driverId===ADMIN_UID || driver.uid!==driverId)
-    throw new Error("Driver UID सही नहीं है।");
-
-   if(driver.verified!==true || driver.active!==true)
-    throw new Error("Driver Verified और Active नहीं है।");
-
-   const requiredFields=[
-    "name","email","phone","vehicleNumber","vehicleModel","licenseNumber"
-   ];
-
-   for(const key of requiredFields){
-    if(typeof driver[key]!=="string" || !driver[key].trim())
-     throw new Error("Driver Profile में "+key+" खाली है।");
-   }
-
-   transaction.update(bookingRef,{
-    status:"Accepted",
-    driverUid:driverId,
-    driverEmail:driver.email,
-    driverName:driver.name,
-    driverPhone:driver.phone,
-    vehicleNumber:driver.vehicleNumber,
-    vehicleModel:driver.vehicleModel,
+  await runTransaction(db,async tx=>{
+   const br=doc(db,"Booking",bookingId);
+   const dr=doc(db,"Drivers",driverUid);
+   const bs=await tx.get(br);
+   const ds=await tx.get(dr);
+   if(!bs.exists()||!ds.exists())throw new Error("Booking या Driver नहीं मिला।");
+   const b=bs.data(),d=ds.data();
+   if(b.status!=="Pending"||b.driverUid)throw new Error("Booking अब उपलब्ध नहीं है।");
+   if(d.verified!==true||d.active!==true)throw new Error("Driver Verified और Active नहीं है।");
+   if(!d.name||!d.phone||!d.vehicleNumber||!d.vehicleModel)throw new Error("Driver Profile अधूरी है।");
+   tx.update(br,{
+    status:"Accepted",driverUid,driverEmail:d.email||"",
+    driverName:d.name,driverPhone:d.phone,
+    vehicleNumber:d.vehicleNumber,vehicleModel:d.vehicleModel,
     acceptedAt:serverTimestamp()
    });
   });
-
-  alert("✅ Ride सही Driver Partner को Assign हो गई।");
- }catch(e){
-  alert("Assign Error: "+(e.code||"")+" - "+e.message);
- }
+  await refreshAll();
+ }catch(e){alert("Assign Error: "+e.code+" - "+e.message);}
 }
 
 // DRIVER MANAGEMENT
 function renderDrivers(){
- const host=$("driverList");
- host.replaceChildren();
+ const host=$("driverList");host.replaceChildren();
+ if(!drivers.length){host.textContent="अभी Driver Profile नहीं है।";return;}
+ drivers.forEach(({id,data:d})=>{
+  const item=document.createElement("div");item.className="item";
+  addText(item,"Driver: "+(d.name||"नाम नहीं दिया"),"b");
+  addText(item,"UID: "+id);
+  addText(item,"Email: "+(d.email||"—"));
+  addText(item,"Mobile: "+(d.phone||"—"));
+  addText(item,"Vehicle: "+(d.vehicleNumber||"—")+" | "+(d.vehicleModel||"—"));
+  addText(item,"Driving Licence: "+(d.licenseNumber||"—"));
+  const st=document.createElement("div");st.className="status";
+  st.textContent="Verified: "+(d.verified?"Yes":"No")+
+   "\nActive: "+(d.active?"Yes":"No");
+  item.append(st);
 
- const partners=getDriverPartners();
+  item.append(makeButton(d.verified?"Verification हटाएँ":"Verify Driver",
+   "blue",()=>setDriverStatus(id,{verified:!d.verified,active:!d.verified?false:d.active})));
 
- if(!partners.length){
-  host.textContent="अभी कोई Driver Partner Registered नहीं है।";
-  return;
- }
-
- partners.forEach(d=>{
-  const el=document.createElement("div");
-  el.className="item";
-
-  const title=document.createElement("h3");
-  title.textContent=d.name||"Driver Profile अधूरी";
-
-  const details=document.createElement("p");
-  details.className="small";
-  details.textContent=
-   "UID: "+d.id+
-   " | Email: "+(d.email||"—")+
-   " | Phone: "+(d.phone||"—")+
-   " | Vehicle: "+(d.vehicleNumber||"—")+
-   " | Model: "+(d.vehicleModel||"—")+
-   " | Licence: "+(d.licenseNumber||"—");
-
-  const status=document.createElement("div");
-  status.className="status";
-  status.textContent="Verified: "+(d.verified?"Yes":"No")+" | Active: "+(d.active?"Yes":"No");
-
-  el.append(title,details,status);
-
-  const editButton=document.createElement("button");
-  editButton.className="black";
-  editButton.textContent="✏️ Edit Driver Profile";
-
-  const editBox=document.createElement("div");
-  editBox.className="editBox hidden";
-
-  editButton.onclick=()=>editBox.classList.toggle("hidden");
-
-  const heading=document.createElement("h3");
-  heading.textContent="Edit Driver Information";
-
-  const fields=[
-   ["name","Driver Name",d.name||""],
-   ["email","Email",d.email||""],
-   ["phone","Mobile Number",d.phone||""],
-   ["vehicleNumber","Vehicle Number",d.vehicleNumber||""],
-   ["vehicleModel","Vehicle Model",d.vehicleModel||""],
-   ["licenseNumber","Driving Licence Number",d.licenseNumber||""]
-  ];
-
-  const inputs={};
-
-  fields.forEach(([key,label,value])=>{
-   const fieldLabel=document.createElement("label");
-   fieldLabel.textContent=label;
-
-   const input=document.createElement("input");
-   input.type="text";
-   input.value=value;
-   input.placeholder=label;
-   input.autocomplete="off";
-
-   inputs[key]=input;
-   editBox.append(fieldLabel,input);
-  });
-
-  const save=document.createElement("button");
-  save.className="green";
-  save.textContent="💾 Save Driver Profile";
-  save.onclick=()=>saveDriverProfile(d.id,inputs,save);
-
-  const cancel=document.createElement("button");
-  cancel.className="grey";
-  cancel.textContent="Cancel";
-  cancel.onclick=()=>editBox.classList.add("hidden");
-
-  editBox.append(heading,save,cancel);
-  el.append(editButton,editBox);
-
-  const verify=document.createElement("button");
-  verify.textContent=d.verified?"Verification हटाएँ":"✅ Verify Driver";
-  verify.onclick=()=>changeDriver(d.id,{verified:!d.verified});
-
-  const active=document.createElement("button");
-  active.className="black";
-  active.textContent=d.active?"Deactivate Driver":"Activate Driver";
-  active.onclick=()=>changeDriver(d.id,{active:!d.active});
-
-  el.append(verify,active);
-  host.append(el);
+  item.append(makeButton(d.active?"Deactivate Driver":"Activate Driver",
+   d.active?"red":"green",()=>{
+    if(!d.verified){alert("पहले Driver Verify करें।");return;}
+    setDriverStatus(id,{active:!d.active});
+   }));
+  host.append(item);
  });
 }
 
-async function saveDriverProfile(id,inputs,button){
- if(id===ADMIN_UID){
-  alert("Admin Profile को Driver Profile की तरह Edit नहीं किया जा सकता।");
-  return;
- }
-
- if(!confirm("क्या आप Driver की Profile जानकारी Save करना चाहते हैं?"))return;
-
- const data={};
-
- for(const key of Object.keys(inputs)){
-  data[key]=inputs[key].value.trim();
-  if(!data[key]){
-   alert("कृपया सभी Profile Fields भरें।");
-   inputs[key].focus();
-   return;
-  }
- }
-
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){
-  alert("सही Email Address डालें।");
-  inputs.email.focus();
-  return;
- }
-
- if(!/^[0-9+\-\s]{7,18}$/.test(data.phone)){
-  alert("सही Mobile Number डालें।");
-  inputs.phone.focus();
-  return;
- }
-
- button.disabled=true;
- button.textContent="Saving...";
-
+async function setDriverStatus(uid,changes){
  try{
-  const ref=doc(db,"Drivers",id);
-  const snap=await getDoc(ref);
-
-  if(!snap.exists())throw new Error("Driver document नहीं मिला।");
-
-  await updateDoc(ref,{
-   uid:id,
-   name:data.name,
-   email:data.email,
-   phone:data.phone,
-   vehicleNumber:data.vehicleNumber,
-   vehicleModel:data.vehicleModel,
-   licenseNumber:data.licenseNumber,
-   updatedAt:serverTimestamp()
+  await updateDoc(doc(db,"Drivers",uid),{
+   ...changes,updatedAt:serverTimestamp()
   });
-
-  alert("✅ Driver Profile सफलतापूर्वक Update हो गई।");
- }catch(e){
-  alert("Profile Save Error: "+(e.code||"")+" - "+e.message);
- }finally{
-  button.disabled=false;
-  button.textContent="💾 Save Driver Profile";
- }
+  await refreshAll();
+ }catch(e){alert("Driver Update Error: "+e.code+" - "+e.message);}
 }
 
-async function changeDriver(id,changes){
- if(id===ADMIN_UID){
-  alert("Admin Account का Driver Status नहीं बदला जा सकता।");
-  return;
- }
+// HOTEL PARTNERS
+$("saveHotelBtn").onclick=createHotel;
 
- if(!confirm("क्या आप Driver Status बदलना चाहते हैं?"))return;
-
- try{
-  await updateDoc(doc(db,"Drivers",id),{
-   ...changes,
-   updatedAt:serverTimestamp()
-  });
-  alert("Driver Status Update हो गया।");
- }catch(e){
-  alert("Driver Update Error: "+e.code+" - "+e.message);
- }
-}
-
-async function showPrivateDetails(bookingId,button){
- button.disabled=true;
- button.textContent="लोड हो रहा है...";
-
- try{
-  const snap=await getDoc(doc(db,"BookingPrivate",bookingId));
-
-  if(!snap.exists()){
-   alert("Private Customer Details उपलब्ध नहीं हैं।");
-   return;
-  }
-
-  const d=snap.data();
-
-  alert(
-   "Customer Phone: "+(d.customerPhone||"—")+
-   "\nCustomer Email: "+(d.customerEmail||"—")+
-   "\nEmergency Phone: "+(d.emergencyPhone||"—")
-  );
- }catch(e){
-  alert("Private Details Error: "+e.code+" - "+e.message);
- }finally{
-  button.disabled=false;
-  button.textContent="Customer Private Details देखें";
- }
-}
-
-// HOTEL PARTNER SYSTEM
-function hotelBookingCount(hotelId){
- return allBookings.filter(b=>b.hotelId===hotelId).length;
-}
-
-function resetHotelForm(){
- editingHotelId=null;
- $("hotelName").value="";
- $("hotelAddress").value="";
- $("hotelPhone").value="";
- $("hotelLat").value="";
- $("hotelLng").value="";
- $("hotelFormTitle").textContent="➕ नया Hotel Partner जोड़ें";
- $("saveHotelBtn").textContent="💾 Save New Hotel";
- $("cancelHotelEdit").classList.add("hidden");
- $("hotelMsg").textContent="";
-}
-
-$("cancelHotelEdit").onclick=resetHotelForm;
-
-$("saveHotelBtn").onclick=async()=>{
+async function createHotel(){
+ if(!admin)return;
  const name=$("hotelName").value.trim();
  const address=$("hotelAddress").value.trim();
  const phone=$("hotelPhone").value.trim();
- const lat=Number($("hotelLat").value);
- const lng=Number($("hotelLng").value);
+ const city=$("hotelCity").value.trim()||"Bhilwara";
+ const lat=$("hotelLat").value.trim();
+ const lng=$("hotelLng").value.trim();
 
- if(!name||!address||!phone||$("hotelLat").value===""||$("hotelLng").value===""){
-  $("hotelMsg").textContent="कृपया सभी होटल जानकारी भरें।";
-  return;
+ if(!name||!address||!phone){
+  say("hotelMsg","Hotel Name, Address और Private Phone भरें।");return;
+ }
+ if((lat&&!lng)||(!lat&&lng)){
+  say("hotelMsg","Latitude और Longitude दोनों भरें या दोनों खाली छोड़ें।");return;
+ }
+ if(lat&&(!Number.isFinite(Number(lat))||Math.abs(Number(lat))>90)){
+  say("hotelMsg","Latitude सही नहीं है।");return;
+ }
+ if(lng&&(!Number.isFinite(Number(lng))||Math.abs(Number(lng))>180)){
+  say("hotelMsg","Longitude सही नहीं है।");return;
  }
 
- if(!/^[0-9+\-\s]{7,18}$/.test(phone)){
-  $("hotelMsg").textContent="होटल का सही Contact Number डालें।";
-  return;
- }
-
- if(!Number.isFinite(lat)||lat < -90||lat > 90||
-    !Number.isFinite(lng)||lng < -180||lng > 180){
-  $("hotelMsg").textContent="Latitude या Longitude सही नहीं है।";
-  return;
- }
-
- const button=$("saveHotelBtn");
- button.disabled=true;
- $("hotelMsg").textContent="Hotel Save हो रहा है...";
-
+ $("saveHotelBtn").disabled=true;
+ say("hotelMsg","Hotel Partner बनाया जा रहा है...");
  try{
+  const hotelRef=doc(collection(db,"Businesses"));
+  const partnerId="WHR-"+hotelRef.id.slice(-6).toUpperCase();
+  const latitude=lat?Number(lat):null;
+  const longitude=lng?Number(lng):null;
   const batch=writeBatch(db);
 
-  if(editingHotelId){
-   const hotel=allHotels.find(h=>h.id===editingHotelId);
-   if(!hotel)throw new Error("Hotel Record नहीं मिला।");
-
-   const privateRef=doc(db,"Businesses",editingHotelId);
-   const publicRef=doc(db,"HotelPublic",editingHotelId);
-
-   batch.update(privateRef,{
-    name,address,phone,lat,lng,
-    updatedAt:serverTimestamp()
-   });
-
-   batch.update(publicRef,{
-    name,address,lat,lng,
-    updatedAt:serverTimestamp()
-   });
-
-   await batch.commit();
-   $("hotelMsg").textContent="✅ Hotel Partner Update हो गया।";
-   resetHotelForm();
-   alert("Hotel Partner Update हो गया।");
-  }else{
-   const privateRef=doc(collection(db,"Businesses"));
-   const hotelId=privateRef.id;
-   const partnerId="WHR-"+hotelId.slice(-6).toUpperCase();
-   const publicRef=doc(db,"HotelPublic",hotelId);
-
-   batch.set(privateRef,{
-    type:"Hotel",
-    partnerId,
-    name,
-    address,
-    phone,
-    lat,
-    lng,
-    active:true,
-    createdAt:serverTimestamp(),
-    updatedAt:serverTimestamp()
-   });
-
-   // Public QR lookup: no private phone number
-   batch.set(publicRef,{
-    name,
-    address,
-    lat,
-    lng,
-    active:true,
-    city:"Bhilwara",
-    partnerId,
-    createdAt:serverTimestamp(),
-    updatedAt:serverTimestamp()
-   });
-
-   await batch.commit();
-
-   resetHotelForm();
-   alert("✅ Hotel Partner बन गया!\nPartner ID: "+partnerId);
-  }
- }catch(e){
-  $("hotelMsg").textContent="Hotel Save Error: "+(e.code||"")+" - "+e.message;
- }finally{
-  button.disabled=false;
-  button.textContent=editingHotelId?"💾 Update Hotel":"💾 Save New Hotel";
- }
-};
-
-function renderHotels(){
- const host=$("hotelList");
- if(!host)return;
- host.replaceChildren();
-
- if(!allHotels.length){
-  host.textContent="अभी कोई Hotel Partner Registered नहीं है।";
-  return;
- }
-
- allHotels.forEach(h=>{
-  const el=document.createElement("div");
-  el.className="item";
-
-  const title=document.createElement("h3");
-  title.textContent="🏨 "+(h.name||"Hotel");
-
-  const partner=document.createElement("div");
-  partner.className="tag";
-  partner.textContent="Partner ID: "+(h.partnerId||h.id);
-
-  const status=document.createElement("div");
-  status.className="status";
-  status.textContent="Status: "+(h.active===true?"ACTIVE":"INACTIVE");
-
-  const info=document.createElement("p");
-  info.className="small";
-  info.textContent=
-   "Address: "+(h.address||"—")+
-   "\nContact: "+(h.phone||"—")+
-   "\nGPS: "+h.lat+", "+h.lng+
-   "\nHotel ID: "+h.id+
-   "\nTotal Hotel Bookings: "+hotelBookingCount(h.id);
-
-  const history=document.createElement("div");
-  history.className="editBox";
-  const historyTitle=document.createElement("b");
-  historyTitle.textContent="📋 Hotel Booking History";
-  history.append(historyTitle);
-
-  const bookings=allBookings.filter(b=>b.hotelId===h.id)
-   .sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-
-  if(!bookings.length){
-   const none=document.createElement("p");
-   none.className="small";
-   none.textContent="अभी इस होटल से कोई Booking नहीं आई।";
-   history.append(none);
-  }else{
-   bookings.forEach(b=>{
-    const line=document.createElement("p");
-    line.className="small";
-    line.textContent=
-     (b.pickup||"Pickup")+" → "+(b.destination||"Destination")+
-     " | "+(b.status||"Unknown")+
-     " | ₹"+(b.fare??0);
-    history.append(line);
-   });
-  }
-
-  const qrButton=document.createElement("button");
-  qrButton.textContent="📱 Show Hotel QR Code";
-  qrButton.onclick=()=>showHotelQR(h);
-
-  const editButton=document.createElement("button");
-  editButton.className="black";
-  editButton.textContent="✏️ Edit Hotel Details";
-  editButton.onclick=()=>{
-   editingHotelId=h.id;
-   $("hotelName").value=h.name||"";
-   $("hotelAddress").value=h.address||"";
-   $("hotelPhone").value=h.phone||"";
-   $("hotelLat").value=h.lat??"";
-   $("hotelLng").value=h.lng??"";
-   $("hotelFormTitle").textContent="✏️ Edit Hotel Partner";
-   $("saveHotelBtn").textContent="💾 Update Hotel";
-   $("cancelHotelEdit").classList.remove("hidden");
-   $("hotelMsg").textContent="Hotel Details Edit Mode";
-   window.scrollTo({top:0,behavior:"smooth"});
-  };
-
-  const activeButton=document.createElement("button");
-  activeButton.className=h.active===true?"red":"green";
-  activeButton.textContent=h.active===true
-   ?"Deactivate Hotel QR"
-   :"✅ Activate Hotel QR";
-  activeButton.onclick=()=>changeHotelStatus(h.id,h.active!==true);
-
-  const reportButton=document.createElement("button");
-  reportButton.className="grey";
-  reportButton.textContent="📊 View This Hotel Bookings";
-  reportButton.onclick=()=>{
-   $("bookingHotelFilter").value=h.id;
-   $("bookingFilter").value="All";
-   showTab("bookingsTab");
-   renderBookings();
-  };
-
-  el.append(title,partner,status,info,history,qrButton,editButton,activeButton,reportButton);
-  host.append(el);
- });
-}
-
-async function changeHotelStatus(hotelId,newStatus){
- const hotel=allHotels.find(h=>h.id===hotelId);
- if(!hotel)return;
-
- const action=newStatus?"Activate":"Deactivate";
- if(!confirm("क्या आप "+hotel.name+" को "+action+" करना चाहते हैं?"))return;
-
- try{
-  const batch=writeBatch(db);
-  const privateRef=doc(db,"Businesses",hotelId);
-  const publicRef=doc(db,"HotelPublic",hotelId);
-
-  batch.update(privateRef,{
-   active:newStatus,
-   updatedAt:serverTimestamp()
+  batch.set(hotelRef,{
+   type:"Hotel",partnerId,name,address,phone,
+   lat:latitude,lng:longitude,active:true,
+   city,createdAt:serverTimestamp(),updatedAt:serverTimestamp()
   });
 
-  batch.update(publicRef,{
-   active:newStatus,
-   updatedAt:serverTimestamp()
+  batch.set(doc(db,"HotelPublic",hotelRef.id),{
+   name,address,lat:latitude,lng:longitude,
+   active:true,city,partnerId,
+   createdAt:serverTimestamp(),updatedAt:serverTimestamp()
   });
 
   await batch.commit();
-  alert("Hotel Status Update हो गया।");
+  $("hotelName").value="";
+  $("hotelAddress").value="";
+  $("hotelPhone").value="";
+  $("hotelLat").value="";
+  $("hotelLng").value="";
+  say("hotelMsg","Hotel Partner Register हो गया।");
+  await refreshAll();
  }catch(e){
-  alert("Hotel Status Error: "+(e.code||"")+" - "+e.message);
- }
+  say("hotelMsg","Hotel Error: "+e.code+" - "+e.message);
+ }finally{$("saveHotelBtn").disabled=false;}
 }
 
-function showHotelQR(h){
- const url=CUSTOMER_URL+"?hotel="+encodeURIComponent(h.id);
+function renderHotels(){
+ const host=$("hotelList");host.replaceChildren();
+ if(!hotels.length){host.textContent="अभी Hotel Partner नहीं है।";return;}
+ hotels.forEach(({id,data:d})=>{
+  const item=document.createElement("div");item.className="item";
+  addText(item,d.name||"Hotel","b");
+  addText(item,"Partner ID: "+(d.partnerId||"—"));
+  addText(item,"Address: "+(d.address||"—"));
+  addText(item,"Private Phone: "+(d.phone||"—"));
+  addText(item,"Status: "+(d.active?"Active":"Inactive"));
+  const count=bookings.filter(x=>x.data.hotelId===id).length;
+  addText(item,"Total QR Bookings: "+count);
 
- const win=window.open("","_blank");
- if(!win){
-  alert("Popup Block हुआ। Customer QR URL:\n"+url);
-  return;
+  item.append(makeButton("QR Code देखें","black",()=>showQR(id,d)));
+  item.append(makeButton("Hotel Booking Report","blue",()=>showHotelReport(id,d)));
+  item.append(makeButton(d.active?"Hotel Inactive करें":"Hotel Active करें",
+   d.active?"red":"green",()=>toggleHotel(id,d)));
+  item.append(makeButton("Hotel Details Edit करें","gray",()=>editHotel(id,d)));
+  host.append(item);
+ });
+}
+
+async function toggleHotel(id,d){
+ const next=!d.active;
+ if(!confirm(next?"Hotel को Active करना है?":"Hotel को Inactive करना है?"))return;
+ try{
+  const batch=writeBatch(db);
+  batch.update(doc(db,"Businesses",id),{active:next,updatedAt:serverTimestamp()});
+  batch.update(doc(db,"HotelPublic",id),{active:next,updatedAt:serverTimestamp()});
+  await batch.commit();
+  await refreshAll();
+ }catch(e){alert("Hotel Status Error: "+e.code+" - "+e.message);}
+}
+
+async function editHotel(id,d){
+ const name=prompt("Hotel Name",d.name||"");
+ if(name===null)return;
+ const address=prompt("Hotel Address",d.address||"");
+ if(address===null)return;
+ const phone=prompt("Private Phone",d.phone||"");
+ if(phone===null)return;
+ const city=prompt("City",d.city||"Bhilwara");
+ if(city===null)return;
+ if(!name.trim()||!address.trim()||!phone.trim()){
+  alert("Name, Address और Phone खाली नहीं हो सकते।");return;
  }
-
- win.document.write(`
- <!DOCTYPE html>
- <html lang="hi">
- <head>
- <meta name="viewport" content="width=device-width,initial-scale=1">
- <title>Hotel QR - Where Is My Ride</title>
- <style>
- body{font-family:Arial;text-align:center;padding:20px;color:#171717}
- h2{background:#ffd400;padding:15px}
- #qr{display:flex;justify-content:center;margin:25px}
- p{overflow-wrap:anywhere;font-size:13px}
- button{padding:12px;background:#ffd400;border:0;border-radius:8px;font-weight:bold}
- </style>
- <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
- </head>
- <body>
- <h2>WHERE IS MY RIDE</h2>
- <h3>${escapeHTML(h.name||"Hotel")}</h3>
- <p>Hotel Partner ID: ${escapeHTML(h.partnerId||h.id)}</p>
- <div id="qr"></div>
- <p>QR Code Scan करके यहाँ से Ride Book करें।</p>
- <p id="url"></p>
- <button onclick="window.print()">Print QR Code</button>
- <script>
- document.getElementById("url").textContent=${JSON.stringify(url)};
- if(window.QRCode){
-  new QRCode(document.getElementById("qr"),{
-   text:${JSON.stringify(url)},
-   width:220,height:220
+ try{
+  const batch=writeBatch(db);
+  batch.update(doc(db,"Businesses",id),{
+   name:name.trim(),address:address.trim(),phone:phone.trim(),
+   city:city.trim(),updatedAt:serverTimestamp()
   });
- }else{
-  document.getElementById("qr").textContent="QR library load नहीं हुई। नीचे दिया URL इस्तेमाल करें।";
- }
- <\/script>
- </body>
- </html>
- `);
+  batch.update(doc(db,"HotelPublic",id),{
+   name:name.trim(),address:address.trim(),
+   city:city.trim(),updatedAt:serverTimestamp()
+  });
+  await batch.commit();
+  await refreshAll();
+ }catch(e){alert("Hotel Edit Error: "+e.code+" - "+e.message);}
+}
+
+function showQR(id,d){
+ const url="https://myridebhilwara-45652.web.app/customer.html?hotel="+encodeURIComponent(id);
+ const win=window.open("","_blank");
+ if(!win){alert("QR Window Browser ने Block कर दी।");return;}
+ win.document.write(`<!DOCTYPE html><html><head><title>Hotel QR</title>
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <style>body{font-family:Arial;text-align:center;padding:20px}#q{margin:20px auto;display:flex;justify-content:center}button{padding:12px;background:#ffd400;border:0;font-weight:bold}p{overflow-wrap:anywhere}</style></head>
+ <body><h2>WHERE IS MY RIDE</h2><h3>${escapeHTML(d.name||"Hotel")}</h3>
+ <p>Partner ID: ${escapeHTML(d.partnerId||"")}</p>
+ <div id="q"></div><p>QR Scan करके Ride Book करें</p>
+ <p>${url}</p><button onclick="window.print()">Print QR</button>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+ <script>new QRCode(document.getElementById("q"),{text:${JSON.stringify(url)},width:220,height:220});<\/script>
+ </body></html>`);
  win.document.close();
 }
 
-function escapeHTML(value){
- return String(value).replace(/[&<>"']/g,ch=>({
-  "&":"&amp;",
-  "<":"&lt;",
-  ">":"&gt;",
-  '"':"&quot;",
-  "'":"&#39;"
- }[ch]));
+function escapeHTML(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ })[c]);
 }
 
-$("refreshBtn").onclick=()=>startDashboard();
+function showHotelReport(id,d){
+ const rows=bookings.filter(x=>x.data.hotelId===id);
+ $("hotelReport").classList.remove("hidden");
+ $("reportTitle").textContent=(d.name||"Hotel")+" - Booking Report";
+ $("reportSummary").textContent=
+ "Partner ID: "+(d.partnerId||"—")+
+ " | Total QR Bookings: "+rows.length+
+ " | Completed: "+rows.filter(x=>x.data.status==="Completed").length+
+ " | Pending: "+rows.filter(x=>x.data.status==="Pending").length;
+
+ const host=$("reportBookings");host.replaceChildren();
+ if(!rows.length){host.textContent="इस Hotel से अभी Booking नहीं आई है।";return;}
+ rows.forEach(x=>{
+  const item=document.createElement("div");item.className="item";
+  addText(item,(x.data.pickup||"—")+" → "+(x.data.destination||"—"),"b");
+  addText(item,"Status: "+(x.data.status||"—"));
+  addText(item,"Customer: "+(x.data.customerName||"—"));
+  addText(item,"Vehicle: "+(x.data.vehicleType||"—"));
+  addText(item,"Date: "+safeDate(x.data.createdAt));
+  host.append(item);
+ });
+ $("hotelReport").scrollIntoView({behavior:"smooth"});
+}
+
+$("closeReport").onclick=()=>$("hotelReport").classList.add("hidden");
 
 </script>
 </body>
