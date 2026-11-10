@@ -1,321 +1,763 @@
 
-// ======================================
-// HOTEL MAP + FREE OPENSTREETMAP SEARCH
-// ======================================
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111111">
+<title>WHERE IS MY RIDE - Admin</title>
 
-let hotelMap=null;
-let hotelMarker=null;
-let hotelSearchTimer=null;
-let hotelSearchController=null;
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:#f1f5f9;color:#172033;font-family:Arial}
+header{background:#111;color:#fff;padding:18px;border-radius:12px;margin-bottom:12px}
+header h2{margin:0;color:#ffcc00}
+.card{background:#fff;padding:14px;margin:12px 0;border-radius:12px;box-shadow:0 2px 8px #0001}
+input,select,button{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:8px;font-size:15px}
+button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
+.red{background:#dc2626;color:white}
+.green{background:#15803d;color:white}
+.gray{background:#475569;color:white}
+.blue{background:#2563eb;color:white}
+.small{font-size:13px;color:#64748b;word-break:break-word}
+.hidden{display:none!important}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#111;color:white;padding:14px;border-radius:10px}
+.stat b{display:block;color:#ffcc00;font-size:24px;margin-top:5px}
+.tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.tabs button{margin:0}
+.section{display:none}
+.section.active{display:block}
+#hotelMap{height:300px;width:100%;border-radius:10px;margin-top:10px}
+.result{padding:10px;border:1px solid #ddd;border-radius:8px;margin:7px 0;background:#fff}
+.hotel-card,.booking-card,.driver-card{border:1px solid #e2e8f0;padding:12px;border-radius:10px;margin:10px 0}
+.status{font-weight:bold}
+#qrBox{text-align:center;padding:12px}
+#qrCanvas{margin:auto}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>🚗 WHERE IS MY RIDE</h2>
+<p>ADMIN CONTROL PANEL • BHILWARA</p>
+</header>
+
+<div class="card" id="loginBox">
+<h3>👑 Admin Login</h3>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn">LOGIN</button>
+<p id="loginMsg"></p>
+</div>
+
+<div id="dashboard" class="hidden">
+
+<div class="card">
+<p id="adminInfo" class="small"></p>
+<button id="refreshBtn">🔄 Refresh Data</button>
+<button id="logoutBtn" class="red">Logout</button>
+</div>
+
+<div class="card tabs">
+<button data-tab="overview">📊 Overview</button>
+<button data-tab="bookings">🚕 Bookings</button>
+<button data-tab="drivers">🚘 Drivers</button>
+<button data-tab="hotels">🏨 Hotel Partners</button>
+</div>
+
+<!-- OVERVIEW -->
+<section id="overview" class="section active">
+<div class="card">
+<h3>📊 Dashboard Summary</h3>
+<div class="stats">
+<div class="stat">Total Bookings<b id="totalBookings">0</b></div>
+<div class="stat">Pending<b id="pendingBookings">0</b></div>
+<div class="stat">Accepted<b id="acceptedBookings">0</b></div>
+<div class="stat">Completed<b id="completedBookings">0</b></div>
+<div class="stat">Total Drivers<b id="totalDrivers">0</b></div>
+<div class="stat">Active Drivers<b id="activeDrivers">0</b></div>
+<div class="stat">Hotel Partners<b id="totalHotels">0</b></div>
+<div class="stat">Active Hotels<b id="activeHotels">0</b></div>
+</div>
+</div>
+</section>
+
+<!-- BOOKINGS -->
+<section id="bookings" class="section">
+<div class="card">
+<h3>📋 All Bookings</h3>
+<select id="bookingFilter">
+<option value="All">All Bookings</option>
+<option>Pending</option>
+<option>Accepted</option>
+<option>Started</option>
+<option>Completed</option>
+<option>Cancelled</option>
+<option>Rejected</option>
+</select>
+<div id="bookingList">Loading...</div>
+</div>
+</section>
+
+<!-- DRIVERS -->
+<section id="drivers" class="section">
+<div class="card">
+<h3>🚕 Driver Management</h3>
+<select id="driverFilter">
+<option value="All">All Drivers</option>
+<option value="Pending">Verification Pending</option>
+<option value="Active">Active Drivers</option>
+<option value="Inactive">Inactive Drivers</option>
+</select>
+<div id="driverList">Loading...</div>
+</div>
+</section>
+
+<!-- HOTELS -->
+<section id="hotels" class="section">
+
+<div class="card">
+<h3>🏨 Hotel Partner Registration</h3>
+<p class="small">होटल का नाम खोजें, फिर Map पर सही लोकेशन चुनें।</p>
+
+<input id="hotelName" placeholder="Hotel Name">
+<input id="hotelAddress" placeholder="Hotel Address">
+<input id="hotelPhone" placeholder="Hotel Phone">
+<input id="hotelCity" value="Bhilwara" placeholder="City">
+
+<hr>
+<h3>📍 Free Hotel Location Search</h3>
+
+<input id="hotelSearch" placeholder="Hotel Name या Address खोजें">
+<button id="searchHotelBtn">🔍 Search Hotel</button>
+<div id="searchResults"></div>
+
+<div id="hotelMap"></div>
+
+<p id="locationStatus" class="small">
+Map पर होटल की सही जगह चुनें।
+</p>
+
+<input id="hotelLat" placeholder="Latitude" readonly>
+<input id="hotelLng" placeholder="Longitude" readonly>
+
+<button id="googleMapBtn" class="blue">Google Maps पर देखें</button>
+<button id="clearLocationBtn" class="gray">Clear Location</button>
+
+<hr>
+<button id="saveHotelBtn">💾 Register Hotel Partner</button>
+<button id="cancelEditBtn" class="gray hidden">Cancel Edit</button>
+<p id="hotelMsg" class="small"></p>
+</div>
+
+<div class="card">
+<h3>🏨 Registered Hotel Partners</h3>
+<div id="hotelList">Loading...</div>
+</div>
+
+<div class="card hidden" id="qrBox">
+<h3>Hotel QR Code</h3>
+<div id="qrCanvas"></div>
+<p id="qrHotelName"></p>
+<button id="closeQRBtn" class="gray">Close QR</button>
+<button id="printQRBtn">Print QR Code</button>
+</div>
+
+</section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script type="module">
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+getFirestore,collection,doc,onSnapshot,updateDoc,
+serverTimestamp,getDocs,writeBatch
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+authDomain:"myridebhilwara-45652.firebaseapp.com",
+projectId:"myridebhilwara-45652",
+storageBucket:"myridebhilwara-45652.firebasestorage.app",
+messagingSenderId:"819961031572",
+appId:"1:819961031572:web:b7e1f401c90d7335203d81",
+measurementId:"G-WTYS5RWL4V"
+};
+
+const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const $=id=>document.getElementById(id);
+
+let bookings=[];
+let drivers=[];
+let hotels=[];
+let unsubBookings=null;
+let unsubDrivers=null;
+let unsubHotels=null;
+
+let map=null;
+let marker=null;
 let selectedHotelLocation=false;
+let editingHotelId=null;
+let currentQRUrl="";
 
-function initHotelMap(){
- if(hotelMap)return;
+function msg(id,text){
+$(id).textContent=text;
+}
 
- if(typeof L==="undefined"){
-  say("hotelMapMsg","Map Library लोड नहीं हुई। Internet जाँचें।");
-  return;
- }
+function safe(value){
+return String(value??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+}
 
- hotelMap=L.map("hotelMap").setView([25.34,74.63],12);
+/* NAVIGATION */
+document.querySelectorAll("[data-tab]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+$(btn.dataset.tab).classList.add("active");
+if(btn.dataset.tab==="hotels"){
+setTimeout(()=>{
+initMap();
+if(map)map.invalidateSize();
+},200);
+}
+});
+});
 
- L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-  maxZoom:19,
-  attribution:"© OpenStreetMap contributors"
- }).addTo(hotelMap);
+/* LOGIN */
+$("loginBtn").addEventListener("click",async()=>{
+const email=$("email").value.trim();
+const password=$("password").value;
+if(!email||!password){
+msg("loginMsg","Email और Password भरें।");
+return;
+}
+try{
+const result=await signInWithEmailAndPassword(auth,email,password);
+if(result.user.uid!==ADMIN_UID){
+await signOut(auth);
+msg("loginMsg","यह Account Admin नहीं है।");
+}
+}catch(e){
+msg("loginMsg","Login Error: "+e.message);
+}
+});
 
- // Map पर टैप करके Location चुनें
- hotelMap.on("click",async e=>{
-  await setHotelLocation(e.latlng.lat,e.latlng.lng,true);
- });
+function showDashboard(user){
+$("loginBox").classList.add("hidden");
+$("dashboard").classList.remove("hidden");
+msg("adminInfo","Admin UID: "+user.uid);
+startLiveData();
+}
+
+function stopLiveData(){
+if(unsubBookings)unsubBookings();
+if(unsubDrivers)unsubDrivers();
+if(unsubHotels)unsubHotels();
+unsubBookings=null;
+unsubDrivers=null;
+unsubHotels=null;
+}
+
+function startLiveData(){
+stopLiveData();
+
+unsubBookings=onSnapshot(collection(db,"Booking"),snap=>{
+bookings=snap.docs.map(d=>({id:d.id,...d.data()}));
+renderBookings();
+renderStats();
+},e=>msg("bookingList","Booking Error: "+e.message));
+
+unsubDrivers=onSnapshot(collection(db,"Drivers"),snap=>{
+drivers=snap.docs.map(d=>({id:d.id,...d.data()}));
+renderDrivers();
+renderStats();
+},e=>msg("driverList","Driver Error: "+e.message));
+
+unsubHotels=onSnapshot(collection(db,"Businesses"),snap=>{
+hotels=snap.docs.map(d=>({id:d.id,...d.data()}))
+.filter(h=>h.type==="Hotel");
+renderHotels();
+renderStats();
+},e=>msg("hotelList","Hotel Error: "+e.message));
+}
+
+function renderStats(){
+$("totalBookings").textContent=bookings.length;
+$("pendingBookings").textContent=bookings.filter(x=>x.status==="Pending").length;
+$("acceptedBookings").textContent=bookings.filter(x=>x.status==="Accepted").length;
+$("completedBookings").textContent=bookings.filter(x=>x.status==="Completed").length;
+$("totalDrivers").textContent=drivers.length;
+$("activeDrivers").textContent=drivers.filter(x=>x.active===true&&x.verified===true).length;
+$("totalHotels").textContent=hotels.length;
+$("activeHotels").textContent=hotels.filter(x=>x.active===true).length;
+}
+
+/* BOOKING MANAGEMENT */
+function renderBookings(){
+const filter=$("bookingFilter").value;
+const list=bookings.filter(b=>filter==="All"||b.status===filter);
+
+if(!list.length){
+$("bookingList").textContent="कोई Booking नहीं मिली।";
+return;
+}
+
+$("bookingList").innerHTML=list.map(b=>`
+<div class="booking-card">
+<h3>Booking ID: ${safe(b.id)}</h3>
+<p><b>Pickup:</b> ${safe(b.pickup)}</p>
+<p><b>Destination:</b> ${safe(b.destination)}</p>
+<p><b>Vehicle:</b> ${safe(b.vehicleType)}</p>
+<p><b>Fare:</b> ₹${safe(b.fare??b.estimatedFare??0)}</p>
+<p><b>Customer:</b> ${safe(b.customerName)}</p>
+<p><b>Driver:</b> ${safe(b.driverName||"Not Assigned")}</p>
+<p><b>Hotel:</b> ${safe(b.hotelName||"-")}</p>
+<p><b>Status:</b> ${safe(b.status)}</p>
+<select id="status_${safe(b.id)}">
+${["Pending","Accepted","Started","Completed","Cancelled","Rejected"].map(s=>
+`<option value="${s}" ${b.status===s?"selected":""}>${s}</option>`
+).join("")}
+</select>
+<button data-booking="${safe(b.id)}">Update Booking Status</button>
+</div>
+`).join("");
+
+$("bookingList").querySelectorAll("[data-booking]").forEach(btn=>{
+btn.addEventListener("click",()=>changeBooking(btn.dataset.booking));
+});
+}
+
+async function changeBooking(id){
+const b=bookings.find(x=>x.id===id);
+if(!b)return;
+const status=$("status_"+id).value;
+if(status===b.status)return alert("Status पहले से यही है।");
+if(!confirm("Booking status "+status+" करना है?"))return;
+try{
+await updateDoc(doc(db,"Booking",id),{
+status,adminUpdatedAt:serverTimestamp()
+});
+alert("Booking status updated.");
+}catch(e){
+alert("Update Error: "+e.message);
+}
+}
+
+/* DRIVER MANAGEMENT */
+function renderDrivers(){
+const filter=$("driverFilter").value;
+const list=drivers.filter(d=>{
+if(filter==="Pending")return d.verified!==true;
+if(filter==="Active")return d.active===true&&d.verified===true;
+if(filter==="Inactive")return d.active!==true;
+return true;
+});
+
+if(!list.length){
+$("driverList").textContent="कोई Driver नहीं मिला।";
+return;
+}
+
+$("driverList").innerHTML=list.map(d=>`
+<div class="driver-card">
+<h3>🚕 ${safe(d.name||"Driver")}</h3>
+<p><b>UID:</b> ${safe(d.id)}</p>
+<p><b>Phone:</b> ${safe(d.phone)}</p>
+<p><b>Vehicle:</b> ${safe(d.vehicleNumber)}</p>
+<p><b>Model:</b> ${safe(d.vehicleModel)}</p>
+<p><b>License:</b> ${safe(d.licenseNumber)}</p>
+<p><b>Verified:</b> ${d.verified===true?"Yes":"No"}</p>
+<p><b>Active:</b> ${d.active===true?"Yes":"No"}</p>
+<button class="green" data-action="activate" data-id="${safe(d.id)}">Verify + Activate</button>
+<button class="gray" data-action="inactive" data-id="${safe(d.id)}">Verified + Inactive</button>
+<button class="red" data-action="unverify" data-id="${safe(d.id)}">Unverify + Inactive</button>
+</div>
+`).join("");
+
+$("driverList").querySelectorAll("[data-action]").forEach(btn=>{
+btn.addEventListener("click",()=>updateDriver(btn.dataset.id,btn.dataset.action));
+});
+}
+
+async function updateDriver(uid,action){
+let verified=false,active=false;
+if(action==="activate"){verified=true;active=true;}
+if(action==="inactive"){verified=true;active=false;}
+if(!confirm("Driver profile update करना है?"))return;
+try{
+await updateDoc(doc(db,"Drivers",uid),{
+verified,active,updatedAt:serverTimestamp()
+});
+alert("Driver profile updated.");
+}catch(e){
+alert("Driver Update Error: "+e.message);
+}
+}
+
+/* HOTEL MAP */
+function initMap(){
+if(map)return;
+map=L.map("hotelMap").setView([25.34,74.63],12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+maxZoom:19,
+attribution:"© OpenStreetMap contributors"
+}).addTo(map);
+
+map.on("click",async e=>{
+await setHotelLocation(e.latlng.lat,e.latlng.lng,true);
+});
+}
+
+async function reverseAddress(lat,lng){
+try{
+const url="https://photon.komoot.io/reverse?lat="+lat+"&lon="+lng+"&lang=en";
+const r=await fetch(url);
+const data=await r.json();
+const p=data.features?.[0]?.properties;
+if(p){
+$("hotelAddress").value=makeHotelAddress(p);
+if(p.city||p.locality||p.district){
+$("hotelCity").value=p.city||p.locality||p.district;
+}
+}
+}catch(e){}
 }
 
 function makeHotelAddress(p){
- return [
-  p.name,
-  p.housenumber,
-  p.street,
-  p.locality,
-  p.district,
-  p.city,
-  p.state,
-  p.postcode,
-  p.country
- ].filter((v,i,a)=>v&&a.indexOf(v)===i).join(", ");
+return [
+p.name,p.housenumber,p.street,p.locality,
+p.district,p.city,p.state,p.postcode,p.country
+].filter(Boolean).join(", ");
 }
 
-function showHotelOnMap(lat,lng){
- initHotelMap();
- if(!hotelMap)return;
+async function setHotelLocation(lat,lng,reverse=false){
+selectedHotelLocation=true;
+$("hotelLat").value=Number(lat).toFixed(7);
+$("hotelLng").value=Number(lng).toFixed(7);
+msg("locationStatus","Selected Location: "+lat.toFixed(5)+", "+lng.toFixed(5));
 
- if(hotelMarker){
-  hotelMap.removeLayer(hotelMarker);
- }
-
- hotelMarker=L.marker([lat,lng],{
-  draggable:true
- }).addTo(hotelMap);
-
- hotelMarker.bindPopup(
-  "Hotel Location<br>Pin को खिसकाकर सही जगह चुनें"
- ).openPopup();
-
- hotelMap.setView([lat,lng],18);
-
- // Pin खिसकाने पर GPS बदलें
- hotelMarker.on("dragend",async()=>{
-  const pos=hotelMarker.getLatLng();
-  await setHotelLocation(pos.lat,pos.lng,true,false);
- });
-
- setTimeout(()=>hotelMap.invalidateSize(),300);
+if(!map)initMap();
+const point=[lat,lng];
+if(marker)marker.setLatLng(point);
+else{
+marker=L.marker(point,{draggable:true}).addTo(map);
+marker.on("dragend",async()=>{
+const p=marker.getLatLng();
+await setHotelLocation(p.lat,p.lng,true);
+});
+}
+map.setView(point,16);
+if(reverse)await reverseAddress(lat,lng);
 }
 
-async function reverseHotelAddress(lat,lng){
- try{
-  const url=
-   "https://photon.komoot.io/reverse?lat="+
-   encodeURIComponent(lat)+
-   "&lon="+encodeURIComponent(lng)+
-   "&lang=en";
+$("searchHotelBtn").addEventListener("click",searchHotels);
+$("hotelSearch").addEventListener("keydown",e=>{
+if(e.key==="Enter"){e.preventDefault();searchHotels();}
+});
 
-  const response=await fetch(url);
-
-  if(!response.ok)return "";
-
-  const data=await response.json();
-  const feature=data.features?.[0];
-
-  if(!feature)return "";
-
-  return makeHotelAddress(feature.properties||"");
- }catch(e){
-  return "";
- }
+async function searchHotels(){
+const q=$("hotelSearch").value.trim();
+if(!q){alert("Hotel का नाम या Address लिखें।");return;}
+$("searchResults").textContent="Searching...";
+try{
+const url="https://photon.komoot.io/api/?q="+encodeURIComponent(q)+
+"&limit=10&lang=en&lat=25.34&lon=74.63";
+const r=await fetch(url);
+const data=await r.json();
+const results=data.features||[];
+if(!results.length){
+$("searchResults").textContent="कोई परिणाम नहीं मिला। Map पर खुद जगह चुनें।";
+return;
+}
+$("searchResults").innerHTML=results.map((f,i)=>{
+const p=f.properties||{};
+return `<div class="result">
+<b>${safe(p.name||"Unnamed Place")}</b>
+<p class="small">${safe(makeHotelAddress(p))}</p>
+<button data-result="${i}">यह Hotel Select करें</button>
+</div>`;
+}).join("");
+$("searchResults").querySelectorAll("[data-result]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+const f=results[Number(btn.dataset.result)];
+const p=f.properties||{};
+const coords=f.geometry.coordinates;
+if(p.name)$("hotelName").value=p.name;
+$("hotelAddress").value=makeHotelAddress(p);
+$("hotelCity").value=p.city||p.locality||p.district||"Bhilwara";
+setHotelLocation(coords[1],coords[0],false);
+});
+});
+}catch(e){
+$("searchResults").textContent="Search Error: "+e.message;
+}
 }
 
-async function setHotelLocation(lat,lng,reverse=true,moveMarker=true){
- lat=Number(lat);
- lng=Number(lng);
+$("googleMapBtn").addEventListener("click",()=>{
+const lat=$("hotelLat").value;
+const lng=$("hotelLng").value;
+if(!lat||!lng)return alert("पहले Hotel Location चुनें।");
+window.open("https://www.google.com/maps?q="+lat+","+lng,"_blank");
+});
 
- if(!Number.isFinite(lat)||Math.abs(lat)>90||
-    !Number.isFinite(lng)||Math.abs(lng)>180){
-  say("hotelMapMsg","GPS Location सही नहीं है।");
-  return;
- }
+$("clearLocationBtn").addEventListener("click",clearLocation);
 
- $("hotelLat").value=lat.toFixed(7);
- $("hotelLng").value=lng.toFixed(7);
-
- selectedHotelLocation=true;
-
- if(moveMarker){
-  showHotelOnMap(lat,lng);
- }
-
- const mapsUrl=
-  "https://www.google.com/maps/search/?api=1&query="+
-  encodeURIComponent(lat+","+lng);
-
- $("hotelGoogleMapsLink").href=mapsUrl;
- $("hotelGoogleMapsLink").classList.remove("hidden");
-
- say("hotelMapMsg","GPS Location चुनी गई। Address जाँचा जा रहा है...");
-
- if(reverse){
-  const address=await reverseHotelAddress(lat,lng);
-
-  if(address){
-   $("hotelAddress").value=address;
-  }
-
-  say(
-   "hotelMapMsg",
-   "Location चुनी गई। Latitude: "+lat.toFixed(7)+
-   " | Longitude: "+lng.toFixed(7)+
-   (address?" | Address अपडेट हो गया।":" | Address हाथ से जाँचें।")
-  );
- }else{
-  say("hotelMapMsg","GPS Location अपडेट हो गई।");
- }
+function clearLocation(){
+selectedHotelLocation=false;
+$("hotelLat").value="";
+$("hotelLng").value="";
+if(marker){map.removeLayer(marker);marker=null;}
+msg("locationStatus","Location हटाई गई।");
 }
 
-function clearHotelLocation(){
- $("hotelAddress").value="";
- $("hotelLat").value="";
- $("hotelLng").value="";
+/* HOTEL SAVE / EDIT */
+$("saveHotelBtn").addEventListener("click",saveHotel);
 
- $("hotelGoogleMapsLink").classList.add("hidden");
- $("hotelGoogleMapsLink").removeAttribute("href");
+async function saveHotel(){
+const name=$("hotelName").value.trim();
+const address=$("hotelAddress").value.trim();
+const phone=$("hotelPhone").value.trim();
+const city=$("hotelCity").value.trim();
+const lat=Number($("hotelLat").value);
+const lng=Number($("hotelLng").value);
 
- if(hotelMarker&&hotelMap){
-  hotelMap.removeLayer(hotelMarker);
-  hotelMarker=null;
- }
-
- selectedHotelLocation=false;
-
- say("hotelMapMsg","Location Clear हो गई।");
+if(!name||!address||!phone||!city){
+msg("hotelMsg","सभी Hotel Details भरें।");
+return;
+}
+if(!selectedHotelLocation||!Number.isFinite(lat)||!Number.isFinite(lng)){
+msg("hotelMsg","पहले Map पर सही Hotel Location चुनें।");
+return;
 }
 
-function selectHotelResult(feature){
- const p=feature.properties||{};
- const coords=feature.geometry?.coordinates;
+const id=editingHotelId||("hotel_"+Date.now());
+const partnerId="WIMR-"+id.slice(-8).toUpperCase();
 
- if(!coords||coords.length<2){
-  say("hotelSearchMsg","इस परिणाम की GPS Location उपलब्ध नहीं है।");
-  return;
- }
+const businessData={
+type:"Hotel",
+partnerId,
+name,address,phone,city,
+lat,lng,
+active:true,
+updatedAt:serverTimestamp()
+};
 
- const lng=Number(coords[0]);
- const lat=Number(coords[1]);
+const publicData={
+name,address,city,lat,lng,
+partnerId,active:true,
+updatedAt:serverTimestamp()
+};
 
- if(!Number.isFinite(lat)||!Number.isFinite(lng)){
-  say("hotelSearchMsg","GPS Coordinates सही नहीं हैं।");
-  return;
- }
+try{
+const batch=writeBatch(db);
+const businessRef=doc(db,"Businesses",id);
+const publicRef=doc(db,"HotelPublic",id);
 
- const name=p.name||$("hotelName").value.trim();
- const address=makeHotelAddress(p);
+if(!editingHotelId){
+businessData.createdAt=serverTimestamp();
+publicData.createdAt=serverTimestamp();
+}
+batch.set(businessRef,businessData,{merge:true});
+batch.set(publicRef,publicData,{merge:true});
+await batch.commit();
 
- $("hotelName").value=name;
- $("hotelAddress").value=address||name;
-
- if(p.city){
-  $("hotelCity").value=p.city;
- }else if(p.district){
-  $("hotelCity").value=p.district;
- }
-
- $("hotelSearchResults").replaceChildren();
-
- setHotelLocation(lat,lng,false,true);
-
- say("hotelSearchMsg","Hotel Location चुन ली गई है।");
- say(
-  "hotelMapMsg",
-  "Hotel चुना गया। Pin को खिसकाकर सही जगह भी चुन सकते हैं।"
- );
+msg("hotelMsg",editingHotelId?"Hotel Updated Successfully":"Hotel Registered Successfully");
+resetHotelForm();
+}catch(e){
+msg("hotelMsg","Hotel Save Error: "+e.message);
+}
 }
 
-function searchHotels(){
- const query=$("hotelName").value.trim();
-
- clearTimeout(hotelSearchTimer);
-
- if(hotelSearchController){
-  hotelSearchController.abort();
- }
-
- if(query.length<3){
-  $("hotelSearchResults").replaceChildren();
-  say("hotelSearchMsg","कम से कम 3 अक्षर लिखें।");
-  return;
- }
-
- // पुरानी Hotel Location हटाएँ
- selectedHotelLocation=false;
- $("hotelAddress").value="";
- $("hotelLat").value="";
- $("hotelLng").value="";
-
- $("hotelGoogleMapsLink").classList.add("hidden");
- $("hotelGoogleMapsLink").removeAttribute("href");
-
- if(hotelMarker&&hotelMap){
-  hotelMap.removeLayer(hotelMarker);
-  hotelMarker=null;
- }
-
- hotelSearchTimer=setTimeout(async()=>{
-  const host=$("hotelSearchResults");
-  host.replaceChildren();
-
-  say("hotelSearchMsg","OpenStreetMap पर होटल खोजे जा रहे हैं...");
-
-  hotelSearchController=new AbortController();
-
-  try{
-   const params=new URLSearchParams();
-
-   // केवल होटल का नाम खोजें
-   params.set("q",query);
-   params.set("limit","10");
-   params.set("lang","en");
-
-   // Bhilwara के आसपास की खोज को प्राथमिकता
-   const city=$("hotelCity").value.trim().toLowerCase();
-
-   if(!city||city.includes("bhilwara")){
-    params.set("lat","25.34");
-    params.set("lon","74.63");
-   }
-
-   const url="https://photon.komoot.io/api/?"+params.toString();
-
-   const response=await fetch(url,{
-    signal:hotelSearchController.signal
-   });
-
-   if(!response.ok){
-    throw new Error("Search Service अभी उपलब्ध नहीं है।");
-   }
-
-   const result=await response.json();
-   const features=result.features||[];
-
-   host.replaceChildren();
-
-   if(!features.length){
-    say("hotelSearchMsg","होटल नहीं मिला। पूरा नाम या दूसरा नाम लिखें।");
-    return;
-   }
-
-   let count=0;
-
-   features.forEach(feature=>{
-    const p=feature.properties||{};
-    const coords=feature.geometry?.coordinates;
-
-    if(!coords||coords.length<2)return;
-
-    const title=p.name||"Unnamed Place";
-    const address=makeHotelAddress(p);
-
-    const button=document.createElement("button");
-    button.className="hotel-result";
-
-    button.textContent=
-     "🏨 "+title+"\n"+
-     (address||"पूरा पता उपलब्ध नहीं")+"\n"+
-     "📍 Map Location उपलब्ध";
-
-    button.onclick=()=>selectHotelResult(feature);
-
-    host.appendChild(button);
-    count++;
-   });
-
-   say(
-    "hotelSearchMsg",
-    count?
-    count+" सुझाव मिले। सही होटल चुनें।":
-    "कोई सही GPS Location नहीं मिली।"
-   );
-
-  }catch(e){
-   if(e.name==="AbortError")return;
-
-   host.replaceChildren();
-   say("hotelSearchMsg","Search Error: "+e.message);
-  }
-
- },700);
+function resetHotelForm(){
+editingHotelId=null;
+$("hotelName").value="";
+$("hotelAddress").value="";
+$("hotelPhone").value="";
+$("hotelCity").value="Bhilwara";
+$("hotelSearch").value="";
+$("searchResults").innerHTML="";
+clearLocation();
+$("saveHotelBtn").textContent="💾 Register Hotel Partner";
+$("cancelEditBtn").classList.add("hidden");
 }
 
-$("hotelName").addEventListener("input",searchHotels);
+$("cancelEditBtn").addEventListener("click",resetHotelForm);
 
-$("clearHotelLocation").onclick=clearHotelLocation;
+function renderHotels(){
+if(!hotels.length){
+$("hotelList").textContent="अभी कोई Hotel Partner नहीं है।";
+return;
+}
 
-// Map initialize
-initHotelMap();
+$("hotelList").innerHTML=hotels.map(h=>`
+<div class="hotel-card">
+<h3>🏨 ${safe(h.name)}</h3>
+<p><b>Partner ID:</b> ${safe(h.partnerId)}</p>
+<p><b>Address:</b> ${safe(h.address)}</p>
+<p><b>Phone:</b> ${safe(h.phone)}</p>
+<p><b>City:</b> ${safe(h.city)}</p>
+<p><b>Status:</b> ${h.active===true?"Active":"Inactive"}</p>
+<p class="small">GPS: ${safe(h.lat)}, ${safe(h.lng)}</p>
+<button data-hotel-action="qr" data-id="${safe(h.id)}">QR Code देखें</button>
+<button class="blue" data-hotel-action="report" data-id="${safe(h.id)}">Booking Report</button>
+<button class="gray" data-hotel-action="edit" data-id="${safe(h.id)}">Edit Hotel</button>
+<button class="${h.active===true?"red":"green"}" data-hotel-action="toggle" data-id="${safe(h.id)}">
+${h.active===true?"Deactivate":"Activate"}
+</button>
+<a target="_blank" href="https://www.google.com/maps?q=${encodeURIComponent(h.lat+","+h.lng)}">Google Maps Location</a>
+</div>
+`).join("");
+
+$("hotelList").querySelectorAll("[data-hotel-action]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+const h=hotels.find(x=>x.id===btn.dataset.id);
+if(!h)return;
+const action=btn.dataset.hotelAction;
+if(action==="qr")showQR(h);
+if(action==="report")hotelReport(h);
+if(action==="edit")editHotel(h);
+if(action==="toggle")toggleHotel(h);
+});
+});
+}
+
+function editHotel(h){
+editingHotelId=h.id;
+$("hotelName").value=h.name||"";
+$("hotelAddress").value=h.address||"";
+$("hotelPhone").value=h.phone||"";
+$("hotelCity").value=h.city||"Bhilwara";
+$("hotelLat").value=h.lat??"";
+$("hotelLng").value=h.lng??"";
+selectedHotelLocation=Number.isFinite(Number(h.lat))&&Number.isFinite(Number(h.lng));
+
+if(selectedHotelLocation){
+setHotelLocation(Number(h.lat),Number(h.lng),false);
+}
+$("saveHotelBtn").textContent="💾 Update Hotel";
+$("cancelEditBtn").classList.remove("hidden");
+document.querySelector('[data-tab="hotels"]').click();
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function toggleHotel(h){
+const active=h.active!==true;
+if(!confirm(active?"Hotel Activate करना है?":"Hotel Deactivate करना है?"))return;
+try{
+const batch=writeBatch(db);
+batch.update(doc(db,"Businesses",h.id),{
+active,updatedAt:serverTimestamp()
+});
+batch.set(doc(db,"HotelPublic",h.id),{
+active,updatedAt:serverTimestamp()
+},{merge:true});
+await batch.commit();
+alert("Hotel status updated.");
+}catch(e){
+alert("Hotel Status Error: "+e.message);
+}
+}
+
+/* HOTEL QR */
+function showQR(h){
+$("qrBox").classList.remove("hidden");
+$("qrCanvas").innerHTML="";
+$("qrHotelName").textContent=h.name+" • "+h.partnerId;
+currentQRUrl="https://myridebhilwara-45652.web.app/customer.html?hotel="+encodeURIComponent(h.id);
+
+new QRCode($("qrCanvas"),{
+text:currentQRUrl,
+width:210,
+height:210,
+correctLevel:QRCode.CorrectLevel.H
+});
+$("qrBox").scrollIntoView({behavior:"smooth"});
+}
+
+$("closeQRBtn").addEventListener("click",()=>{
+$("qrBox").classList.add("hidden");
+});
+
+$("printQRBtn").addEventListener("click",()=>{
+const qr=$("qrCanvas").querySelector("img")?.src||
+$("qrCanvas").querySelector("canvas")?.toDataURL();
+if(!qr)return alert("QR Code तैयार नहीं है।");
+const w=window.open("","_blank");
+w.document.write(`
+<html><body style="text-align:center;font-family:Arial">
+<h2>${safe($("qrHotelName").textContent)}</h2>
+<img src="${qr}" style="width:250px;height:250px">
+<p>Scan to Book a Ride</p>
+<p>WHERE IS MY RIDE</p>
+<script>window.onload=()=>window.print();<\/script>
+</body></html>`);
+w.document.close();
+});
+
+/* HOTEL REPORT */
+function hotelReport(h){
+const list=bookings.filter(b=>b.hotelId===h.id);
+const total=list.length;
+const completed=list.filter(b=>b.status==="Completed").length;
+const pending=list.filter(b=>b.status==="Pending").length;
+const accepted=list.filter(b=>b.status==="Accepted").length;
+
+let fare=0;
+list.forEach(b=>fare+=Number(b.fare??b.estimatedFare??0));
+
+alert(
+"Hotel: "+h.name+
+"\nTotal Bookings: "+total+
+"\nPending: "+pending+
+"\nAccepted: "+accepted+
+"\nCompleted: "+completed+
+"\nTotal Fare: ₹"+fare
+);
+}
+
+/* REFRESH / LOGOUT */
+$("refreshBtn").addEventListener("click",startLiveData);
+$("bookingFilter").addEventListener("change",renderBookings);
+$("driverFilter").addEventListener("change",renderDrivers);
+
+$("logoutBtn").addEventListener("click",async()=>{
+stopLiveData();
+await signOut(auth);
+});
+
+onAuthStateChanged(auth,user=>{
+if(user&&user.uid===ADMIN_UID){
+showDashboard(user);
+}else{
+stopLiveData();
+$("dashboard").classList.add("hidden");
+$("loginBox").classList.remove("hidden");
+}
+});
+</script>
+
+<footer class="card" style="text-align:center">
+<b>MADE IN INDIA 🇮🇳</b>
+<p class="small">Founder: RITESH SINGH RAJPUT</p>
+<p class="small">WHERE IS MY RIDE • BHILWARA</p>
+</footer>
+
+</body>
+</html>
