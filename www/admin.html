@@ -80,9 +80,10 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
    <div class="stat"><b id="pendingBookings">0</b><span>Pending Rides</span></div>
    <div class="stat"><b id="acceptedBookings">0</b><span>Accepted Rides</span></div>
    <div class="stat"><b id="completedBookings">0</b><span>Completed Rides</span></div>
-   <div class="stat"><b id="totalDrivers">0</b><span>Total Drivers</span></div>
-   <div class="stat"><b id="verifiedDrivers">0</b><span>Verified Drivers</span></div>
+   <div class="stat"><b id="totalDrivers">0</b><span>Driver Partners</span></div>
+   <div class="stat"><b id="verifiedDrivers">0</b><span>Verified & Active</span></div>
   </div>
+  <p class="small">Admin Account को Driver Partner की गिनती से अलग रखा गया है।</p>
  </div>
 
  <div class="card hidden" id="bookingsTab">
@@ -100,15 +101,15 @@ footer{text-align:center;color:#777;font-size:12px;padding:20px}
  </div>
 
  <div class="card hidden" id="driversTab">
-  <h3>🚘 Driver Management</h3>
-  <p class="small">Driver की जानकारी बदलने के लिए Edit Profile दबाएँ।</p>
+  <h3>🚘 Driver Partner Management</h3>
+  <p class="small">यहाँ केवल Driver Partner दिखाई देंगे। Admin Account इस सूची में शामिल नहीं है।</p>
   <div id="driverList">लोड हो रहा है...</div>
  </div>
 
 </div>
 </main>
 
-<footer>© <span id="year"></span> Where Is My Ride Admin</footer>
+<footer>© <span id="year"></span> Where Is My Ride Admin • MADE IN INDIA</footer>
 
 <script type="module">
 
@@ -168,8 +169,7 @@ $("logoutBtn").onclick=()=>signOut(auth);
 
 // AUTH CHECK
 onAuthStateChanged(auth,user=>{
- if(stopBookings){stopBookings();stopBookings=null}
- if(stopDrivers){stopDrivers();stopDrivers=null}
+ stopListeners();
 
  if(!user){
   $("loginCard").classList.remove("hidden");
@@ -189,10 +189,14 @@ onAuthStateChanged(auth,user=>{
  startDashboard();
 });
 
+function stopListeners(){
+ if(stopBookings){stopBookings();stopBookings=null}
+ if(stopDrivers){stopDrivers();stopDrivers=null}
+}
+
 // LIVE DATA
 function startDashboard(){
- if(stopBookings)stopBookings();
- if(stopDrivers)stopDrivers();
+ stopListeners();
 
  stopBookings=onSnapshot(collection(db,"Booking"),snapshot=>{
   allBookings=snapshot.docs.map(s=>({id:s.id,...s.data()}));
@@ -211,15 +215,36 @@ function startDashboard(){
  });
 }
 
+// ONLY REAL DRIVER PARTNERS
+function getDriverPartners(){
+ return allDrivers.filter(d=>d.id!==ADMIN_UID);
+}
+
+function getEligibleDrivers(){
+ return getDriverPartners().filter(d=>
+  d.verified===true &&
+  d.active===true &&
+  d.uid===d.id &&
+  typeof d.name==="string" && d.name.trim()!=="" &&
+  typeof d.email==="string" && d.email.trim()!=="" &&
+  typeof d.phone==="string" && d.phone.trim()!=="" &&
+  typeof d.vehicleNumber==="string" && d.vehicleNumber.trim()!=="" &&
+  typeof d.vehicleModel==="string" && d.vehicleModel.trim()!=="" &&
+  typeof d.licenseNumber==="string" && d.licenseNumber.trim()!==""
+ );
+}
+
 // STATS
 function renderStats(){
  const count=status=>allBookings.filter(b=>b.status===status).length;
+ const partners=getDriverPartners();
+
  $("totalBookings").textContent=allBookings.length;
  $("pendingBookings").textContent=count("Pending");
  $("acceptedBookings").textContent=count("Accepted");
  $("completedBookings").textContent=count("Completed");
- $("totalDrivers").textContent=allDrivers.length;
- $("verifiedDrivers").textContent=allDrivers.filter(d=>d.verified===true&&d.active===true).length;
+ $("totalDrivers").textContent=partners.length;
+ $("verifiedDrivers").textContent=partners.filter(d=>d.verified===true&&d.active===true).length;
 }
 
 // BOOKINGS
@@ -260,6 +285,16 @@ function renderBookings(){
 
   el.append(title,status,details,driverInfo);
 
+  // LEGACY / WRONG ASSIGNMENT WARNING
+  if(b.status==="Accepted" && (!b.driverUid || b.driverUid===ADMIN_UID)){
+   const warning=document.createElement("div");
+   warning.className="status";
+   warning.textContent=b.driverUid===ADMIN_UID
+    ?"⚠️ यह Ride Admin UID पर Assign है। इसे अभी अपने-आप नहीं बदला गया है।"
+    :"⚠️ Accepted Booking में Driver UID मौजूद नहीं है। इसे जाँचने की आवश्यकता है।";
+   el.append(warning);
+  }
+
   if(b.status==="Pending"){
    const reject=document.createElement("button");
    reject.className="red";
@@ -269,7 +304,7 @@ function renderBookings(){
 
    const label=document.createElement("p");
    label.className="small";
-   label.textContent="या नीचे से Verified Driver चुनें:";
+   label.textContent="केवल Verified और Active Driver Partner चुनें:";
    el.append(label);
 
    const select=document.createElement("select");
@@ -278,15 +313,25 @@ function renderBookings(){
    empty.textContent="Driver चुनें";
    select.append(empty);
 
-   allDrivers.filter(d=>d.verified===true&&d.active===true&&d.id!==ADMIN_UID).forEach(d=>{
+   const eligible=getEligibleDrivers();
+
+   eligible.forEach(d=>{
     const option=document.createElement("option");
     option.value=d.id;
-    option.textContent=(d.name||"Driver")+" - "+(d.vehicleNumber||"");
+    option.textContent=d.name+" - "+d.vehicleNumber;
     select.append(option);
    });
 
+   if(!eligible.length){
+    const note=document.createElement("p");
+    note.className="small";
+    note.textContent="अभी कोई पूरा Verified और Active Driver Profile उपलब्ध नहीं है।";
+    el.append(note);
+   }
+
    const assign=document.createElement("button");
    assign.textContent="Assign & Accept Ride";
+   assign.disabled=eligible.length===0;
    assign.onclick=()=>{
     if(!select.value){alert("पहले Driver चुनें।");return}
     assignBooking(b.id,select.value);
@@ -310,49 +355,83 @@ async function rejectBooking(id){
  try{
   const ref=doc(db,"Booking",id);
   const snap=await getDoc(ref);
-  if(!snap.exists()||snap.data().status!=="Pending")throw new Error("Booking अब Pending नहीं है।");
-  await updateDoc(ref,{status:"Rejected",rejectedAt:serverTimestamp()});
+  if(!snap.exists()||snap.data().status!=="Pending")
+   throw new Error("Booking अब Pending नहीं है।");
+
+  await updateDoc(ref,{
+   status:"Rejected",
+   rejectedAt:serverTimestamp()
+  });
+
   alert("Booking Reject हो गई।");
  }catch(e){
   alert("Reject Error: "+e.code+" - "+e.message);
  }
 }
 
-// ASSIGN
+// SAFE ASSIGNMENT
 async function assignBooking(bookingId,driverId){
- if(!confirm("क्या आप इस Driver को Ride Assign करना चाहते हैं?"))return;
+
+ if(!driverId || driverId===ADMIN_UID){
+  alert("⛔ Admin Account को Driver के रूप में Assign नहीं किया जा सकता।");
+  return;
+ }
+
+ if(!confirm("क्या आप चुने हुए Verified Driver Partner को Ride Assign करना चाहते हैं?"))return;
+
  try{
   await runTransaction(db,async transaction=>{
    const bookingRef=doc(db,"Booking",bookingId);
    const driverRef=doc(db,"Drivers",driverId);
+
    const bookingSnap=await transaction.get(bookingRef);
    const driverSnap=await transaction.get(driverRef);
 
-   if(!bookingSnap.exists()||!driverSnap.exists())throw new Error("Booking या Driver नहीं मिला।");
+   if(!bookingSnap.exists()||!driverSnap.exists())
+    throw new Error("Booking या Driver नहीं मिला।");
 
    const booking=bookingSnap.data();
    const driver=driverSnap.data();
 
-   if(booking.status!=="Pending"||booking.driverUid!==""||booking.privacyMigrated!==true)
-    throw new Error("यह Booking अब उपलब्ध नहीं है।");
+   if(booking.status!=="Pending")
+    throw new Error("यह Booking अब Pending नहीं है।");
 
-   if(driver.verified!==true||driver.active!==true)
+   if(booking.driverUid && booking.driverUid!=="")
+    throw new Error("इस Booking पर पहले से Driver UID मौजूद है।");
+
+   if(booking.privacyMigrated!==true)
+    throw new Error("इस Booking का Privacy Migration पूरा नहीं है।");
+
+   if(driverId===ADMIN_UID || driver.uid!==driverId)
+    throw new Error("Driver UID सही नहीं है।");
+
+   if(driver.verified!==true || driver.active!==true)
     throw new Error("Driver Verified और Active नहीं है।");
+
+   const requiredFields=[
+    "name","email","phone","vehicleNumber","vehicleModel","licenseNumber"
+   ];
+
+   for(const key of requiredFields){
+    if(typeof driver[key]!=="string" || !driver[key].trim())
+     throw new Error("Driver Profile में "+key+" खाली है।");
+   }
 
    transaction.update(bookingRef,{
     status:"Accepted",
     driverUid:driverId,
-    driverEmail:driver.email||"",
-    driverName:driver.name||"",
-    driverPhone:driver.phone||"",
-    vehicleNumber:driver.vehicleNumber||"",
-    vehicleModel:driver.vehicleModel||"",
+    driverEmail:driver.email,
+    driverName:driver.name,
+    driverPhone:driver.phone,
+    vehicleNumber:driver.vehicleNumber,
+    vehicleModel:driver.vehicleModel,
     acceptedAt:serverTimestamp()
    });
   });
-  alert("✅ Driver Assign हो गया और Booking Accept हो गई।");
+
+  alert("✅ Ride सही Driver Partner को Assign हो गई।");
  }catch(e){
-  alert("Assign Error: "+e.message);
+  alert("Assign Error: "+(e.code||"")+" - "+e.message);
  }
 }
 
@@ -361,17 +440,19 @@ function renderDrivers(){
  const host=$("driverList");
  host.replaceChildren();
 
- if(!allDrivers.length){
-  host.textContent="अभी कोई Driver Registered नहीं है।";
+ const partners=getDriverPartners();
+
+ if(!partners.length){
+  host.textContent="अभी कोई Driver Partner Registered नहीं है।";
   return;
  }
 
- allDrivers.forEach(d=>{
+ partners.forEach(d=>{
   const el=document.createElement("div");
   el.className="item";
 
   const title=document.createElement("h3");
-  title.textContent=d.name||"Driver";
+  title.textContent=d.name||"Driver Profile अधूरी";
 
   const details=document.createElement("p");
   details.className="small";
@@ -389,62 +470,56 @@ function renderDrivers(){
 
   el.append(title,details,status);
 
-  // PROFILE EDIT BUTTON
-  if(d.id!==ADMIN_UID){
-   const editButton=document.createElement("button");
-   editButton.className="black";
-   editButton.textContent="✏️ Edit Driver Profile";
-   editButton.onclick=()=>{
-    const box=el.querySelector(".editBox");
-    if(box){
-     box.classList.toggle("hidden");
-    }
-   };
+  // PROFILE EDIT
+  const editButton=document.createElement("button");
+  editButton.className="black";
+  editButton.textContent="✏️ Edit Driver Profile";
 
-   const editBox=document.createElement("div");
-   editBox.className="editBox hidden";
+  const editBox=document.createElement("div");
+  editBox.className="editBox hidden";
 
-   const heading=document.createElement("h3");
-   heading.textContent="Edit Driver Information";
+  editButton.onclick=()=>editBox.classList.toggle("hidden");
 
-   const fields=[
-    ["name","Driver Name",d.name||""],
-    ["email","Email",d.email||""],
-    ["phone","Mobile Number",d.phone||""],
-    ["vehicleNumber","Vehicle Number",d.vehicleNumber||""],
-    ["vehicleModel","Vehicle Model",d.vehicleModel||""],
-    ["licenseNumber","Driving Licence Number",d.licenseNumber||""]
-   ];
+  const heading=document.createElement("h3");
+  heading.textContent="Edit Driver Information";
 
-   const inputs={};
+  const fields=[
+   ["name","Driver Name",d.name||""],
+   ["email","Email",d.email||""],
+   ["phone","Mobile Number",d.phone||""],
+   ["vehicleNumber","Vehicle Number",d.vehicleNumber||""],
+   ["vehicleModel","Vehicle Model",d.vehicleModel||""],
+   ["licenseNumber","Driving Licence Number",d.licenseNumber||""]
+  ];
 
-   fields.forEach(([key,label,value])=>{
-    const fieldLabel=document.createElement("label");
-    fieldLabel.textContent=label;
+  const inputs={};
 
-    const input=document.createElement("input");
-    input.type="text";
-    input.value=value;
-    input.placeholder=label;
-    input.autocomplete="off";
+  fields.forEach(([key,label,value])=>{
+   const fieldLabel=document.createElement("label");
+   fieldLabel.textContent=label;
 
-    inputs[key]=input;
-    editBox.append(fieldLabel,input);
-   });
+   const input=document.createElement("input");
+   input.type="text";
+   input.value=value;
+   input.placeholder=label;
+   input.autocomplete="off";
 
-   const save=document.createElement("button");
-   save.className="green";
-   save.textContent="💾 Save Driver Profile";
-   save.onclick=()=>saveDriverProfile(d.id,inputs,save);
+   inputs[key]=input;
+   editBox.append(fieldLabel,input);
+  });
 
-   const cancel=document.createElement("button");
-   cancel.className="grey";
-   cancel.textContent="Cancel";
-   cancel.onclick=()=>editBox.classList.add("hidden");
+  const save=document.createElement("button");
+  save.className="green";
+  save.textContent="💾 Save Driver Profile";
+  save.onclick=()=>saveDriverProfile(d.id,inputs,save);
 
-   editBox.append(heading,save,cancel);
-   el.append(editButton,editBox);
-  }
+  const cancel=document.createElement("button");
+  cancel.className="grey";
+  cancel.textContent="Cancel";
+  cancel.onclick=()=>editBox.classList.add("hidden");
+
+  editBox.append(heading,save,cancel);
+  el.append(editButton,editBox);
 
   const verify=document.createElement("button");
   verify.textContent=d.verified?"Verification हटाएँ":"✅ Verify Driver";
@@ -462,9 +537,15 @@ function renderDrivers(){
 
 // SAVE DRIVER PROFILE
 async function saveDriverProfile(id,inputs,button){
+ if(id===ADMIN_UID){
+  alert("Admin Profile को Driver Profile की तरह Edit नहीं किया जा सकता।");
+  return;
+ }
+
  if(!confirm("क्या आप Driver की Profile जानकारी Save करना चाहते हैं?"))return;
 
  const data={};
+
  for(const key of Object.keys(inputs)){
   data[key]=inputs[key].value.trim();
   if(!data[key]){
@@ -515,9 +596,15 @@ async function saveDriverProfile(id,inputs,button){
  }
 }
 
-// CHANGE STATUS
+// CHANGE DRIVER STATUS
 async function changeDriver(id,changes){
+ if(id===ADMIN_UID){
+  alert("Admin Account का Driver Status नहीं बदला जा सकता।");
+  return;
+ }
+
  if(!confirm("क्या आप Driver Status बदलना चाहते हैं?"))return;
+
  try{
   await updateDoc(doc(db,"Drivers",id),{
    ...changes,
@@ -533,13 +620,17 @@ async function changeDriver(id,changes){
 async function showPrivateDetails(bookingId,button){
  button.disabled=true;
  button.textContent="लोड हो रहा है...";
+
  try{
   const snap=await getDoc(doc(db,"BookingPrivate",bookingId));
+
   if(!snap.exists()){
    alert("Private Customer Details उपलब्ध नहीं हैं।");
    return;
   }
+
   const d=snap.data();
+
   alert(
    "Customer Phone: "+(d.customerPhone||"—")+
    "\nCustomer Email: "+(d.customerEmail||"—")+
