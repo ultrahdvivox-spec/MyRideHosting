@@ -1,3 +1,246 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111111">
+<title>WHERE IS MY RIDE - Admin</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:#f1f5f9;color:#172033;font-family:Arial}
+header{background:#111;color:#fff;padding:18px;border-radius:12px;margin-bottom:12px}
+header h2{margin:0;color:#ffcc00}
+.card{background:#fff;padding:14px;margin:12px 0;border-radius:12px;box-shadow:0 2px 8px #0001}
+input,select,button{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:8px;font-size:15px}
+button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.red{background:#dc2626;color:white}
+.green{background:#15803d;color:white}
+.gray{background:#475569;color:white}
+.blue{background:#2563eb;color:white}
+.small{font-size:13px;color:#64748b;word-break:break-word}
+.hidden{display:none!important}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#111;color:white;padding:14px;border-radius:10px}
+.stat b{display:block;color:#ffcc00;font-size:24px;margin-top:5px}
+.tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.tabs button{margin:0}
+.section{display:none}
+.section.active{display:block}
+#hotelMap{height:300px;width:100%;border-radius:10px;margin-top:10px}
+.result{padding:10px;border:1px solid #ddd;border-radius:8px;margin:7px 0;background:#fff}
+.hotel-card,.booking-card,.driver-card,.expense-card{border:1px solid #e2e8f0;padding:12px;border-radius:10px;margin:10px 0}
+.status{font-weight:bold}
+#qrBox{text-align:center;padding:12px}
+#qrCanvas{margin:auto}
+.finance-stat{background:#111;color:#fff;padding:14px;border-radius:10px;min-width:0}
+.finance-stat span{font-size:12px;color:#cbd5e1}
+.finance-stat b{display:block;color:#ffcc00;font-size:23px;margin-top:7px;overflow-wrap:anywhere}
+.finance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.finance-line{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #e2e8f0}
+.finance-line:last-child{border-bottom:0}
+.finance-warning{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:12px;border-radius:9px;margin:10px 0}
+.finance-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;padding:12px;border-radius:9px;margin:10px 0}
+.finance-success{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:12px;border-radius:9px;margin:10px 0}
+.finance-table{width:100%;border-collapse:collapse;font-size:13px}
+.finance-table th,.finance-table td{padding:10px 6px;border-bottom:1px solid #e2e8f0;text-align:left}
+.finance-table th{background:#f8fafc}
+.finance-scroll{overflow-x:auto}
+.expense-card{background:#fff}
+.expense-card b{color:#111}
+.expense-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.expense-actions button{margin:4px 0}
+@media(min-width:700px){
+.tabs{grid-template-columns:repeat(5,1fr)}
+.finance-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>🚗 WHERE IS MY RIDE</h2>
+<p>ADMIN CONTROL PANEL • BHILWARA</p>
+</header>
+
+<div class="card" id="loginBox">
+<h3>👑 Admin Login</h3>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Password">
+<button id="loginBtn">LOGIN</button>
+<p id="loginMsg"></p>
+</div>
+
+<div id="dashboard" class="hidden">
+
+<div class="card">
+<p id="adminInfo" class="small"></p>
+<button id="refreshBtn">🔄 Refresh Data</button>
+<button id="logoutBtn" class="red">Logout</button>
+</div>
+
+<div class="card tabs">
+<button data-tab="overview">📊 Overview</button>
+<button data-tab="bookings">🚕 Bookings</button>
+<button data-tab="drivers">🚘 Drivers</button>
+<button data-tab="hotels">🏨 Hotel Partners</button>
+<button data-tab="finance">💰 Finance</button>
+</div>
+
+<section id="overview" class="section active">
+<div class="card">
+<h3>📊 Dashboard Summary</h3>
+<div class="stats">
+<div class="stat">Total Bookings<b id="totalBookings">0</b></div>
+<div class="stat">Pending<b id="pendingBookings">0</b></div>
+<div class="stat">Accepted<b id="acceptedBookings">0</b></div>
+<div class="stat">Completed<b id="completedBookings">0</b></div>
+<div class="stat">Total Drivers<b id="totalDrivers">0</b></div>
+<div class="stat">Active Drivers<b id="activeDrivers">0</b></div>
+<div class="stat">Hotel Partners<b id="totalHotels">0</b></div>
+<div class="stat">Active Hotels<b id="activeHotels">0</b></div>
+</div>
+</div>
+</section>
+
+<section id="bookings" class="section">
+<div class="card">
+<h3>📋 All Bookings</h3>
+<select id="bookingFilter">
+<option value="All">All Bookings</option>
+<option>Pending</option>
+<option>Accepted</option>
+<option>Started</option>
+<option>Completed</option>
+<option>Cancelled</option>
+<option>Rejected</option>
+</select>
+<div id="bookingList">Loading...</div>
+</div>
+</section>
+
+<section id="drivers" class="section">
+<div class="card">
+<h3>🚕 Driver Management</h3>
+<select id="driverFilter">
+<option value="All">All Drivers</option>
+<option value="Pending">Verification Pending</option>
+<option value="Active">Active Drivers</option>
+<option value="Inactive">Inactive Drivers</option>
+</select>
+<div id="driverList">Loading...</div>
+</div>
+</section>
+
+<section id="hotels" class="section">
+
+<div class="card">
+<h3>🏨 Hotel Partner Registration</h3>
+<p class="small">होटल का नाम खोजें, फिर Map पर सही लोकेशन चुनें।</p>
+
+<input id="hotelName" placeholder="Hotel Name">
+<input id="hotelAddress" placeholder="Hotel Address">
+<input id="hotelPhone" placeholder="Hotel Phone">
+<input id="hotelCity" value="Bhilwara" placeholder="City">
+
+<hr>
+<h3>📍 Free Hotel Location Search</h3>
+<input id="hotelSearch" placeholder="Hotel Name या Address खोजें">
+<button id="searchHotelBtn">🔍 Search Hotel</button>
+<div id="searchResults"></div>
+
+<div id="hotelMap"></div>
+<p id="locationStatus" class="small">Map पर होटल की सही जगह चुनें।</p>
+<input id="hotelLat" placeholder="Latitude" readonly>
+<input id="hotelLng" placeholder="Longitude" readonly>
+
+<button id="googleMapBtn" class="blue">Google Maps पर देखें</button>
+<button id="clearLocationBtn" class="gray">Clear Location</button>
+
+<hr>
+<button id="saveHotelBtn">💾 Register Hotel Partner</button>
+<button id="cancelEditBtn" class="gray hidden">Cancel Edit</button>
+<p id="hotelMsg" class="small"></p>
+</div>
+
+<div class="card">
+<h3>🏨 Registered Hotel Partners</h3>
+<div id="hotelList">Loading...</div>
+</div>
+
+<div class="card hidden" id="qrBox">
+<h3>Hotel QR Code</h3>
+<div id="qrCanvas"></div>
+<p id="qrHotelName"></p>
+<button id="closeQRBtn" class="gray">Close QR</button>
+<button id="printQRBtn">Print QR Code</button>
+</div>
+</section>
+
+<section id="finance" class="section">
+
+<div class="card">
+<h3>💰 Finance Dashboard</h3>
+<p class="small">Monthly Ride, Payment & Expense Report</p>
+<label for="financeMonth"><b>रिपोर्ट का महीना चुनें</b></label>
+<input type="month" id="financeMonth">
+<button id="financeRefreshBtn" class="blue">🔄 Refresh Finance</button>
+<div class="finance-info">
+<b>ध्यान दें:</b> Ride Fare Driver की कमाई है। इसे WHERE IS MY RIDE की Platform Income न समझें।
+</div>
+</div>
+
+<div class="card">
+<h3>📊 Monthly Summary</h3>
+<div class="finance-grid">
+<div class="finance-stat"><span>Completed Rides</span><b id="finCompleted">0</b></div>
+<div class="finance-stat"><span>Total Ride Fare</span><b id="finFare">₹0</b></div>
+<div class="finance-stat"><span>Paid Amount</span><b id="finPaid">₹0</b></div>
+<div class="finance-stat"><span>Pending Amount</span><b id="finPending">₹0</b></div>
+</div>
+</div>
+
+<div class="card">
+<h3>💳 Payment Collection</h3>
+<div class="finance-line"><span>Cash Paid</span><b id="finCash">₹0</b></div>
+<div class="finance-line"><span>UPI Paid</span><b id="finUPI">₹0</b></div>
+<div class="finance-line"><span>Other / Unknown Paid</span><b id="finOtherPaid">₹0</b></div>
+<div class="finance-line"><span>Payment Pending</span><b id="finPendingCount">0 rides</b></div>
+<div class="finance-line"><span>Payment Status Missing</span><b id="finUnknownPayment">0 rides</b></div>
+</div>
+
+<div class="card">
+<h3>🚕 Driver Earnings</h3>
+<div class="finance-line"><span>Driver Gross Fare</span><b id="finDriverFare">₹0</b></div>
+<div class="finance-line"><span>Driver Paid Fare</span><b id="finDriverPaid">₹0</b></div>
+<div class="finance-line"><span>Driver Pending Fare</span><b id="finDriverPending">₹0</b></div>
+<p class="small">यह Booking में दर्ज Fare का हिसाब है। वास्तविक Driver settlement की पुष्टि अलग से करनी होगी।</p>
+</div>
+
+<div class="card">
+<h3>🏢 WHERE IS MY RIDE Income</h3>
+<div class="finance-line"><span>Platform Fee Income</span><b id="finPlatformIncome">₹0</b></div>
+<div class="finance-info">
+अभी Platform Fee लागू नहीं है। पहले छह महीने Customer Fee ₹0 रखने का प्रस्ताव है। भविष्य में Fee लागू करने से पहले स्पष्ट निर्णय और Customer को जानकारी देना जरूरी होगा।
+</div>
+</div>
+
+<div class="card">
+<h3>➕ Add Finance Expense</h3>
+<p class="small">केवल वास्तविक और सत्यापित खर्च दर्ज करें। एक ही खर्च दोबारा दर्ज न करें।</p>
+
+<label for="expenseDate"><b>खर्च की तारीख</b></label>
+<input type="date" id="expenseDate">
+
+<label for="expenseAmount"><b>खर्च की रकम (₹)</b></label>
+<input type="number" id="expenseAmount" min="0.01" max="10000000" step="0.01" placeholder="उदाहरण: 500">
+
+<label for="expenseCategory"><b>खर्च की Category</b></label>
 <select id="expenseCategory">
 <option value="">Category चुनें</option>
 <option value="Firebase / Server">Firebase / Server</option>
@@ -7,3 +250,811 @@
 <option value="Support / Operations">Support / Operations</option>
 <option value="Other">Other</option>
 </select>
+
+<label for="expenseDescription"><b>खर्च का विवरण</b></label>
+<input id="expenseDescription" maxlength="200" placeholder="खर्च किस काम के लिए हुआ?">
+
+<button id="saveExpenseBtn">💾 Save Expense</button>
+<button id="cancelExpenseEditBtn" class="gray hidden">Cancel Edit</button>
+<p id="expenseMsg" class="small"></p>
+</div>
+
+<div class="card">
+<h3>📉 Expenses & Profit / Loss</h3>
+<div class="finance-line"><span>Recorded Expenses</span><b id="finExpenses">Loading...</b></div>
+<div class="finance-line"><span>Platform Income</span><b id="finProfitIncome">₹0</b></div>
+<div class="finance-line"><span>Recorded Net (Income − Expenses)</span><b id="finProfit">Loading...</b></div>
+<div id="profitWarning" class="finance-warning">खर्च और आय का डेटा जाँचा जा रहा है।</div>
+</div>
+
+<div class="card">
+<h3>🧾 Monthly Expense Records</h3>
+<p class="small">इस महीने दर्ज किए गए खर्च। गलत रिकॉर्ड को Edit या Delete किया जा सकता है।</p>
+<div id="expenseList">Loading...</div>
+</div>
+
+<div class="card">
+<h3>⚠️ Finance Data Alerts</h3>
+<div id="financeAlerts" class="small">Finance data loading...</div>
+</div>
+
+<div class="card">
+<h3>📋 Monthly Ride Details</h3>
+<div class="finance-scroll">
+<table class="finance-table">
+<thead>
+<tr><th>Booking</th><th>Fare</th><th>Method</th><th>Payment</th><th>Completed</th></tr>
+</thead>
+<tbody id="financeRideList">
+<tr><td colspan="5">Loading...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+import {
+getFirestore,collection,doc,onSnapshot,updateDoc,
+serverTimestamp,writeBatch,addDoc,deleteDoc,Timestamp
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyDKWUV2Qx_Jm7R_NVlLNcdUKLAWyZn3P6s",
+authDomain:"myridebhilwara-45652.firebaseapp.com",
+projectId:"myridebhilwara-45652",
+storageBucket:"myridebhilwara-45652.firebasestorage.app",
+messagingSenderId:"819961031572",
+appId:"1:819961031572:web:b7e1f401c90d7335203d81",
+measurementId:"G-WTYS5RWL4V"
+};
+
+const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const $=id=>document.getElementById(id);
+
+let bookings=[],drivers=[],hotels=[],expenses=[];
+let unsubBookings=null,unsubDrivers=null,unsubHotels=null,unsubExpenses=null;
+let map=null,marker=null;
+let selectedHotelLocation=false;
+let editingHotelId=null,currentQRUrl="";
+let editingExpenseId=null;
+let expenseReadReady=false,expenseReadError="";
+
+function msg(id,text){$(id).textContent=text;}
+
+function safe(value){
+return String(value??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+}
+
+function money(value){
+return "₹"+Number(value||0).toLocaleString("en-IN",{maximumFractionDigits:2});
+}
+
+/* NAVIGATION */
+document.querySelectorAll("[data-tab]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+$(btn.dataset.tab).classList.add("active");
+if(btn.dataset.tab==="hotels"){
+setTimeout(()=>{initMap();if(map)map.invalidateSize();},200);
+}
+if(btn.dataset.tab==="finance")renderFinance();
+});
+});
+
+/* LOGIN */
+$("loginBtn").addEventListener("click",async()=>{
+const email=$("email").value.trim();
+const password=$("password").value;
+if(!email||!password){msg("loginMsg","Email और Password भरें।");return;}
+try{
+const result=await signInWithEmailAndPassword(auth,email,password);
+if(result.user.uid!==ADMIN_UID){
+await signOut(auth);
+msg("loginMsg","यह Account Admin नहीं है।");
+}
+}catch(e){msg("loginMsg","Login Error: "+e.message);}
+});
+
+function showDashboard(user){
+$("loginBox").classList.add("hidden");
+$("dashboard").classList.remove("hidden");
+msg("adminInfo","Admin UID: "+user.uid);
+startLiveData();
+}
+
+function stopLiveData(){
+[unsubBookings,unsubDrivers,unsubHotels,unsubExpenses].forEach(fn=>{if(fn)fn();});
+unsubBookings=unsubDrivers=unsubHotels=unsubExpenses=null;
+}
+
+function startLiveData(){
+stopLiveData();
+
+unsubBookings=onSnapshot(collection(db,"Booking"),snap=>{
+bookings=snap.docs.map(d=>({id:d.id,...d.data()}));
+renderBookings();renderStats();renderFinance();
+},e=>{
+msg("bookingList","Booking Error: "+e.message);
+$("financeAlerts").textContent="Finance Booking Read Error: "+e.message;
+});
+
+unsubDrivers=onSnapshot(collection(db,"Drivers"),snap=>{
+drivers=snap.docs.map(d=>({id:d.id,...d.data()}));
+renderDrivers();renderStats();
+},e=>msg("driverList","Driver Error: "+e.message));
+
+unsubHotels=onSnapshot(collection(db,"Businesses"),snap=>{
+hotels=snap.docs.map(d=>({id:d.id,...d.data()})).filter(h=>h.type==="Hotel");
+renderHotels();renderStats();
+},e=>msg("hotelList","Hotel Error: "+e.message));
+
+expenseReadReady=false;expenseReadError="";
+$("expenseList").textContent="Expenses loading...";
+
+unsubExpenses=onSnapshot(collection(db,"FinanceExpenses"),snap=>{
+expenses=snap.docs.map(d=>({id:d.id,...d.data()}));
+expenseReadReady=true;expenseReadError="";
+renderFinance();
+},e=>{
+expenses=[];expenseReadReady=false;expenseReadError=e.message;
+$("expenseList").textContent="Expense Read Error: "+e.message;
+renderFinance();
+});
+}
+
+function renderStats(){
+$("totalBookings").textContent=bookings.length;
+$("pendingBookings").textContent=bookings.filter(x=>x.status==="Pending").length;
+$("acceptedBookings").textContent=bookings.filter(x=>x.status==="Accepted").length;
+$("completedBookings").textContent=bookings.filter(x=>x.status==="Completed").length;
+$("totalDrivers").textContent=drivers.length;
+$("activeDrivers").textContent=drivers.filter(x=>x.active===true&&x.verified===true).length;
+$("totalHotels").textContent=hotels.length;
+$("activeHotels").textContent=hotels.filter(x=>x.active===true).length;
+}
+
+/* BOOKINGS */
+function renderBookings(){
+const filter=$("bookingFilter").value;
+const list=bookings.filter(b=>filter==="All"||b.status===filter);
+if(!list.length){$("bookingList").textContent="कोई Booking नहीं मिली।";return;}
+
+$("bookingList").innerHTML=list.map(b=>`
+<div class="booking-card">
+<h3>Booking ID: ${safe(b.id)}</h3>
+<p><b>Pickup:</b> ${safe(b.pickup)}</p>
+<p><b>Destination:</b> ${safe(b.destination)}</p>
+<p><b>Vehicle:</b> ${safe(b.vehicleType)}</p>
+<p><b>Fare:</b> ${money(b.fare??b.estimatedFare??0)}</p>
+<p><b>Customer:</b> ${safe(b.customerName)}</p>
+<p><b>Driver:</b> ${safe(b.driverName||"Not Assigned")}</p>
+<p><b>Hotel:</b> ${safe(b.hotelName||"-")}</p>
+<p><b>Status:</b> ${safe(b.status)}</p>
+<select id="status_${safe(b.id)}">
+${["Pending","Accepted","Started","Completed","Cancelled","Rejected"].map(s=>
+`<option value="${s}" ${b.status===s?"selected":""}>${s}</option>`).join("")}
+</select>
+<button data-booking="${safe(b.id)}">Update Booking Status</button>
+</div>`).join("");
+
+$("bookingList").querySelectorAll("[data-booking]").forEach(btn=>{
+btn.addEventListener("click",()=>changeBooking(btn.dataset.booking));
+});
+}
+
+async function changeBooking(id){
+const b=bookings.find(x=>x.id===id);if(!b)return;
+const status=$("status_"+id).value;
+if(status===b.status)return alert("Status पहले से यही है।");
+if(!confirm("Booking status "+status+" करना है?"))return;
+try{
+await updateDoc(doc(db,"Booking",id),{status,adminUpdatedAt:serverTimestamp()});
+alert("Booking status updated.");
+}catch(e){alert("Update Error: "+e.message);}
+}
+
+/* DRIVERS */
+function renderDrivers(){
+const filter=$("driverFilter").value;
+const list=drivers.filter(d=>{
+if(filter==="Pending")return d.verified!==true;
+if(filter==="Active")return d.active===true&&d.verified===true;
+if(filter==="Inactive")return d.active!==true;
+return true;
+});
+if(!list.length){$("driverList").textContent="कोई Driver नहीं मिला।";return;}
+
+$("driverList").innerHTML=list.map(d=>`
+<div class="driver-card">
+<h3>🚕 ${safe(d.name||"Driver")}</h3>
+<p><b>UID:</b> ${safe(d.id)}</p>
+<p><b>Phone:</b> ${safe(d.phone)}</p>
+<p><b>Vehicle:</b> ${safe(d.vehicleNumber)}</p>
+<p><b>Model:</b> ${safe(d.vehicleModel)}</p>
+<p><b>License:</b> ${safe(d.licenseNumber)}</p>
+<p><b>Verified:</b> ${d.verified===true?"Yes":"No"}</p>
+<p><b>Active:</b> ${d.active===true?"Yes":"No"}</p>
+<button class="green" data-action="activate" data-id="${safe(d.id)}">Verify + Activate</button>
+<button class="gray" data-action="inactive" data-id="${safe(d.id)}">Verified + Inactive</button>
+<button class="red" data-action="unverify" data-id="${safe(d.id)}">Unverify + Inactive</button>
+</div>`).join("");
+
+$("driverList").querySelectorAll("[data-action]").forEach(btn=>{
+btn.addEventListener("click",()=>updateDriver(btn.dataset.id,btn.dataset.action));
+});
+}
+
+async function updateDriver(uid,action){
+let verified=false,active=false;
+if(action==="activate"){verified=true;active=true;}
+if(action==="inactive"){verified=true;active=false;}
+if(!confirm("Driver profile update करना है?"))return;
+try{
+await updateDoc(doc(db,"Drivers",uid),{verified,active,updatedAt:serverTimestamp()});
+alert("Driver profile updated.");
+}catch(e){alert("Driver Update Error: "+e.message);}
+}
+
+/* HOTEL MAP */
+function initMap(){
+if(map)return;
+map=L.map("hotelMap").setView([25.34,74.63],12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+maxZoom:19,attribution:"© OpenStreetMap contributors"
+}).addTo(map);
+map.on("click",async e=>setHotelLocation(e.latlng.lat,e.latlng.lng,true));
+}
+
+async function reverseAddress(lat,lng){
+try{
+const r=await fetch("https://photon.komoot.io/reverse?lat="+lat+"&lon="+lng+"&lang=en");
+const data=await r.json();const p=data.features?.[0]?.properties;
+if(p){
+$("hotelAddress").value=makeHotelAddress(p);
+if(p.city||p.locality||p.district)$("hotelCity").value=p.city||p.locality||p.district;
+}
+}catch(e){}
+}
+
+function makeHotelAddress(p){
+return [p.name,p.housenumber,p.street,p.locality,p.district,p.city,p.state,p.postcode,p.country].filter(Boolean).join(", ");
+}
+
+async function setHotelLocation(lat,lng,reverse=false){
+selectedHotelLocation=true;
+$("hotelLat").value=Number(lat).toFixed(7);
+$("hotelLng").value=Number(lng).toFixed(7);
+msg("locationStatus","Selected Location: "+lat.toFixed(5)+", "+lng.toFixed(5));
+if(!map)initMap();
+const point=[lat,lng];
+if(marker)marker.setLatLng(point);
+else{
+marker=L.marker(point,{draggable:true}).addTo(map);
+marker.on("dragend",async()=>{
+const p=marker.getLatLng();await setHotelLocation(p.lat,p.lng,true);
+});
+}
+map.setView(point,16);
+if(reverse)await reverseAddress(lat,lng);
+}
+
+$("searchHotelBtn").addEventListener("click",searchHotels);
+$("hotelSearch").addEventListener("keydown",e=>{
+if(e.key==="Enter"){e.preventDefault();searchHotels();}
+});
+
+async function searchHotels(){
+const q=$("hotelSearch").value.trim();
+if(!q){alert("Hotel का नाम या Address लिखें।");return;}
+$("searchResults").textContent="Searching...";
+try{
+const r=await fetch("https://photon.komoot.io/api/?q="+encodeURIComponent(q)+"&limit=10&lang=en&lat=25.34&lon=74.63");
+const data=await r.json();const results=data.features||[];
+if(!results.length){$("searchResults").textContent="कोई परिणाम नहीं मिला। Map पर खुद जगह चुनें।";return;}
+$("searchResults").innerHTML=results.map((f,i)=>{
+const p=f.properties||{};
+return `<div class="result"><b>${safe(p.name||"Unnamed Place")}</b>
+<p class="small">${safe(makeHotelAddress(p))}</p>
+<button data-result="${i}">यह Hotel Select करें</button></div>`;
+}).join("");
+$("searchResults").querySelectorAll("[data-result]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+const f=results[Number(btn.dataset.result)];const p=f.properties||{};
+const coords=f.geometry.coordinates;
+if(p.name)$("hotelName").value=p.name;
+$("hotelAddress").value=makeHotelAddress(p);
+$("hotelCity").value=p.city||p.locality||p.district||"Bhilwara";
+setHotelLocation(coords[1],coords[0],false);
+});
+});
+}catch(e){$("searchResults").textContent="Search Error: "+e.message;}
+}
+
+$("googleMapBtn").addEventListener("click",()=>{
+const lat=$("hotelLat").value,lng=$("hotelLng").value;
+if(!lat||!lng)return alert("पहले Hotel Location चुनें।");
+window.open("https://www.google.com/maps?q="+lat+","+lng,"_blank");
+});
+
+$("clearLocationBtn").addEventListener("click",clearLocation);
+function clearLocation(){
+selectedHotelLocation=false;
+$("hotelLat").value="";$("hotelLng").value="";
+if(marker&&map){map.removeLayer(marker);marker=null;}
+msg("locationStatus","Location हटाई गई।");
+}
+
+/* HOTEL SAVE / EDIT */
+$("saveHotelBtn").addEventListener("click",saveHotel);
+
+async function saveHotel(){
+const name=$("hotelName").value.trim();
+const address=$("hotelAddress").value.trim();
+const phone=$("hotelPhone").value.trim();
+const city=$("hotelCity").value.trim();
+const lat=Number($("hotelLat").value),lng=Number($("hotelLng").value);
+
+if(!name||!address||!phone||!city){msg("hotelMsg","सभी Hotel Details भरें।");return;}
+if(!selectedHotelLocation||!Number.isFinite(lat)||!Number.isFinite(lng)){
+msg("hotelMsg","पहले Map पर सही Hotel Location चुनें।");return;
+}
+
+const id=editingHotelId||("hotel_"+Date.now());
+const partnerId="WIMR-"+id.slice(-8).toUpperCase();
+
+const businessData={type:"Hotel",partnerId,name,address,phone,city,lat,lng,active:true,updatedAt:serverTimestamp()};
+const publicData={name,address,city,lat,lng,partnerId,active:true,updatedAt:serverTimestamp()};
+
+try{
+const batch=writeBatch(db);
+const businessRef=doc(db,"Businesses",id);
+const publicRef=doc(db,"HotelPublic",id);
+if(!editingHotelId){businessData.createdAt=serverTimestamp();publicData.createdAt=serverTimestamp();}
+batch.set(businessRef,businessData,{merge:true});
+batch.set(publicRef,publicData,{merge:true});
+await batch.commit();
+msg("hotelMsg",editingHotelId?"Hotel Updated Successfully":"Hotel Registered Successfully");
+resetHotelForm();
+}catch(e){msg("hotelMsg","Hotel Save Error: "+e.message);}
+}
+
+function resetHotelForm(){
+editingHotelId=null;
+$("hotelName").value="";$("hotelAddress").value="";$("hotelPhone").value="";
+$("hotelCity").value="Bhilwara";$("hotelSearch").value="";
+$("searchResults").innerHTML="";clearLocation();
+$("saveHotelBtn").textContent="💾 Register Hotel Partner";
+$("cancelEditBtn").classList.add("hidden");
+}
+
+$("cancelEditBtn").addEventListener("click",resetHotelForm);
+
+function renderHotels(){
+if(!hotels.length){$("hotelList").textContent="अभी कोई Hotel Partner नहीं है।";return;}
+$("hotelList").innerHTML=hotels.map(h=>`
+<div class="hotel-card">
+<h3>🏨 ${safe(h.name)}</h3>
+<p><b>Partner ID:</b> ${safe(h.partnerId)}</p>
+<p><b>Address:</b> ${safe(h.address)}</p>
+<p><b>Phone:</b> ${safe(h.phone)}</p>
+<p><b>City:</b> ${safe(h.city)}</p>
+<p><b>Status:</b> ${h.active===true?"Active":"Inactive"}</p>
+<p class="small">GPS: ${safe(h.lat)}, ${safe(h.lng)}</p>
+<button data-hotel-action="qr" data-id="${safe(h.id)}">QR Code देखें</button>
+<button class="blue" data-hotel-action="report" data-id="${safe(h.id)}">Booking Report</button>
+<button class="gray" data-hotel-action="edit" data-id="${safe(h.id)}">Edit Hotel</button>
+<button class="${h.active===true?"red":"green"}" data-hotel-action="toggle" data-id="${safe(h.id)}">${h.active===true?"Deactivate":"Activate"}</button>
+<a target="_blank" href="https://www.google.com/maps?q=${encodeURIComponent(h.lat+","+h.lng)}">Google Maps Location</a>
+</div>`).join("");
+
+$("hotelList").querySelectorAll("[data-hotel-action]").forEach(btn=>{
+btn.addEventListener("click",()=>{
+const h=hotels.find(x=>x.id===btn.dataset.id);if(!h)return;
+const action=btn.dataset.hotelAction;
+if(action==="qr")showQR(h);
+if(action==="report")hotelReport(h);
+if(action==="edit")editHotel(h);
+if(action==="toggle")toggleHotel(h);
+});
+});
+}
+
+function editHotel(h){
+editingHotelId=h.id;
+$("hotelName").value=h.name||"";
+$("hotelAddress").value=h.address||"";
+$("hotelPhone").value=h.phone||"";
+$("hotelCity").value=h.city||"Bhilwara";
+$("hotelLat").value=h.lat??"";$("hotelLng").value=h.lng??"";
+selectedHotelLocation=Number.isFinite(Number(h.lat))&&Number.isFinite(Number(h.lng));
+if(selectedHotelLocation)setHotelLocation(Number(h.lat),Number(h.lng),false);
+$("saveHotelBtn").textContent="💾 Update Hotel";
+$("cancelEditBtn").classList.remove("hidden");
+document.querySelector('[data-tab="hotels"]').click();
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function toggleHotel(h){
+const active=h.active!==true;
+if(!confirm(active?"Hotel Activate करना है?":"Hotel Deactivate करना है?"))return;
+try{
+const batch=writeBatch(db);
+batch.update(doc(db,"Businesses",h.id),{active,updatedAt:serverTimestamp()});
+batch.set(doc(db,"HotelPublic",h.id),{active,updatedAt:serverTimestamp()},{merge:true});
+await batch.commit();alert("Hotel status updated.");
+}catch(e){alert("Hotel Status Error: "+e.message);}
+}
+
+/* HOTEL QR */
+function showQR(h){
+$("qrBox").classList.remove("hidden");
+$("qrCanvas").innerHTML="";
+$("qrHotelName").textContent=h.name+" • "+h.partnerId;
+currentQRUrl="https://myridebhilwara-45652.web.app/customer.html?hotel="+encodeURIComponent(h.id);
+new QRCode($("qrCanvas"),{text:currentQRUrl,width:210,height:210,correctLevel:QRCode.CorrectLevel.H});
+$("qrBox").scrollIntoView({behavior:"smooth"});
+}
+
+$("closeQRBtn").addEventListener("click",()=>$("qrBox").classList.add("hidden"));
+
+$("printQRBtn").addEventListener("click",()=>{
+const qr=$("qrCanvas").querySelector("img")?.src||$("qrCanvas").querySelector("canvas")?.toDataURL();
+if(!qr)return alert("QR Code तैयार नहीं है।");
+const w=window.open("","_blank");
+if(!w)return alert("Pop-up blocked. Browser में pop-up allow करें।");
+w.document.write(`<html><body style="text-align:center;font-family:Arial">
+<h2>${safe($("qrHotelName").textContent)}</h2>
+<img src="${qr}" style="width:250px;height:250px">
+<p>Scan to Book a Ride</p><p>WHERE IS MY RIDE</p>
+<script>window.onload=()=>window.print();<\/script>
+</body></html>`);
+w.document.close();
+});
+
+/* HOTEL REPORT */
+function hotelReport(h){
+const list=bookings.filter(b=>b.hotelId===h.id);
+const total=list.length;
+const completed=list.filter(b=>b.status==="Completed").length;
+const pending=list.filter(b=>b.status==="Pending").length;
+const accepted=list.filter(b=>b.status==="Accepted").length;
+let fare=0;list.forEach(b=>fare+=Number(b.fare??b.estimatedFare??0));
+alert("Hotel: "+h.name+"\nTotal Bookings: "+total+"\nPending: "+pending+
+"\nAccepted: "+accepted+"\nCompleted: "+completed+"\nTotal Fare: ₹"+fare);
+}
+
+/* DATE HELPERS */
+function bookingDate(value){
+if(!value)return null;
+if(typeof value.toDate==="function")return value.toDate();
+if(value instanceof Date)return value;
+if(typeof value==="number")return new Date(value);
+if(typeof value==="string"){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}
+if(typeof value.seconds==="number")return new Date(value.seconds*1000);
+return null;
+}
+
+function dateForInput(value){
+const d=bookingDate(value);
+if(!d)return "तारीख उपलब्ध नहीं";
+return d.toLocaleDateString("en-IN");
+}
+
+function selectedFinanceMonth(){return $("financeMonth").value;}
+
+function isInSelectedMonth(value,year,monthNumber){
+const d=bookingDate(value);
+return !!d&&d.getFullYear()===year&&d.getMonth()+1===monthNumber;
+}
+
+/* EXPENSE FORM */
+function resetExpenseForm(){
+editingExpenseId=null;
+$("expenseDate").value=new Date().toLocaleDateString("en-CA");
+$("expenseAmount").value="";
+$("expenseCategory").value="";
+$("expenseDescription").value="";
+$("saveExpenseBtn").textContent="💾 Save Expense";
+$("cancelExpenseEditBtn").classList.add("hidden");
+}
+
+$("cancelExpenseEditBtn").addEventListener("click",()=>{
+resetExpenseForm();msg("expenseMsg","Edit Cancelled.");
+});
+
+$("saveExpenseBtn").addEventListener("click",saveExpense);
+
+async function saveExpense(){
+const dateValue=$("expenseDate").value;
+const amount=Number($("expenseAmount").value);
+const category=$("expenseCategory").value;
+const description=$("expenseDescription").value.trim();
+
+if(!dateValue){msg("expenseMsg","खर्च की तारीख चुनें।");return;}
+if(!Number.isFinite(amount)||amount<=0||amount>10000000){
+msg("expenseMsg","सही खर्च रकम दर्ज करें।");return;
+}
+if(!category){msg("expenseMsg","Expense Category चुनें।");return;}
+if(description.length<2||description.length>200){
+msg("expenseMsg","विवरण कम से कम 2 और अधिकतम 200 अक्षर का हो।");return;
+}
+
+const expenseDateObject=new Date(dateValue+"T12:00:00");
+if(Number.isNaN(expenseDateObject.getTime())){
+msg("expenseMsg","खर्च की तारीख सही नहीं है。");return;
+}
+
+/*
+Firestore Rules के साथ जरूरी field names:
+title, note, category, amount, expenseDate,
+createdAt, createdBy, updatedAt
+*/
+const expenseData={
+title:description.slice(0,100),
+note:description,
+category,
+amount,
+expenseDate:Timestamp.fromDate(expenseDateObject)
+};
+
+try{
+$("saveExpenseBtn").disabled=true;
+
+if(editingExpenseId){
+await updateDoc(doc(db,"FinanceExpenses",editingExpenseId),{
+...expenseData,
+updatedAt:serverTimestamp()
+});
+msg("expenseMsg","Expense Successfully Updated.");
+}else{
+if(!auth.currentUser||auth.currentUser.uid!==ADMIN_UID){
+throw new Error("Admin session verify नहीं हुआ।");
+}
+await addDoc(collection(db,"FinanceExpenses"),{
+...expenseData,
+createdAt:serverTimestamp(),
+createdBy:auth.currentUser.uid
+});
+msg("expenseMsg","Expense Successfully Saved.");
+}
+
+resetExpenseForm();
+renderFinance();
+
+}catch(e){
+msg("expenseMsg","Expense Save Error: "+e.message);
+}finally{
+$("saveExpenseBtn").disabled=false;
+}
+}
+
+function editExpense(id){
+const item=expenses.find(x=>x.id===id);
+if(!item)return;
+const d=bookingDate(item.expenseDate);
+if(!d)return alert("इस Expense की तारीख पढ़ी नहीं जा सकी।");
+
+editingExpenseId=id;
+$("expenseDate").value=d.getFullYear()+"-"+
+String(d.getMonth()+1).padStart(2,"0")+"-"+
+String(d.getDate()).padStart(2,"0");
+$("expenseAmount").value=item.amount??"";
+$("expenseCategory").value=item.category||"";
+$("expenseDescription").value=item.note||item.description||item.title||"";
+$("saveExpenseBtn").textContent="💾 Update Expense";
+$("cancelExpenseEditBtn").classList.remove("hidden");
+msg("expenseMsg","Expense Edit Mode: "+id);
+$("expenseDate").scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+async function removeExpense(id){
+const item=expenses.find(x=>x.id===id);
+if(!item)return;
+if(!confirm("क्या यह Expense Record हमेशा के लिए Delete करना है?"))return;
+try{
+await deleteDoc(doc(db,"FinanceExpenses",id));
+msg("expenseMsg","Expense Deleted Successfully.");
+if(editingExpenseId===id)resetExpenseForm();
+}catch(e){msg("expenseMsg","Delete Error: "+e.message);}
+}
+
+function renderExpenseList(year,monthNumber){
+if(!expenseReadReady){
+$("expenseList").textContent=expenseReadError?
+"Expense Read Error: "+expenseReadError:"Expenses loading...";
+return;
+}
+
+const list=expenses.filter(x=>isInSelectedMonth(x.expenseDate,year,monthNumber))
+.sort((a,b)=>(bookingDate(b.expenseDate)?.getTime()||0)-(bookingDate(a.expenseDate)?.getTime()||0));
+
+if(!list.length){
+$("expenseList").innerHTML='<div class="finance-info">इस महीने अभी कोई Expense Record दर्ज नहीं है। यदि खर्च हुआ है तो उसे दर्ज करें।</div>';
+return;
+}
+
+$("expenseList").innerHTML=list.map(x=>`
+<div class="expense-card">
+<h4>${safe(x.category||"Other")} • ${money(x.amount)}</h4>
+<p><b>Date:</b> ${safe(dateForInput(x.expenseDate))}</p>
+<p><b>Description:</b> ${safe(x.note||x.description||x.title||"-")}</p>
+<p class="small">Expense ID: ${safe(x.id)}</p>
+<div class="expense-actions">
+<button class="blue" data-expense-edit="${safe(x.id)}">Edit</button>
+<button class="red" data-expense-delete="${safe(x.id)}">Delete</button>
+</div>
+</div>`).join("");
+
+$("expenseList").querySelectorAll("[data-expense-edit]").forEach(btn=>{
+btn.addEventListener("click",()=>editExpense(btn.dataset.expenseEdit));
+});
+$("expenseList").querySelectorAll("[data-expense-delete]").forEach(btn=>{
+btn.addEventListener("click",()=>removeExpense(btn.dataset.expenseDelete));
+});
+}
+
+/* FINANCE DASHBOARD */
+function renderFinance(){
+if(!$("financeMonth").value){
+const now=new Date();
+$("financeMonth").value=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+}
+
+const month=selectedFinanceMonth();
+if(!month)return;
+const parts=month.split("-").map(Number);
+const year=parts[0],monthNumber=parts[1];
+
+const completedAll=bookings.filter(b=>b.status==="Completed");
+const missingDate=completedAll.filter(b=>!bookingDate(b.completedAt));
+const list=completedAll.filter(b=>isInSelectedMonth(b.completedAt,year,monthNumber));
+
+let totalFare=0,paidTotal=0,pendingTotal=0;
+let cashPaid=0,upiPaid=0,otherPaid=0;
+let pendingCount=0,unknownPayment=0,missingFare=0,missingMethod=0;
+
+list.forEach(b=>{
+const fareValue=Number(b.fare??b.estimatedFare);
+const validFare=Number.isFinite(fareValue)&&fareValue>=0;
+if(validFare)totalFare+=fareValue;else missingFare++;
+
+const paymentStatus=String(b.paymentStatus||"").trim().toLowerCase();
+const paymentMethod=String(b.paymentMethod||"").trim().toLowerCase();
+
+if(paymentStatus==="paid"){
+if(validFare)paidTotal+=fareValue;
+if(paymentMethod==="cash"){if(validFare)cashPaid+=fareValue;}
+else if(paymentMethod==="upi"){if(validFare)upiPaid+=fareValue;}
+else{if(validFare)otherPaid+=fareValue;missingMethod++;}
+}else if(paymentStatus==="pending"){
+pendingCount++;if(validFare)pendingTotal+=fareValue;
+}else{unknownPayment++;}
+});
+
+$("finCompleted").textContent=list.length;
+$("finFare").textContent=money(totalFare);
+$("finPaid").textContent=money(paidTotal);
+$("finPending").textContent=money(pendingTotal);
+$("finCash").textContent=money(cashPaid);
+$("finUPI").textContent=money(upiPaid);
+$("finOtherPaid").textContent=money(otherPaid);
+$("finPendingCount").textContent=pendingCount+" rides";
+$("finUnknownPayment").textContent=unknownPayment+" rides";
+$("finDriverFare").textContent=money(totalFare);
+$("finDriverPaid").textContent=money(paidTotal);
+$("finDriverPending").textContent=money(pendingTotal);
+
+/* Platform fee अभी लागू नहीं है */
+const platformIncome=0;
+$("finPlatformIncome").textContent=money(platformIncome);
+$("finProfitIncome").textContent=money(platformIncome);
+
+renderExpenseList(year,monthNumber);
+
+if(!expenseReadReady){
+$("finExpenses").textContent="Not Available";
+$("finProfit").textContent="Not Available";
+$("profitWarning").textContent=expenseReadError?
+"Expense records पढ़ने में समस्या है: "+expenseReadError:
+"Expense records अभी load हो रहे हैं। Profit/Loss अभी उपलब्ध नहीं है।";
+}else{
+const monthExpenses=expenses.filter(x=>isInSelectedMonth(x.expenseDate,year,monthNumber));
+const expenseTotal=monthExpenses.reduce((sum,x)=>sum+Number(x.amount||0),0);
+$("finExpenses").textContent=money(expenseTotal);
+const recordedNet=platformIncome-expenseTotal;
+$("finProfit").textContent=(recordedNet<0?"−":"")+money(Math.abs(recordedNet));
+
+if(monthExpenses.length===0){
+$("profitWarning").textContent="इस महीने कोई Expense दर्ज नहीं है। यह केवल उपलब्ध रिकॉर्ड का हिसाब है, वास्तविक Profit/Loss की पुष्टि नहीं।";
+}else{
+$("profitWarning").textContent="यह केवल दर्ज Platform Income और दर्ज Expenses का अंतर है। सभी वास्तविक खर्च दर्ज होने और आय सत्यापित होने तक इसे Final Net Profit/Loss न मानें।";
+}
+}
+
+const alerts=[];
+if(missingDate.length)alerts.push(missingDate.length+" Completed Booking में completedAt missing है।");
+if(missingFare)alerts.push(missingFare+" Completed Booking में valid fare missing है।");
+if(missingMethod)alerts.push(missingMethod+" Paid Booking में Cash/UPI payment method स्पष्ट नहीं है।");
+if(unknownPayment)alerts.push(unknownPayment+" Completed Booking में paymentStatus missing या unknown है।");
+if(list.length===0)alerts.push("इस महीने completedAt के आधार पर कोई Completed Ride नहीं मिली।");
+
+if(!expenseReadReady){
+alerts.push("FinanceExpenses पढ़ने में समस्या: "+(expenseReadError||"Loading"));
+}else if(expenses.filter(x=>isInSelectedMonth(x.expenseDate,year,monthNumber)).length===0){
+alerts.push("इस महीने कोई Expense रिकॉर्ड नहीं है। खर्च हुआ हो तो दर्ज करें।");
+}
+alerts.push("Platform Fee अभी लागू नहीं है। Platform Income ₹0 दिखाई गई है।");
+
+$("financeAlerts").innerHTML=alerts.map(a=>`<div class="finance-warning">${safe(a)}</div>`).join("");
+
+if(!list.length){
+$("financeRideList").innerHTML='<tr><td colspan="5">इस महीने कोई Completed Ride नहीं मिली।</td></tr>';
+}else{
+$("financeRideList").innerHTML=list.map(b=>{
+const d=bookingDate(b.completedAt);
+const dateText=d?d.toLocaleDateString("en-IN"):"Missing";
+const method=b.paymentMethod||"Missing";
+const status=b.paymentStatus||"Missing";
+const fare=b.fare??b.estimatedFare;
+return `<tr>
+<td>${safe(b.id.slice(0,8))}</td>
+<td>${fare===undefined||fare===null?"Missing":money(fare)}</td>
+<td>${safe(method)}</td>
+<td>${safe(status)}</td>
+<td>${safe(dateText)}</td>
+</tr>`;
+}).join("");
+}
+}
+
+$("financeMonth").addEventListener("change",renderFinance);
+$("financeRefreshBtn").addEventListener("click",renderFinance);
+
+/* REFRESH / FILTERS / LOGOUT */
+$("refreshBtn").addEventListener("click",startLiveData);
+$("bookingFilter").addEventListener("change",renderBookings);
+$("driverFilter").addEventListener("change",renderDrivers);
+
+$("logoutBtn").addEventListener("click",async()=>{
+stopLiveData();
+await signOut(auth);
+});
+
+onAuthStateChanged(auth,user=>{
+if(user&&user.uid===ADMIN_UID){
+showDashboard(user);
+}else{
+stopLiveData();
+$("dashboard").classList.add("hidden");
+$("loginBox").classList.remove("hidden");
+}
+});
+
+resetExpenseForm();
+</script>
+
+<footer class="card" style="text-align:center">
+<b>MADE IN INDIA 🇮🇳</b>
+<p class="small">Founder: RITESH SINGH RAJPUT</p>
+<p class="small">WHERE IS MY RIDE • BHILWARA</p>
+</footer>
+
+</body>
+</html>
