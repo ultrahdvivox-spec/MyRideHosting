@@ -32,7 +32,7 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 .section.active{display:block}
 #hotelMap{height:300px;width:100%;border-radius:10px;margin-top:10px}
 .result{padding:10px;border:1px solid #ddd;border-radius:8px;margin:7px 0;background:#fff}
-.hotel-card,.booking-card,.driver-card{border:1px solid #e2e8f0;padding:12px;border-radius:10px;margin:10px 0}
+.hotel-card,.booking-card,.driver-card,.expense-card{border:1px solid #e2e8f0;padding:12px;border-radius:10px;margin:10px 0}
 .status{font-weight:bold}
 #qrBox{text-align:center;padding:12px}
 #qrCanvas{margin:auto}
@@ -50,6 +50,10 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 .finance-table th,.finance-table td{padding:10px 6px;border-bottom:1px solid #e2e8f0;text-align:left}
 .finance-table th{background:#f8fafc}
 .finance-scroll{overflow-x:auto}
+.expense-card{background:#fff}
+.expense-card b{color:#111}
+.expense-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.expense-actions button{margin:4px 0}
 @media(min-width:700px){
 .tabs{grid-template-columns:repeat(5,1fr)}
 .finance-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -150,7 +154,6 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 
 <hr>
 <h3>📍 Free Hotel Location Search</h3>
-
 <input id="hotelSearch" placeholder="Hotel Name या Address खोजें">
 <button id="searchHotelBtn">🔍 Search Hotel</button>
 <div id="searchResults"></div>
@@ -158,7 +161,6 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 <div id="hotelMap"></div>
 
 <p id="locationStatus" class="small">Map पर होटल की सही जगह चुनें।</p>
-
 <input id="hotelLat" placeholder="Latitude" readonly>
 <input id="hotelLng" placeholder="Longitude" readonly>
 
@@ -183,7 +185,6 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 <button id="closeQRBtn" class="gray">Close QR</button>
 <button id="printQRBtn">Print QR Code</button>
 </div>
-
 </section>
 
 <!-- FINANCE -->
@@ -191,11 +192,10 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 
 <div class="card">
 <h3>💰 Finance Dashboard</h3>
-<p class="small">Monthly Ride & Payment Report</p>
+<p class="small">Monthly Ride, Payment & Expense Report</p>
 
 <label for="financeMonth"><b>रिपोर्ट का महीना चुनें</b></label>
 <input type="month" id="financeMonth">
-
 <button id="financeRefreshBtn" class="blue">🔄 Refresh Finance</button>
 
 <div class="finance-info">
@@ -206,91 +206,83 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 <div class="card">
 <h3>📊 Monthly Summary</h3>
 <div class="finance-grid">
-<div class="finance-stat">
-<span>Completed Rides</span>
-<b id="finCompleted">0</b>
-</div>
-<div class="finance-stat">
-<span>Total Ride Fare</span>
-<b id="finFare">₹0</b>
-</div>
-<div class="finance-stat">
-<span>Paid Amount</span>
-<b id="finPaid">₹0</b>
-</div>
-<div class="finance-stat">
-<span>Pending Amount</span>
-<b id="finPending">₹0</b>
-</div>
+<div class="finance-stat"><span>Completed Rides</span><b id="finCompleted">0</b></div>
+<div class="finance-stat"><span>Total Ride Fare</span><b id="finFare">₹0</b></div>
+<div class="finance-stat"><span>Paid Amount</span><b id="finPaid">₹0</b></div>
+<div class="finance-stat"><span>Pending Amount</span><b id="finPending">₹0</b></div>
 </div>
 </div>
 
 <div class="card">
 <h3>💳 Payment Collection</h3>
-
-<div class="finance-line">
-<span>Cash Paid</span>
-<b id="finCash">₹0</b>
-</div>
-<div class="finance-line">
-<span>UPI Paid</span>
-<b id="finUPI">₹0</b>
-</div>
-<div class="finance-line">
-<span>Other / Unknown Paid</span>
-<b id="finOtherPaid">₹0</b>
-</div>
-<div class="finance-line">
-<span>Payment Pending</span>
-<b id="finPendingCount">0 rides</b>
-</div>
-<div class="finance-line">
-<span>Payment Status Missing</span>
-<b id="finUnknownPayment">0 rides</b>
-</div>
+<div class="finance-line"><span>Cash Paid</span><b id="finCash">₹0</b></div>
+<div class="finance-line"><span>UPI Paid</span><b id="finUPI">₹0</b></div>
+<div class="finance-line"><span>Other / Unknown Paid</span><b id="finOtherPaid">₹0</b></div>
+<div class="finance-line"><span>Payment Pending</span><b id="finPendingCount">0 rides</b></div>
+<div class="finance-line"><span>Payment Status Missing</span><b id="finUnknownPayment">0 rides</b></div>
 </div>
 
 <div class="card">
 <h3>🚕 Driver Earnings</h3>
-<div class="finance-line">
-<span>Driver Gross Fare</span>
-<b id="finDriverFare">₹0</b>
-</div>
-<div class="finance-line">
-<span>Driver Paid Fare</span>
-<b id="finDriverPaid">₹0</b>
-</div>
-<div class="finance-line">
-<span>Driver Pending Fare</span>
-<b id="finDriverPending">₹0</b>
-</div>
+<div class="finance-line"><span>Driver Gross Fare</span><b id="finDriverFare">₹0</b></div>
+<div class="finance-line"><span>Driver Paid Fare</span><b id="finDriverPaid">₹0</b></div>
+<div class="finance-line"><span>Driver Pending Fare</span><b id="finDriverPending">₹0</b></div>
 <p class="small">यह Booking में दर्ज Fare का हिसाब है। वास्तविक Driver settlement की पुष्टि अलग से करनी होगी।</p>
 </div>
 
 <div class="card">
 <h3>🏢 WHERE IS MY RIDE Income</h3>
-<div class="finance-line">
-<span>Platform Fee</span>
-<b id="finPlatformIncome">₹0</b>
-</div>
+<div class="finance-line"><span>Platform Fee Income</span><b id="finPlatformIncome">₹0</b></div>
 <div class="finance-info">
-अभी Platform Fee लागू नहीं है। पहले छह महीने Customer Fee ₹0 रखने का प्रस्ताव है। भविष्य में कोई Fee लागू करने से पहले स्पष्ट निर्णय और Customer को जानकारी देना जरूरी होगा।
+अभी Platform Fee लागू नहीं है। पहले छह महीने Customer Fee ₹0 रखने का प्रस्ताव है। भविष्य में Fee लागू करने से पहले स्पष्ट निर्णय और Customer को जानकारी देना जरूरी होगा।
+</div>
+</div>
+
+<!-- EXPENSE FORM -->
+<div class="card">
+<h3>➕ Add Finance Expense</h3>
+<p class="small">केवल वास्तविक और सत्यापित खर्च दर्ज करें। एक ही खर्च दोबारा दर्ज न करें।</p>
+
+<label for="expenseDate"><b>खर्च की तारीख</b></label>
+<input type="date" id="expenseDate">
+
+<label for="expenseAmount"><b>खर्च की रकम (₹)</b></label>
+<input type="number" id="expenseAmount" min="0.01" max="10000000" step="0.01" placeholder="उदाहरण: 500">
+
+<label for="expenseCategory"><b>खर्च की Category</b></label>
+<select id="expenseCategory">
+<option value="">Category चुनें</option>
+<option value="Server">Firebase / Server</option>
+<option value="SMS / OTP">SMS / OTP</option>
+<option value="Payment Gateway">Payment Gateway</option>
+<option value="Maintenance">Maintenance</option>
+<option value="Support / Operations">Support / Operations</option>
+<option value="Other">Other</option>
+</select>
+
+<label for="expenseDescription"><b>खर्च का विवरण</b></label>
+<input id="expenseDescription" maxlength="200" placeholder="खर्च किस काम के लिए हुआ?">
+
+<button id="saveExpenseBtn">💾 Save Expense</button>
+<button id="cancelExpenseEditBtn" class="gray hidden">Cancel Edit</button>
+<p id="expenseMsg" class="small"></p>
+</div>
+
+<!-- EXPENSE REPORT -->
+<div class="card">
+<h3>📉 Expenses & Profit / Loss</h3>
+<div class="finance-line"><span>Recorded Expenses</span><b id="finExpenses">Loading...</b></div>
+<div class="finance-line"><span>Platform Income</span><b id="finProfitIncome">₹0</b></div>
+<div class="finance-line"><span>Recorded Net (Income − Expenses)</span><b id="finProfit">Loading...</b></div>
+<div id="profitWarning" class="finance-warning">
+खर्च और आय का डेटा जाँचा जा रहा है।
 </div>
 </div>
 
 <div class="card">
-<h3>📉 Expenses & Profit / Loss</h3>
-<div class="finance-line">
-<span>Recorded Expenses</span>
-<b id="finExpenses">Not Available</b>
-</div>
-<div class="finance-line">
-<span>Net Profit / Loss</span>
-<b id="finProfit">Not Available</b>
-</div>
-<div class="finance-warning">
-<b>Missing Data:</b> अभी Finance Expenses का कोई सत्यापित रिकॉर्ड उपलब्ध नहीं है। इसलिए Profit/Loss की गणना अधूरी है। इसे ₹0 Profit नहीं माना जाएगा।
-</div>
+<h3>🧾 Monthly Expense Records</h3>
+<p class="small">इस महीने दर्ज किए गए खर्च। गलत रिकॉर्ड को Edit या Delete किया जा सकता है।</p>
+<div id="expenseList">Loading...</div>
 </div>
 
 <div class="card">
@@ -304,11 +296,7 @@ button{background:#ffcc00;color:#111;border:0;font-weight:bold;cursor:pointer}
 <table class="finance-table">
 <thead>
 <tr>
-<th>Booking</th>
-<th>Fare</th>
-<th>Method</th>
-<th>Payment</th>
-<th>Completed</th>
+<th>Booking</th><th>Fare</th><th>Method</th><th>Payment</th><th>Completed</th>
 </tr>
 </thead>
 <tbody id="financeRideList">
@@ -334,7 +322,7 @@ getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut
 
 import {
 getFirestore,collection,doc,onSnapshot,updateDoc,
-serverTimestamp,writeBatch
+serverTimestamp,writeBatch,addDoc,deleteDoc,Timestamp
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -357,15 +345,21 @@ const $=id=>document.getElementById(id);
 let bookings=[];
 let drivers=[];
 let hotels=[];
+let expenses=[];
+
 let unsubBookings=null;
 let unsubDrivers=null;
 let unsubHotels=null;
+let unsubExpenses=null;
 
 let map=null;
 let marker=null;
 let selectedHotelLocation=false;
 let editingHotelId=null;
 let currentQRUrl="";
+let editingExpenseId=null;
+let expenseReadReady=false;
+let expenseReadError="";
 
 function msg(id,text){
 $(id).textContent=text;
@@ -395,10 +389,7 @@ initMap();
 if(map)map.invalidateSize();
 },200);
 }
-
-if(btn.dataset.tab==="finance"){
-renderFinance();
-}
+if(btn.dataset.tab==="finance")renderFinance();
 });
 });
 
@@ -429,12 +420,13 @@ startLiveData();
 }
 
 function stopLiveData(){
-if(unsubBookings)unsubBookings();
-if(unsubDrivers)unsubDrivers();
-if(unsubHotels)unsubHotels();
+[unsubBookings,unsubDrivers,unsubHotels,unsubExpenses].forEach(fn=>{
+if(fn)fn();
+});
 unsubBookings=null;
 unsubDrivers=null;
 unsubHotels=null;
+unsubExpenses=null;
 }
 
 function startLiveData(){
@@ -462,6 +454,23 @@ hotels=snap.docs.map(d=>({id:d.id,...d.data()}))
 renderHotels();
 renderStats();
 },e=>msg("hotelList","Hotel Error: "+e.message));
+
+expenseReadReady=false;
+expenseReadError="";
+$("expenseList").textContent="Expenses loading...";
+
+unsubExpenses=onSnapshot(collection(db,"FinanceExpenses"),snap=>{
+expenses=snap.docs.map(d=>({id:d.id,...d.data()}));
+expenseReadReady=true;
+expenseReadError="";
+renderFinance();
+},e=>{
+expenses=[];
+expenseReadReady=false;
+expenseReadError=e.message;
+$("expenseList").textContent="Expense Read Error: "+e.message;
+renderFinance();
+});
 }
 
 function renderStats(){
@@ -585,7 +594,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
 maxZoom:19,
 attribution:"© OpenStreetMap contributors"
 }).addTo(map);
-
 map.on("click",async e=>{
 await setHotelLocation(e.latlng.lat,e.latlng.lng,true);
 });
@@ -618,7 +626,6 @@ selectedHotelLocation=true;
 $("hotelLat").value=Number(lat).toFixed(7);
 $("hotelLng").value=Number(lng).toFixed(7);
 msg("locationStatus","Selected Location: "+lat.toFixed(5)+", "+lng.toFixed(5));
-
 if(!map)initMap();
 const point=[lat,lng];
 if(marker)marker.setLatLng(point);
@@ -717,25 +724,19 @@ const id=editingHotelId||("hotel_"+Date.now());
 const partnerId="WIMR-"+id.slice(-8).toUpperCase();
 
 const businessData={
-type:"Hotel",
-partnerId,
-name,address,phone,city,
-lat,lng,
-active:true,
-updatedAt:serverTimestamp()
+type:"Hotel",partnerId,name,address,phone,city,lat,lng,
+active:true,updatedAt:serverTimestamp()
 };
 
 const publicData={
-name,address,city,lat,lng,
-partnerId,active:true,
-updatedAt:serverTimestamp()
+name,address,city,lat,lng,partnerId,
+active:true,updatedAt:serverTimestamp()
 };
 
 try{
 const batch=writeBatch(db);
 const businessRef=doc(db,"Businesses",id);
 const publicRef=doc(db,"HotelPublic",id);
-
 if(!editingHotelId){
 businessData.createdAt=serverTimestamp();
 publicData.createdAt=serverTimestamp();
@@ -743,7 +744,6 @@ publicData.createdAt=serverTimestamp();
 batch.set(businessRef,businessData,{merge:true});
 batch.set(publicRef,publicData,{merge:true});
 await batch.commit();
-
 msg("hotelMsg",editingHotelId?"Hotel Updated Successfully":"Hotel Registered Successfully");
 resetHotelForm();
 }catch(e){
@@ -771,7 +771,6 @@ if(!hotels.length){
 $("hotelList").textContent="अभी कोई Hotel Partner नहीं है।";
 return;
 }
-
 $("hotelList").innerHTML=hotels.map(h=>`
 <div class="hotel-card">
 <h3>🏨 ${safe(h.name)}</h3>
@@ -813,10 +812,7 @@ $("hotelCity").value=h.city||"Bhilwara";
 $("hotelLat").value=h.lat??"";
 $("hotelLng").value=h.lng??"";
 selectedHotelLocation=Number.isFinite(Number(h.lat))&&Number.isFinite(Number(h.lng));
-
-if(selectedHotelLocation){
-setHotelLocation(Number(h.lat),Number(h.lng),false);
-}
+if(selectedHotelLocation)setHotelLocation(Number(h.lat),Number(h.lng),false);
 $("saveHotelBtn").textContent="💾 Update Hotel";
 $("cancelEditBtn").classList.remove("hidden");
 document.querySelector('[data-tab="hotels"]').click();
@@ -828,12 +824,8 @@ const active=h.active!==true;
 if(!confirm(active?"Hotel Activate करना है?":"Hotel Deactivate करना है?"))return;
 try{
 const batch=writeBatch(db);
-batch.update(doc(db,"Businesses",h.id),{
-active,updatedAt:serverTimestamp()
-});
-batch.set(doc(db,"HotelPublic",h.id),{
-active,updatedAt:serverTimestamp()
-},{merge:true});
+batch.update(doc(db,"Businesses",h.id),{active,updatedAt:serverTimestamp()});
+batch.set(doc(db,"HotelPublic",h.id),{active,updatedAt:serverTimestamp()},{merge:true});
 await batch.commit();
 alert("Hotel status updated.");
 }catch(e){
@@ -847,11 +839,8 @@ $("qrBox").classList.remove("hidden");
 $("qrCanvas").innerHTML="";
 $("qrHotelName").textContent=h.name+" • "+h.partnerId;
 currentQRUrl="https://myridebhilwara-45652.web.app/customer.html?hotel="+encodeURIComponent(h.id);
-
 new QRCode($("qrCanvas"),{
-text:currentQRUrl,
-width:210,
-height:210,
+text:currentQRUrl,width:210,height:210,
 correctLevel:QRCode.CorrectLevel.H
 });
 $("qrBox").scrollIntoView({behavior:"smooth"});
@@ -885,10 +874,8 @@ const total=list.length;
 const completed=list.filter(b=>b.status==="Completed").length;
 const pending=list.filter(b=>b.status==="Pending").length;
 const accepted=list.filter(b=>b.status==="Accepted").length;
-
 let fare=0;
 list.forEach(b=>fare+=Number(b.fare??b.estimatedFare??0));
-
 alert(
 "Hotel: "+h.name+
 "\nTotal Bookings: "+total+
@@ -899,8 +886,7 @@ alert(
 );
 }
 
-/* FINANCE DASHBOARD */
-
+/* FINANCE DATE HELPERS */
 function bookingDate(value){
 if(!value)return null;
 if(typeof value.toDate==="function")return value.toDate();
@@ -910,23 +896,182 @@ if(typeof value==="string"){
 const d=new Date(value);
 return Number.isNaN(d.getTime())?null:d;
 }
-if(typeof value.seconds==="number"){
-return new Date(value.seconds*1000);
-}
+if(typeof value.seconds==="number")return new Date(value.seconds*1000);
 return null;
+}
+
+function dateForInput(value){
+const d=bookingDate(value);
+if(!d)return "तारीख उपलब्ध नहीं";
+return d.toLocaleDateString("en-IN");
 }
 
 function selectedFinanceMonth(){
 return $("financeMonth").value;
 }
 
+function isInSelectedMonth(value,year,monthNumber){
+const d=bookingDate(value);
+return !!d&&d.getFullYear()===year&&d.getMonth()+1===monthNumber;
+}
+
+/* EXPENSE RECORDING */
+function resetExpenseForm(){
+editingExpenseId=null;
+$("expenseDate").value=new Date().toLocaleDateString("en-CA");
+$("expenseAmount").value="";
+$("expenseCategory").value="";
+$("expenseDescription").value="";
+$("saveExpenseBtn").textContent="💾 Save Expense";
+$("cancelExpenseEditBtn").classList.add("hidden");
+}
+
+$("cancelExpenseEditBtn").addEventListener("click",()=>{
+resetExpenseForm();
+msg("expenseMsg","Edit Cancelled.");
+});
+
+$("saveExpenseBtn").addEventListener("click",saveExpense);
+
+async function saveExpense(){
+const dateValue=$("expenseDate").value;
+const amount=Number($("expenseAmount").value);
+const category=$("expenseCategory").value;
+const description=$("expenseDescription").value.trim();
+
+if(!dateValue){
+msg("expenseMsg","खर्च की तारीख चुनें।");
+return;
+}
+if(!Number.isFinite(amount)||amount<=0||amount>10000000){
+msg("expenseMsg","सही खर्च रकम दर्ज करें।");
+return;
+}
+if(!category){
+msg("expenseMsg","Expense Category चुनें।");
+return;
+}
+if(description.length<2||description.length>200){
+msg("expenseMsg","विवरण कम से कम 2 और अधिकतम 200 अक्षर का हो।");
+return;
+}
+
+/* Noon avoids date shifting across common timezone conversions */
+const expenseDateObject=new Date(dateValue+"T12:00:00");
+if(Number.isNaN(expenseDateObject.getTime())){
+msg("expenseMsg","खर्च की तारीख सही नहीं है।");
+return;
+}
+
+const expenseData={
+expenseDate:Timestamp.fromDate(expenseDateObject),
+amount,
+category,
+description
+};
+
+try{
+$("saveExpenseBtn").disabled=true;
+if(editingExpenseId){
+await updateDoc(doc(db,"FinanceExpenses",editingExpenseId),expenseData);
+msg("expenseMsg","Expense Successfully Updated.");
+}else{
+await addDoc(collection(db,"FinanceExpenses"),{
+...expenseData,
+createdAt:serverTimestamp(),
+createdBy:auth.currentUser.uid
+});
+msg("expenseMsg","Expense Successfully Saved.");
+}
+resetExpenseForm();
+renderFinance();
+}catch(e){
+msg("expenseMsg","Expense Save Error: "+e.message);
+}finally{
+$("saveExpenseBtn").disabled=false;
+}
+}
+
+function editExpense(id){
+const item=expenses.find(x=>x.id===id);
+if(!item)return;
+const d=bookingDate(item.expenseDate);
+if(!d)return alert("इस Expense की तारीख पढ़ी नहीं जा सकी।");
+
+editingExpenseId=id;
+$("expenseDate").value=
+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+$("expenseAmount").value=item.amount??"";
+$("expenseCategory").value=item.category||"";
+$("expenseDescription").value=item.description||"";
+$("saveExpenseBtn").textContent="💾 Update Expense";
+$("cancelExpenseEditBtn").classList.remove("hidden");
+msg("expenseMsg","Expense Edit Mode: "+id);
+$("expenseDate").scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+async function removeExpense(id){
+const item=expenses.find(x=>x.id===id);
+if(!item)return;
+if(!confirm("क्या यह Expense Record हमेशा के लिए Delete करना है?"))return;
+try{
+await deleteDoc(doc(db,"FinanceExpenses",id));
+msg("expenseMsg","Expense Deleted Successfully.");
+if(editingExpenseId===id)resetExpenseForm();
+}catch(e){
+msg("expenseMsg","Delete Error: "+e.message);
+}
+}
+
+function renderExpenseList(month,year,monthNumber){
+if(!expenseReadReady){
+$("expenseList").textContent=expenseReadError?
+"Expense Read Error: "+expenseReadError:
+"Expenses loading...";
+return;
+}
+
+const list=expenses.filter(x=>isInSelectedMonth(x.expenseDate,year,monthNumber))
+.sort((a,b)=>{
+const da=bookingDate(a.expenseDate)?.getTime()||0;
+const dbb=bookingDate(b.expenseDate)?.getTime()||0;
+return dbb-da;
+});
+
+if(!list.length){
+$("expenseList").innerHTML=
+'<div class="finance-info">इस महीने अभी कोई Expense Record दर्ज नहीं है। यदि खर्च हुआ है तो उसे दर्ज करें।</div>';
+return;
+}
+
+$("expenseList").innerHTML=list.map(x=>`
+<div class="expense-card">
+<h4>${safe(x.category||"Other")} • ${money(x.amount)}</h4>
+<p><b>Date:</b> ${safe(dateForInput(x.expenseDate))}</p>
+<p><b>Description:</b> ${safe(x.description)}</p>
+<p class="small">Expense ID: ${safe(x.id)}</p>
+<div class="expense-actions">
+<button class="blue" data-expense-edit="${safe(x.id)}">Edit</button>
+<button class="red" data-expense-delete="${safe(x.id)}">Delete</button>
+</div>
+</div>
+`).join("");
+
+$("expenseList").querySelectorAll("[data-expense-edit]").forEach(btn=>{
+btn.addEventListener("click",()=>editExpense(btn.dataset.expenseEdit));
+});
+$("expenseList").querySelectorAll("[data-expense-delete]").forEach(btn=>{
+btn.addEventListener("click",()=>removeExpense(btn.dataset.expenseDelete));
+});
+}
+
+/* FINANCE DASHBOARD */
 function renderFinance(){
 if(!$("financeMonth").value){
 const now=new Date();
 $("financeMonth").value=
 now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
 }
-
 const month=selectedFinanceMonth();
 if(!month)return;
 
@@ -935,41 +1080,29 @@ const year=parts[0];
 const monthNumber=parts[1];
 
 const completedAll=bookings.filter(b=>b.status==="Completed");
-
 const missingDate=completedAll.filter(b=>!bookingDate(b.completedAt));
 
-const list=completedAll.filter(b=>{
-const d=bookingDate(b.completedAt);
-return d&&d.getFullYear()===year&&d.getMonth()+1===monthNumber;
-});
+const list=completedAll.filter(b=>
+isInSelectedMonth(b.completedAt,year,monthNumber)
+);
 
-let totalFare=0;
-let paidTotal=0;
-let pendingTotal=0;
-let cashPaid=0;
-let upiPaid=0;
-let otherPaid=0;
-let pendingCount=0;
-let unknownPayment=0;
-let missingFare=0;
-let missingMethod=0;
+let totalFare=0,paidTotal=0,pendingTotal=0;
+let cashPaid=0,upiPaid=0,otherPaid=0;
+let pendingCount=0,unknownPayment=0;
+let missingFare=0,missingMethod=0;
 
 list.forEach(b=>{
 const fareValue=Number(b.fare??b.estimatedFare);
 const validFare=Number.isFinite(fareValue)&&fareValue>=0;
 
-if(validFare){
-totalFare+=fareValue;
-}else{
-missingFare++;
-}
+if(validFare)totalFare+=fareValue;
+else missingFare++;
 
 const paymentStatus=String(b.paymentStatus||"").trim().toLowerCase();
 const paymentMethod=String(b.paymentMethod||"").trim().toLowerCase();
 
 if(paymentStatus==="paid"){
 if(validFare)paidTotal+=fareValue;
-
 if(paymentMethod==="cash"){
 if(validFare)cashPaid+=fareValue;
 }else if(paymentMethod==="upi"){
@@ -990,52 +1123,71 @@ $("finCompleted").textContent=list.length;
 $("finFare").textContent=money(totalFare);
 $("finPaid").textContent=money(paidTotal);
 $("finPending").textContent=money(pendingTotal);
-
 $("finCash").textContent=money(cashPaid);
 $("finUPI").textContent=money(upiPaid);
 $("finOtherPaid").textContent=money(otherPaid);
 $("finPendingCount").textContent=pendingCount+" rides";
 $("finUnknownPayment").textContent=unknownPayment+" rides";
-
 $("finDriverFare").textContent=money(totalFare);
 $("finDriverPaid").textContent=money(paidTotal);
 $("finDriverPending").textContent=money(pendingTotal);
 
-/* No platform fee is currently recorded or implemented */
-$("finPlatformIncome").textContent=money(0);
+/* Platform fee is not implemented */
+const platformIncome=0;
+$("finPlatformIncome").textContent=money(platformIncome);
+$("finProfitIncome").textContent=money(platformIncome);
 
-/* Expenses are not yet stored in Firestore */
+renderExpenseList(month,year,monthNumber);
+
+if(!expenseReadReady){
 $("finExpenses").textContent="Not Available";
 $("finProfit").textContent="Not Available";
+$("profitWarning").textContent=expenseReadError?
+"Expense records पढ़ने में समस्या है: "+expenseReadError:
+"Expense records अभी load हो रहे हैं। Profit/Loss अभी उपलब्ध नहीं है।";
+}else{
+const monthExpenses=expenses.filter(x=>
+isInSelectedMonth(x.expenseDate,year,monthNumber)
+);
+const expenseTotal=monthExpenses.reduce((sum,x)=>sum+Number(x.amount||0),0);
+
+$("finExpenses").textContent=money(expenseTotal);
+const recordedNet=platformIncome-expenseTotal;
+$("finProfit").textContent=
+(recordedNet<0?"−":"")+money(Math.abs(recordedNet));
+
+if(monthExpenses.length===0){
+$("profitWarning").textContent=
+"इस महीने कोई Expense दर्ज नहीं है। यदि कोई खर्च हुआ है तो उसे दर्ज करें। यह केवल उपलब्ध रिकॉर्ड का हिसाब है, वास्तविक Profit/Loss की पुष्टि नहीं।";
+}else{
+$("profitWarning").textContent=
+"यह केवल दर्ज Platform Income और दर्ज Expenses का अंतर है। सभी वास्तविक खर्च दर्ज होने और आय सत्यापित होने तक इसे Final Net Profit/Loss न मानें।";
+}
+}
 
 const alerts=[];
-
 if(missingDate.length){
 alerts.push(missingDate.length+
 " Completed Booking में completedAt missing है। इनकी monthly report में गणना नहीं हो सकती।");
 }
-
 if(missingFare){
-alerts.push(missingFare+
-" Completed Booking में valid fare missing है।");
+alerts.push(missingFare+" Completed Booking में valid fare missing है।");
 }
-
 if(missingMethod){
-alerts.push(missingMethod+
-" Paid Booking में Cash/UPI payment method स्पष्ट नहीं है।");
+alerts.push(missingMethod+" Paid Booking में Cash/UPI payment method स्पष्ट नहीं है।");
 }
-
 if(unknownPayment){
-alerts.push(unknownPayment+
-" Completed Booking में paymentStatus missing या unknown है।");
+alerts.push(unknownPayment+" Completed Booking में paymentStatus missing या unknown है।");
 }
-
 if(list.length===0){
 alerts.push("इस महीने completedAt के आधार पर कोई Completed Ride नहीं मिली।");
 }
-
-alerts.push("Expenses का रिकॉर्ड अभी उपलब्ध नहीं है। Profit/Loss अधूरा है।");
-alerts.push("Platform Fee अभी लागू नहीं है और Booking में अलग fee field दर्ज नहीं है।");
+if(!expenseReadReady){
+alerts.push("FinanceExpenses पढ़ने में समस्या: "+(expenseReadError||"Loading"));
+}else if(expenses.filter(x=>isInSelectedMonth(x.expenseDate,year,monthNumber)).length===0){
+alerts.push("इस महीने कोई Expense रिकॉर्ड नहीं है। खर्च हुआ हो तो दर्ज करें।");
+}
+alerts.push("Platform Fee अभी लागू नहीं है। Platform Income ₹0 दिखाई गई है।");
 
 $("financeAlerts").innerHTML=alerts.map(a=>
 `<div class="finance-warning">${safe(a)}</div>`
@@ -1044,16 +1196,13 @@ $("financeAlerts").innerHTML=alerts.map(a=>
 if(!list.length){
 $("financeRideList").innerHTML=
 '<tr><td colspan="5">इस महीने कोई Completed Ride नहीं मिली।</td></tr>';
-return;
-}
-
+}else{
 $("financeRideList").innerHTML=list.map(b=>{
 const d=bookingDate(b.completedAt);
 const dateText=d?d.toLocaleDateString("en-IN"):"Missing";
 const method=b.paymentMethod||"Missing";
 const status=b.paymentStatus||"Missing";
 const fare=b.fare??b.estimatedFare;
-
 return `<tr>
 <td>${safe(b.id.slice(0,8))}</td>
 <td>${fare===undefined||fare===null?"Missing":money(fare)}</td>
@@ -1062,6 +1211,7 @@ return `<tr>
 <td>${safe(dateText)}</td>
 </tr>`;
 }).join("");
+}
 }
 
 $("financeMonth").addEventListener("change",renderFinance);
@@ -1086,6 +1236,8 @@ $("dashboard").classList.add("hidden");
 $("loginBox").classList.remove("hidden");
 }
 });
+
+resetExpenseForm();
 </script>
 
 <footer class="card" style="text-align:center">
