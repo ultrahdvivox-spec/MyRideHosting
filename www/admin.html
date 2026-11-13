@@ -320,6 +320,7 @@ measurementId:"G-WTYS5RWL4V"
 };
 
 const ADMIN_UID="cT4sWJpjCKf6KL7oT4UnbliYDgp2";
+const API_BASE="https://where-is-my-ride-api.onrender.com";
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -505,9 +506,28 @@ async function updateDriver(uid,action){
 let verified=false,active=false;
 if(action==="activate"){verified=true;active=true;}
 if(action==="inactive"){verified=true;active=false;}
+if(action!=="activate"&&action!=="inactive"&&action!=="unverify"){
+return alert("Invalid driver action.");
+}
 if(!confirm("Driver profile update करना है?"))return;
 try{
-await updateDoc(doc(db,"Drivers",uid),{verified,active,updatedAt:serverTimestamp()});
+const user=auth.currentUser;
+if(!user||user.uid!==ADMIN_UID){
+throw new Error("Admin session verify नहीं हुआ।");
+}
+const token=await user.getIdToken();
+const response=await fetch(API_BASE+"/admin/driver-status",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+token
+},
+body:JSON.stringify({driverUid:uid,verified,active})
+});
+const result=await response.json();
+if(!response.ok||!result.success){
+throw new Error(result.error||"Driver update failed");
+}
 alert("Driver profile updated.");
 }catch(e){alert("Driver Update Error: "+e.message);}
 }

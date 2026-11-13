@@ -1424,6 +1424,51 @@ app.post(
 );
 
 // ======================================================
+
+// ======================================================
+// ADMIN DRIVER VERIFY / ACTIVATE / DEACTIVATE
+// POST /admin/driver-status
+// ======================================================
+
+app.post(
+  "/admin/driver-status",
+  requireFirebaseAuth,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      onlyKeys(req.body, ["driverUid", "verified", "active"]);
+
+      if (
+        !validId(req.body.driverUid) ||
+        typeof req.body.verified !== "boolean" ||
+        typeof req.body.active !== "boolean"
+      ) {
+        fail("Invalid Driver UID or status");
+      }
+
+      const ref = db.collection("Drivers").doc(req.body.driverUid);
+      const snap = await ref.get();
+
+      if (!snap.exists) fail("Driver Profile नहीं मिली।", 404);
+
+      await ref.update({
+        verified: req.body.verified,
+        active: req.body.active,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      res.json({
+        success: true,
+        verified: req.body.verified,
+        active: req.body.active
+      });
+
+    } catch (error) {
+      sendError(res, error);
+    }
+  }
+);
+
 // 19. ADMIN ACTIVATE / DEACTIVATE HOTEL
 // POST /admin/hotels/status
 // ======================================================
