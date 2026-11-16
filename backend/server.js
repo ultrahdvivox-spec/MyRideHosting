@@ -143,6 +143,7 @@ app.use(express.json({ limit: "10kb" }));
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 100,
+  skip: (req) => req.path === "/health",
   standardHeaders: "draft-8",
   legacyHeaders: false
 }));
